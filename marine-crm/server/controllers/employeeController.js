@@ -17,10 +17,11 @@ const createEmployee = async (req, res, next) => {
     if (!name || !phone) {
       return res.status(400).json({ success: false, message: 'Name and phone are required.' });
     }
-
+    const count = await Employee.countDocuments();
+    const generatedId = `EMP-${String(count + 1).padStart(3, "0")}`;
     const employee = await Employee.create({
       name: name.trim(),
-      employeeId: employeeId ? employeeId.trim() : null,
+      employeeId: generatedId,
       phone: phone.trim(),
       email: email ? email.toLowerCase().trim() : null,
       location: location ? location.trim() : null,
@@ -50,24 +51,22 @@ const updateEmployee = async (req, res, next) => {
     if (!employee) {
       return res.status(404).json({ success: false, message: 'Employee not found.' });
     }
-
-    const { name, employeeId, phone, email, location, position, joinDate } = req.body;
-    if (name)                   employee.name       = name.trim();
-    if (phone)                  employee.phone      = phone.trim();
-    if (employeeId !== undefined) employee.employeeId = employeeId ? employeeId.trim() : null;
-    if (email      !== undefined) employee.email      = email ? email.toLowerCase().trim() : null;
-    if (location   !== undefined) employee.location   = location ? location.trim() : null;
-    if (position   !== undefined) employee.position   = position ? position.trim() : null;
-    if (joinDate   !== undefined) employee.joinDate   = joinDate ? new Date(joinDate) : null;
+    const { name, phone, email, location, position, joinDate } = req.body;
+    if (name) employee.name = name.trim();
+    if (phone) employee.phone = phone.trim();
+    if (email !== undefined) employee.email = email ? email.toLowerCase().trim() : null;
+    if (location !== undefined) employee.location = location ? location.trim() : null;
+    if (position !== undefined) employee.position = position ? position.trim() : null;
+    if (joinDate !== undefined) employee.joinDate = joinDate ? new Date(joinDate) : null;
 
     await employee.save();
 
     await logActivity({
-      userId:     req.user.id,
+      userId: req.user.id,
       entityType: 'EMPLOYEE',
-      entityId:   employee._id.toString(),
-      action:     'UPDATED',
-      details:    { name: employee.name, updatedByRole: req.user.role },
+      entityId: employee._id.toString(),
+      action: 'UPDATED',
+      details: { name: employee.name, updatedByRole: req.user.role },
     });
 
     res.json({ success: true, data: employee, message: 'Employee updated successfully.' });

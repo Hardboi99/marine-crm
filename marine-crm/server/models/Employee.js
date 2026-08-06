@@ -3,17 +3,29 @@ const mongoose = require('mongoose');
 const employeeSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
-    employeeId: { type: String, trim: true, default: null },
+
+    // 🔥 Updated
+    employeeId: {
+      type: String,
+      trim: true,
+      unique: true,
+      required: true
+    },
+
     phone: { type: String, trim: true, required: true },
     email: { type: String, lowercase: true, trim: true, default: null },
     location: { type: String, trim: true, default: null },
     position: { type: String, trim: true, default: null },
     joinDate: { type: Date, default: null },
+
     createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     createdByName: { type: String, trim: true, required: true },
   },
   { timestamps: true }
 );
+
+// 🔥 Index
+employeeSchema.index({ employeeId: 1 });
 
 employeeSchema.set('toJSON', {
   virtuals: true,
