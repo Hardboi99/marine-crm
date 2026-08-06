@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Appointment Decision Engine - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <style>
+        .outcome-action-btn {
+            padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold;
+            display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;
+        }
+        .yes-btn     { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid #10b981; }
+        .yes-btn:hover { background: #10b981; color: #fff; }
+        .no-btn      { background: rgba(239,68,68,0.1);  color: #ef4444; border: 1px solid #ef4444; }
+        .no-btn:hover  { background: #ef4444;  color: #fff; }
+        .pending-btn { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid #f59e0b; }
+        .pending-btn:hover { background: #f59e0b; color: #fff; }
+        .outcome-actions-container { display: flex; gap: 10px; }
+        .reason-panel, .details-panel { display: none; margin-top: 10px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid #1e293b; }
+    </style>
+</head>
+<body>
+    <div id="sidebar-container"></div>
+    <main class="main-content">
+        <div id="navbar-container"></div>
+        <div class="page-content pageEnter">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin: 0; color: #fff;">📅 Appointment Decision Engine</h1>
+                    <p style="margin: 5px 0 0; color: #94a3b8;">YES / NO / PENDING outcome tracker for vessel owner meetings</p>
+                </div>
+                <button class="btn btn-primary" onclick="openBookModal()">+ Book Appointment</button>
+            </div>
+
+            <div class="filter-bar">
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Outcome Filter</label>
+                    <select id="filter-outcome" class="form-control" onchange="filterTable()">
+                        <option value="">All Outcomes</option>
+                        <option value="YES">✅ YES</option>
+                        <option value="NO">❌ NO</option>
+                        <option value="PENDING">⏳ PENDING</option>
+                        <option value="UNSET">Not Set</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Company Search</label>
+                    <input type="text" id="filter-company" class="form-control" placeholder="Search company..." oninput="filterTable()">
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-container">
+                        <table class="table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #1e293b; background: rgba(0,0,0,0.2);">
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Company</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Scheduled At</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Booked By</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Outcome</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Notes</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="appointments-table">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ── Modal Template: Book Appointment ─────────────────────────── -->
+    <template id="book-appt-modal-content">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Vessel Owner Company <span style="color:#ef4444;">*</span></label>
+                <select id="appt-company" class="form-control">
+                    <option value="">Select Company...</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Scheduled Date &amp; Time <span style="color:#ef4444;">*</span></label>
+                <input type="datetime-local" id="appt-scheduled" class="form-control">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Reminder At (optional)</label>
+                <input type="datetime-local" id="appt-reminder" class="form-control">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Meeting Notes</label>
+                <textarea id="appt-notes" class="form-control" rows="3" placeholder="Agenda, topics to discuss..."></textarea>
+            </div>
+        </div>
+    </template>
+
+    <!-- ── Modal Template: Set Outcome ──────────────────────────────── -->
+    <template id="outcome-modal-content">
+        <div id="outcome-decision-panel">
+            <input type="hidden" id="outcome-appt-id">
+            <div class="outcome-actions-container" style="justify-content:center;margin-bottom:20px;">
+                <button type="button" class="outcome-action-btn yes-btn"     onclick="selectOutcome('YES')"     style="padding:15px 30px;font-size:16px;">✅ YES</button>
+                <button type="button" class="outcome-action-btn no-btn"      onclick="selectOutcome('NO')"      style="padding:15px 30px;font-size:16px;">❌ NO</button>
+                <button type="button" class="outcome-action-btn pending-btn" onclick="selectOutcome('PENDING')" style="padding:15px 30px;font-size:16px;">⏳ PENDING</button>
+            </div>
+            <input type="hidden" id="selected-outcome-val">
+
+            <div class="reason-panel" id="no-reason-panel">
+                <div class="form-group">
+                    <label class="form-label">Reason for NO <span style="color:#ef4444;">*</span></label>
+                    <select id="outcome-reason" class="form-control">
+                        <option value="">Select Reason...</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="details-panel" id="yes-details-panel">
+                <p style="color:#10b981;font-weight:bold;margin:0 0 10px 0;">🎉 Great! Contract details to follow.</p>
+                <p style="color:#94a3b8;font-size:14px;margin:0;">You can proceed to create a contract from the company page.</p>
+            </div>
+
+            <div class="form-group" style="margin-top:15px;">
+                <label class="form-label">Outcome Notes</label>
+                <textarea id="outcome-notes" class="form-control" rows="2"></textarea>
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script>
+        // ─── State ────────────────────────────────────────────────────────────
+        let allAppointments = [];
+        let companies       = [];
+        let reasons         = [];
+        let _bookModal      = null;
+        let _outcomeModal   = null;
+        let _detailsModal   = null;
+
+        // ─── Boot ─────────────────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!localStorage.getItem('token')) {
+                window.location.href = '/pages/login.html';
+                return;
+            }
+            await Promise.all([fetchCompanies(), fetchReasons(), loadAppointments()]);
+        });
+
+        // ─── Data loaders ─────────────────────────────────────────────────────
+        async function fetchCompanies() {
+            try {
+                const res = await window.ApiService.getCompanies();
+                companies = Array.isArray(res.data) ? res.data : [];
+            } catch (err) {
+                console.error('fetchCompanies error:', err);
+            }
+        }
+
+        async function fetchReasons() {
+            try {
+                const res = await window.ApiService.getReasons({ category: 'APPOINTMENT' });
+                reasons = Array.isArray(res.data) ? res.data : [];
+            } catch (err) {
+                console.error('fetchReasons error:', err);
+            }
+        }
+
+        async function loadAppointments() {
+            const tbody = document.getElementById('appointments-table');
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:30px;text-align:center;color:#94a3b8;">Loading…</td></tr>';
+            try {
+                const res = await window.ApiService.getAppointments();
+                allAppointments = Array.isArray(res.data) ? res.data : [];
+                renderTable();
+            } catch (err) {
+                console.error('loadAppointments error:', err);
+                tbody.innerHTML = '<tr><td colspan="6" style="padding:30px;text-align:center;color:#ef4444;">Failed to load. Check server connection.</td></tr>';
+            }
+        }
+
+        // ─── Table ────────────────────────────────────────────────────────────
+        function filterTable() { renderTable(); }
+
+        function getOutcomeBadge(outcome) {
+            if (outcome === 'YES')     return '<span class="badge badge-green">✅ YES</span>';
+            if (outcome === 'NO')      return '<span class="badge badge-red">❌ NO</span>';
+            if (outcome === 'PENDING') return '<span class="badge badge-yellow">⏳ PENDING</span>';
+            return '<span class="badge badge-gray">Not Set</span>';
+        }
+
+        function renderTable() {
+            const outcomeFilter = document.getElementById('filter-outcome')?.value  || '';
+            const companySearch = (document.getElementById('filter-company')?.value || '').toLowerCase();
+
+            const filtered = allAppointments.filter(a => {
+                const matchOut = outcomeFilter === ''       ? true
+                               : outcomeFilter === 'UNSET' ? !a.outcome
+                               : a.outcome === outcomeFilter;
+                const matchCo  = !companySearch || (a.company?.name || '').toLowerCase().includes(companySearch);
+                return matchOut && matchCo;
+            });
+
+            const tbody = document.getElementById('appointments-table');
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="padding:30px;text-align:center;color:#94a3b8;">No appointments found</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = filtered.map(a => `
+                <tr style="border-bottom:1px solid #1e293b;transition:background 0.2s;"
+                    onmouseover="this.style.background='rgba(255,255,255,0.02)'"
+                    onmouseout="this.style.background='transparent'">
+                    <td style="padding:15px;font-weight:bold;color:#fff;">${a.company ? a.company.name : 'Unknown'}</td>
+                    <td style="padding:15px;color:#94a3b8;">${window.UI.formatDateTime(a.scheduledAt)}</td>
+                    <td style="padding:15px;color:#94a3b8;">${a.createdBy ? a.createdBy.name : 'Unknown'}</td>
+                    <td style="padding:15px;">
+                        ${a.outcome
+                            ? `<div style="display:flex;align-items:center;gap:10px;">
+                                   ${getOutcomeBadge(a.outcome)}
+                                   <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="openOutcomeModal('${a.id}')">Change</button>
+                               </div>`
+                            : `<div class="outcome-actions-container">
+                                   <button type="button" class="outcome-action-btn yes-btn"     onclick="openOutcomeModal('${a.id}','YES')">✅</button>
+                                   <button type="button" class="outcome-action-btn no-btn"      onclick="openOutcomeModal('${a.id}','NO')">❌</button>
+                                   <button type="button" class="outcome-action-btn pending-btn" onclick="openOutcomeModal('${a.id}','PENDING')">⏳</button>
+                               </div>`}
+                    </td>
+                    <td style="padding:15px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cbd5e1;"
+                        title="${(a.meetingNotes || '').replace(/"/g, '&quot;')}">${a.meetingNotes || '-'}</td>
+                    <td style="padding:15px;">
+                        <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;" onclick="viewAppointmentDetails('${a.id}')">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        // ─── Book Appointment Modal ────────────────────────────────────────────
+        async function openBookModal() {
+            try {
+                if (companies.length === 0) await fetchCompanies();
+
+                const template = document.getElementById('book-appt-modal-content');
+                if (!template) { console.error('Template #book-appt-modal-content not found'); return; }
+
+                _bookModal = window.UI.createModal({
+                    title: '📅 Book New Appointment',
+                    bodyHtml: template.innerHTML,
+                    footerHtml: `
+                        <button class="btn btn-secondary" type="button" id="cancel-book-btn">Cancel</button>
+                        <button class="btn btn-primary"   type="button" id="confirm-book-btn">Book Appointment</button>
+                    `,
+                    onClose: () => { _bookModal = null; }
+                });
+
+                // Wire buttons with addEventListener (not onclick attr) — avoids scope issues
+                _bookModal.querySelector('#cancel-book-btn').addEventListener('click', () => {
+                    if (_bookModal) _bookModal.close();
+                });
+                _bookModal.querySelector('#confirm-book-btn').addEventListener('click', submitAppt);
+
+                // Populate company dropdown
+                const select = _bookModal.querySelector('#appt-company');
+                if (select) {
+                    select.innerHTML = '<option value="">Select Company...</option>';
+                    companies.forEach(c => {
+                        const id = c.id || (c._id ? String(c._id) : null);
+                        if (!id) return;
+                        const opt = document.createElement('option');
+                        opt.value       = id;
+                        opt.textContent = c.name;
+                        select.appendChild(opt);
+                    });
+                }
+
+                // Default scheduled time to now (local timezone)
+                const scheduledInput = _bookModal.querySelector('#appt-scheduled');
+                if (scheduledInput) {
+                    const now = new Date();
+                    now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+                    scheduledInput.value = now.toISOString().slice(0, 16);
+                }
+            } catch (err) {
+                console.error('openBookModal error:', err);
+                window.UI.showToast('Failed to open booking form. Please try again.', 'error');
+            }
+        }
+
+        async function submitAppt() {
+            if (!_bookModal) return;
+
+            const companySelect  = _bookModal.querySelector('#appt-company');
+            const scheduledInput = _bookModal.querySelector('#appt-scheduled');
+            const reminderInput  = _bookModal.querySelector('#appt-reminder');
+            const notesInput     = _bookModal.querySelector('#appt-notes');
+
+            const companyId    = companySelect  ? companySelect.value.trim()  : '';
+            const scheduledAt  = scheduledInput ? scheduledInput.value.trim() : '';
+            const reminderAt   = (reminderInput && reminderInput.value.trim()) ? reminderInput.value.trim() : null;
+            const meetingNotes = (notesInput && notesInput.value) ? notesInput.value.trim() : '';
+
+            if (!companyId) {
+                window.UI.showToast('Please select a vessel owner company', 'error');
+                companySelect && companySelect.focus();
+                return;
+            }
+            if (!scheduledAt) {
+                window.UI.showToast('Please select a scheduled date and time', 'error');
+                scheduledInput && scheduledInput.focus();
+                return;
+            }
+
+            const btn = _bookModal.querySelector('#confirm-book-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+            try {
+                await window.ApiService.createAppointment({ companyId, scheduledAt, reminderAt, meetingNotes });
+                window.UI.showToast('✅ Appointment booked and saved to MongoDB!', 'success');
+                if (_bookModal) _bookModal.close();
+                _bookModal = null;
+                await loadAppointments();
+            } catch (err) {
+                console.error('submitAppt error:', err);
+                const msg = err.message || 'Failed to book appointment';
+                window.UI.showToast('❌ ' + msg, 'error');
+                if (btn) { btn.disabled = false; btn.textContent = 'Book Appointment'; }
+            }
+        }
+
+        // ─── Set Outcome Modal ────────────────────────────────────────────────
+        async function openOutcomeModal(apptId, preselect) {
+            try {
+                if (reasons.length === 0) await fetchReasons();
+
+                const template = document.getElementById('outcome-modal-content');
+                if (!template) return;
+
+                _outcomeModal = window.UI.createModal({
+                    title: '🎯 Set Appointment Outcome',
+                    bodyHtml: template.innerHTML,
+                    footerHtml: `
+                        <button class="btn btn-secondary" type="button" id="cancel-outcome-btn">Cancel</button>
+                        <button class="btn btn-primary"   type="button" id="confirm-outcome-btn">Save Outcome</button>
+                    `,
+                    onClose: () => { _outcomeModal = null; }
+                });
+
+                _outcomeModal.querySelector('#cancel-outcome-btn').addEventListener('click', () => {
+                    if (_outcomeModal) _outcomeModal.close();
+                });
+                _outcomeModal.querySelector('#confirm-outcome-btn').addEventListener('click', submitOutcome);
+
+                _outcomeModal.querySelector('#outcome-appt-id').value = apptId;
+
+                const reasonSelect = _outcomeModal.querySelector('#outcome-reason');
+                if (reasonSelect) {
+                    reasonSelect.innerHTML = '<option value="">Select Reason...</option>';
+                    reasons.forEach(r => {
+                        const id = r.id || (r._id ? String(r._id) : null);
+                        if (!id) return;
+                        const opt = document.createElement('option');
+                        opt.value       = id;
+                        opt.textContent = r.label || r.reasonText || '';
+                        reasonSelect.appendChild(opt);
+                    });
+                }
+
+                if (preselect) selectOutcome(preselect);
+            } catch (err) {
+                console.error('openOutcomeModal error:', err);
+            }
+        }
+
+        function selectOutcome(val) {
+            if (!_outcomeModal) return;
+            const hiddenInput = _outcomeModal.querySelector('#selected-outcome-val');
+            if (hiddenInput) hiddenInput.value = val;
+
+            _outcomeModal.querySelectorAll('.outcome-action-btn').forEach(b => {
+                b.style.opacity = '0.5'; b.style.transform = 'scale(0.95)';
+            });
+            const active = _outcomeModal.querySelector(`.${val.toLowerCase()}-btn`);
+            if (active) { active.style.opacity = '1'; active.style.transform = 'scale(1.05)'; }
+
+            const noPanel  = _outcomeModal.querySelector('#no-reason-panel');
+            const yesPanel = _outcomeModal.querySelector('#yes-details-panel');
+            if (noPanel)  noPanel.style.display  = val === 'NO'  ? 'block' : 'none';
+            if (yesPanel) yesPanel.style.display = val === 'YES' ? 'block' : 'none';
+        }
+
+        async function submitOutcome() {
+            if (!_outcomeModal) return;
+            const apptId       = _outcomeModal.querySelector('#outcome-appt-id')?.value || '';
+            const outcome      = (_outcomeModal.querySelector('#selected-outcome-val')?.value || '').trim();
+            const outcomeNotes = (_outcomeModal.querySelector('#outcome-notes')?.value || '').trim();
+            const reasonId     = (_outcomeModal.querySelector('#outcome-reason')?.value || '').trim();
+
+            if (!outcome) {
+                window.UI.showToast('Please select an outcome (YES, NO, or PENDING)', 'error');
+                return;
+            }
+            if (outcome === 'NO' && !reasonId) {
+                window.UI.showToast('Please select a reason for the NO outcome', 'error');
+                return;
+            }
+
+            const btn = _outcomeModal.querySelector('#confirm-outcome-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+            try {
+                await window.ApiService.setAppointmentOutcome(apptId, {
+                    outcome,
+                    meetingNotes: outcomeNotes,
+                    reasonId: (outcome === 'NO' || outcome === 'PENDING') ? reasonId || null : null
+                });
+                window.UI.showToast('✅ Outcome saved successfully', 'success');
+                if (_outcomeModal) _outcomeModal.close();
+                _outcomeModal = null;
+                await loadAppointments();
+            } catch (err) {
+                console.error('submitOutcome error:', err);
+                const msg = err.message || 'Failed to save outcome';
+                window.UI.showToast('❌ ' + msg, 'error');
+                if (btn) { btn.disabled = false; btn.textContent = 'Save Outcome'; }
+            }
+        }
+
+        // ─── View Details Modal ───────────────────────────────────────────────
+        function viewAppointmentDetails(id) {
+            const appt = allAppointments.find(a => a.id === id);
+            if (!appt) return;
+
+            const co = appt.company || {};
+
+            _detailsModal = window.UI.createModal({
+                title: '📋 Appointment Details',
+                bodyHtml: `
+                    <div style="display:flex;flex-direction:column;gap:14px;font-size:14px;color:#e2e8f0;">
+                        <div style="background:rgba(14,165,233,0.1);padding:14px 18px;border-radius:8px;border:1px solid rgba(14,165,233,0.25);">
+                            <div style="font-size:18px;font-weight:bold;color:#0ea5e9;margin-bottom:4px;">🏢 ${co.name || 'Unknown'}</div>
+                            <div style="color:#94a3b8;font-size:13px;">
+                                Contact: <strong style="color:#fff;">${co.contactPerson || 'N/A'}</strong> &nbsp;|&nbsp;
+                                Phone: ${co.phone || 'N/A'} &nbsp;|&nbsp;
+                                Email: ${co.email || 'N/A'}
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
+                                <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;">Scheduled</div>
+                                <div style="color:#fff;font-weight:600;margin-top:4px;">📅 ${window.UI.formatDateTime(appt.scheduledAt)}</div>
+                            </div>
+                            <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
+                                <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;">Booked By</div>
+                                <div style="color:#fff;font-weight:600;margin-top:4px;">👤 ${appt.createdBy?.name || 'Unknown'}</div>
+                            </div>
+                        </div>
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
+                                <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;">Outcome</div>
+                                <div style="margin-top:6px;">${getOutcomeBadge(appt.outcome)}</div>
+                            </div>
+                            <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
+                                <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;">Reason</div>
+                                <div style="color:#f59e0b;font-weight:600;margin-top:4px;">${appt.reason?.label || 'None'}</div>
+                            </div>
+                        </div>
+                        <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
+                            <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;margin-bottom:6px;">Meeting Notes</div>
+                            <div style="color:#cbd5e1;line-height:1.5;font-size:13px;white-space:pre-wrap;">${appt.meetingNotes || 'No meeting notes added.'}</div>
+                        </div>
+                    </div>
+                `,
+                footerHtml: `
+                    <button class="btn btn-secondary" type="button" id="close-details-btn">Close</button>
+                    <button class="btn btn-primary"   type="button" id="outcome-from-details-btn">Set / Change Outcome</button>
+                `,
+                onClose: () => { _detailsModal = null; }
+            });
+
+            _detailsModal.querySelector('#close-details-btn').addEventListener('click', () => {
+                if (_detailsModal) _detailsModal.close();
+            });
+            _detailsModal.querySelector('#outcome-from-details-btn').addEventListener('click', () => {
+                const capturedId = appt.id;
+                if (_detailsModal) _detailsModal.close();
+                setTimeout(() => openOutcomeModal(capturedId), 250);
+            });
+        }
+
+        // ─── Global exposure (required for inline onclick= attrs in HTML) ─────
+        window.openBookModal          = openBookModal;
+        window.submitAppt             = submitAppt;
+        window.openOutcomeModal       = openOutcomeModal;
+        window.selectOutcome          = selectOutcome;
+        window.submitOutcome          = submitOutcome;
+        window.viewAppointmentDetails = viewAppointmentDetails;
+        window.filterTable            = filterTable;
+    </script>
+</body>
+</html>

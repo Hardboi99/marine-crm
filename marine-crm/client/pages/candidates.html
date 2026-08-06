@@ -1,0 +1,481 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Seafarers Directory - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+            <main class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">👨‍✈️ Seafarers Directory</h1>
+                        <p class="page-subtitle">Manage qualified seafarer candidate database</p>
+                    </div>
+                    <button id="add-candidate-btn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Seafarer
+                    </button>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <i class="fas fa-search filter-icon"></i>
+                        <input type="text" id="search-input" class="form-control" placeholder="Search by name, location or email...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="rank-filter" class="form-control">
+                            <option value="">All Ranks</option>
+                            <optgroup label="Deck Side">
+                                <option value="Master">Master</option>
+                                <option value="Chief Officer">Chief Officer</option>
+                                <option value="2nd Officer">2nd Officer</option>
+                                <option value="3rd Officer">3rd Officer</option>
+                                <option value="Junior Officer">Junior Officer</option>
+                                <option value="Bosun">Bosun</option>
+                                <option value="AB">AB</option>
+                                <option value="OS">OS</option>
+                            </optgroup>
+                            <optgroup label="Engine Side">
+                                <option value="Chief Engineer">Chief Engineer</option>
+                                <option value="2E">Chief Mate / 2nd Engineer</option>
+                                <option value="3E">3rd Engineer</option>
+                                <option value="4E">4th Engineer</option>
+                                <option value="ETO">Electro-Technical Officer</option>
+                                <option value="Fitter">Fitter</option>
+                                <option value="Oiler">Oiler</option>
+                                <option value="Wiper">Wiper</option>
+                            </optgroup>
+                            <optgroup label="Galley">
+                                <option value="Cook">Cook</option>
+                                <option value="Messman">Messman</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="status-filter" class="form-control">
+                            <option value="">All Statuses</option>
+                            <option value="AVAILABLE">AVAILABLE</option>
+                            <option value="SHORTLISTED">SHORTLISTED</option>
+                            <option value="PROPOSED">PROPOSED</option>
+                            <option value="APPROVED">APPROVED</option>
+                            <option value="DOCUMENTATION">DOCUMENTATION</option>
+                            <option value="ONBOARDED">ONBOARDED</option>
+                            <option value="REJECTED_TALENT_POOL">TALENT POOL</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="candidates-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Name</th>
+                                        <th>Rank</th>
+                                        <th>Location / Contact</th>
+                                        <th>COC Info</th>
+                                        <th>Availability</th>
+                                        <th>Status</th>
+                                        <th>Wages</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="candidates-tbody">
+                                    <!-- Skeleton loader initially -->
+                                    <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                                    <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="empty-state" class="empty-state" style="display: none;">
+                            <i class="fas fa-user-slash fa-3x"></i>
+                            <p>No seafarers found matching your criteria.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let candidatesData = [];
+            let currentEditId = null;
+            let _candidateModal = null;
+            let expCount = 0;
+
+            const tbody = document.getElementById('candidates-tbody');
+            const searchInput = document.getElementById('search-input');
+            const rankFilter = document.getElementById('rank-filter');
+            const statusFilter = document.getElementById('status-filter');
+            const emptyState = document.getElementById('empty-state');
+
+            async function fetchData() {
+                try {
+                    const res = await window.ApiService.crewing.candidates.getAll();
+                    candidatesData = res.data || [];
+                    renderTable();
+                } catch (error) {
+                    console.error('Error fetching candidates:', error);
+                    if (window.UI?.showToast) window.UI.showToast('Failed to load seafarers', 'error');
+                }
+            }
+
+            function renderTable() {
+                const search = searchInput.value.toLowerCase();
+                const rank = rankFilter.value;
+                const status = statusFilter.value;
+
+                const filtered = candidatesData.filter(c => {
+                    const matchSearch = c.name.toLowerCase().includes(search) || 
+                                        c.location.toLowerCase().includes(search) || 
+                                        c.email.toLowerCase().includes(search);
+                    const matchRank = rank ? c.rank === rank : true;
+                    const matchStatus = status ? c.status === status : true;
+                    return matchSearch && matchRank && matchStatus;
+                });
+
+                tbody.innerHTML = '';
+                if (filtered.length === 0) {
+                    emptyState.style.display = 'block';
+                    document.getElementById('candidates-table').style.display = 'none';
+                } else {
+                    emptyState.style.display = 'none';
+                    document.getElementById('candidates-table').style.display = 'table';
+                    filtered.forEach(c => {
+                        const tr = document.createElement('tr');
+                        const formatAvail = new Date(c.availabilityDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        tr.innerHTML = `
+                            <td><strong>${c.name}</strong></td>
+                            <td><span class="badge badge-blue">${c.rank}</span></td>
+                            <td>
+                                <div><i class="fas fa-map-marker-alt"></i> ${c.location}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-envelope"></i> ${c.email}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-phone"></i> ${c.contactNumber}</div>
+                            </td>
+                            <td>
+                                <div><strong>No:</strong> ${c.cocDetails.number}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Exp: ${new Date(c.cocDetails.expiryDate).toLocaleDateString()}</div>
+                            </td>
+                            <td>${formatAvail}</td>
+                            <td>
+                                ${window.UI?.renderStatusBadge ? window.UI.renderStatusBadge(c.status) : `<span class="badge">${c.status}</span>`}
+                            </td>
+                            <td>
+                                <div style="font-size: 0.85rem;">Last: $${c.lastWages || 0}/m</div>
+                                <div style="font-weight: 600; color: var(--accent-primary);">Exp: $${c.expectedWages}/m</div>
+                            </td>
+                            <td class="row-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="editCandidate('${c.id}')" title="Edit Profile"><i class="fas fa-user-edit"></i></button>
+                                <button class="btn btn-danger btn-sm" onclick="deleteCandidate('${c.id}')" title="Delete Profile"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
+
+            searchInput.addEventListener('input', renderTable);
+            rankFilter.addEventListener('change', renderTable);
+            statusFilter.addEventListener('change', renderTable);
+
+            document.getElementById('add-candidate-btn').addEventListener('click', () => {
+                currentEditId = null;
+                openCandidateModal();
+            });
+
+            window.editCandidate = (id) => {
+                currentEditId = id;
+                const candidate = candidatesData.find(c => c.id === id);
+                if (candidate) openCandidateModal(candidate);
+            };
+
+            function openCandidateModal(c = null) {
+                const title = c ? 'Edit Seafarer Profile' : 'Register New Seafarer';
+                expCount = 0;
+
+                const rankOptions = [
+                    'Master', 'Chief Officer', '2nd Officer', '3rd Officer', 'Junior Officer', 'Bosun', 'AB', 'OS',
+                    'Chief Engineer', '2E', '3E', '4E', 'ETO', 'Fitter', 'Oiler', 'Wiper',
+                    'Cook', 'Messman'
+                ].map(r => `<option value="${r}" ${c && c.rank === r ? 'selected' : ''}>${r}</option>`).join('');
+
+                const bodyHtml = `
+                    <form id="candidate-form" style="max-height: 70vh; overflow-y: auto; padding-right: 8px;">
+                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary);">General Info</h3>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">Full Name *</label>
+                                <input type="text" id="cand-name" class="form-control" value="${c ? c.name : ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Rank *</label>
+                                <select id="cand-rank" class="form-control" required>
+                                    <option value="">Select Rank</option>
+                                    ${rankOptions}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">Date of Birth *</label>
+                                <input type="date" id="cand-dob" class="form-control" value="${c ? new Date(c.dob).toISOString().split('T')[0] : ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Location (City, Country) *</label>
+                                <input type="text" id="cand-location" class="form-control" value="${c ? c.location : ''}" placeholder="e.g. Odessa, Ukraine" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">Contact Number *</label>
+                                <input type="tel" id="cand-phone" class="form-control" value="${c ? c.contactNumber : ''}" placeholder="+380..." required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Email Address *</label>
+                                <input type="email" id="cand-email" class="form-control" value="${c ? c.email : ''}" required>
+                            </div>
+                        </div>
+
+                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary);">Certificates & Expirations</h3>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">Passport Number *</label>
+                                <input type="text" id="cand-passport-no" class="form-control" value="${c ? c.passportDetails.number : ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Passport Expiry *</label>
+                                <input type="date" id="cand-passport-exp" class="form-control" value="${c ? new Date(c.passportDetails.expiryDate).toISOString().split('T')[0] : ''}" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">CDC Number *</label>
+                                <input type="text" id="cand-cdc-no" class="form-control" value="${c ? c.cdcDetails.number : ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">CDC Expiry *</label>
+                                <input type="date" id="cand-cdc-exp" class="form-control" value="${c ? new Date(c.cdcDetails.expiryDate).toISOString().split('T')[0] : ''}" required>
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">COC (Certificate of Competency) *</label>
+                                <input type="text" id="cand-coc-no" class="form-control" value="${c ? c.cocDetails.number : ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">COC Expiry *</label>
+                                <input type="date" id="cand-coc-exp" class="form-control" value="${c ? new Date(c.cocDetails.expiryDate).toISOString().split('T')[0] : ''}" required>
+                            </div>
+                        </div>
+
+                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary);">Financials & Availability</h3>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">Last Wages ($/m)</label>
+                                <input type="number" id="cand-wages-last" class="form-control" value="${c ? c.lastWages || '' : ''}">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Expected Wages ($/m) *</label>
+                                <input type="number" id="cand-wages-exp" class="form-control" value="${c ? c.expectedWages : ''}" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Available From *</label>
+                                <input type="date" id="cand-avail" class="form-control" value="${c ? new Date(c.availabilityDate).toISOString().split('T')[0] : ''}" required>
+                            </div>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Remarks / Notes</label>
+                            <textarea id="cand-remarks" class="form-control" rows="2">${c ? c.remarks || '' : ''}</textarea>
+                        </div>
+
+                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; color: var(--accent-primary);">
+                            <span>Sea Service Experience</span>
+                            <button type="button" class="btn btn-secondary btn-sm" id="add-exp-btn"><i class="fas fa-plus"></i> Add Experience</button>
+                        </h3>
+                        <div id="experience-container">
+                            <!-- Dynamically added experience elements -->
+                        </div>
+                    </form>
+                `;
+
+                const footerHtml = `
+                    <button class="btn btn-secondary" type="button" id="cancel-candidate-btn">Cancel</button>
+                    <button class="btn btn-primary"   type="button" id="save-candidate-btn">Save Seafarer</button>
+                `;
+
+                if (window.UI?.createModal) {
+                    _candidateModal = window.UI.createModal({
+                        title,
+                        bodyHtml,
+                        footerHtml,
+                        onClose: () => { _candidateModal = null; }
+                    });
+
+                    _candidateModal.querySelector('#cancel-candidate-btn').addEventListener('click', () => {
+                        if (_candidateModal) _candidateModal.close();
+                    });
+
+                    _candidateModal.querySelector('#save-candidate-btn').addEventListener('click', saveCandidate);
+                    _candidateModal.querySelector('#add-exp-btn').addEventListener('click', () => addExperienceRow());
+
+                    // Populate existing experiences
+                    if (c && c.vesselExperience) {
+                        c.vesselExperience.forEach(exp => addExperienceRow(exp.vesselType, exp.rank, exp.months));
+                    } else {
+                        // Add one blank row
+                        addExperienceRow();
+                    }
+                }
+            }
+
+            function addExperienceRow(vesselType = '', rank = '', months = '') {
+                const container = document.getElementById('experience-container');
+                const rowId = `exp-row-${expCount++}`;
+                
+                const rankOptions = [
+                    'Master', 'Chief Officer', '2nd Officer', '3rd Officer', 'Junior Officer', 'Bosun', 'AB', 'OS',
+                    'Chief Engineer', '2E', '3E', '4E', 'ETO', 'Fitter', 'Oiler', 'Wiper',
+                    'Cook', 'Messman'
+                ].map(r => `<option value="${r}" ${rank === r ? 'selected' : ''}>${r}</option>`).join('');
+
+                const rowDiv = document.createElement('div');
+                rowDiv.id = rowId;
+                rowDiv.className = 'form-row';
+                rowDiv.style = 'display: grid; grid-template-columns: 1.5fr 1.5fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: end;';
+                rowDiv.innerHTML = `
+                    <div class="form-group" style="margin-bottom:0">
+                        <label class="form-label" style="font-size:0.75rem">Vessel Type</label>
+                        <select class="form-control exp-vessel" required>
+                            <option value="">Select Vessel</option>
+                            <option value="Tanker" ${vesselType === 'Tanker' ? 'selected' : ''}>Tanker</option>
+                            <option value="Bulk Carrier" ${vesselType === 'Bulk Carrier' ? 'selected' : ''}>Bulk Carrier</option>
+                            <option value="Container" ${vesselType === 'Container' ? 'selected' : ''}>Container</option>
+                            <option value="RoRo" ${vesselType === 'RoRo' ? 'selected' : ''}>RoRo</option>
+                            <option value="Gas Carrier" ${vesselType === 'Gas Carrier' ? 'selected' : ''}>Gas Carrier</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0">
+                        <label class="form-label" style="font-size:0.75rem">Rank Served</label>
+                        <select class="form-control exp-rank" required>
+                            <option value="">Select Rank</option>
+                            ${rankOptions}
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0">
+                        <label class="form-label" style="font-size:0.75rem">Months</label>
+                        <input type="number" class="form-control exp-months" value="${months}" placeholder="e.g. 18" required>
+                    </div>
+                    <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${rowId}').remove()" style="height:38px; margin-bottom:1px;"><i class="fas fa-trash"></i></button>
+                `;
+                container.appendChild(rowDiv);
+            }
+
+            window.saveCandidate = async () => {
+                const name = document.getElementById('cand-name').value.trim();
+                const rank = document.getElementById('cand-rank').value;
+                const dob = document.getElementById('cand-dob').value;
+                const location = document.getElementById('cand-location').value.trim();
+                const phone = document.getElementById('cand-phone').value.trim();
+                const email = document.getElementById('cand-email').value.trim();
+                const wagesExp = document.getElementById('cand-wages-exp').value;
+                const wagesLast = document.getElementById('cand-wages-last').value;
+                const avail = document.getElementById('cand-avail').value;
+
+                if (!name || !rank || !dob || !location || !phone || !email || !wagesExp || !avail) {
+                    if (window.UI?.showToast) window.UI.showToast('Please fill out all required fields', 'error');
+                    return;
+                }
+
+                // Gather experiences
+                const vesselExperience = [];
+                const expRows = document.querySelectorAll('#experience-container .form-row');
+                for (const row of expRows) {
+                    const vessel = row.querySelector('.exp-vessel').value;
+                    const rankServed = row.querySelector('.exp-rank').value;
+                    const months = row.querySelector('.exp-months').value;
+                    if (vessel && rankServed && months) {
+                        vesselExperience.push({
+                            vesselType: vessel,
+                            rank: rankServed,
+                            months: parseInt(months)
+                        });
+                    }
+                }
+
+                const payload = {
+                    name, rank, dob, location,
+                    contactNumber: phone,
+                    email,
+                    lastWages: wagesLast ? parseFloat(wagesLast) : null,
+                    expectedWages: parseFloat(wagesExp),
+                    availabilityDate: avail,
+                    remarks: document.getElementById('cand-remarks').value.trim(),
+                    cocDetails: {
+                        number: document.getElementById('cand-coc-no').value.trim(),
+                        expiryDate: document.getElementById('cand-coc-exp').value
+                    },
+                    passportDetails: {
+                        number: document.getElementById('cand-passport-no').value.trim(),
+                        expiryDate: document.getElementById('cand-passport-exp').value
+                    },
+                    cdcDetails: {
+                        number: document.getElementById('cand-cdc-no').value.trim(),
+                        expiryDate: document.getElementById('cand-cdc-exp').value
+                    },
+                    vesselExperience
+                };
+
+                try {
+                    if (currentEditId) {
+                        await window.ApiService.crewing.candidates.update(currentEditId, payload);
+                        if (window.UI?.showToast) window.UI.showToast('✅ Seafarer updated successfully', 'success');
+                    } else {
+                        await window.ApiService.crewing.candidates.create(payload);
+                        if (window.UI?.showToast) window.UI.showToast('✅ Seafarer registered successfully', 'success');
+                    }
+                    if (_candidateModal) _candidateModal.close();
+                    fetchData();
+                } catch (error) {
+                    console.error('Error saving seafarer:', error);
+                    if (window.UI?.showToast) window.UI.showToast(error.message || 'Error saving candidate', 'error');
+                }
+            };
+
+            window.deleteCandidate = async (id) => {
+                if (window.UI?.confirm) {
+                    const confirmed = await window.UI.confirm('Are you sure you want to delete this seafarer profile?');
+                    if (confirmed) {
+                        try {
+                            await window.ApiService.crewing.candidates.delete(id);
+                            window.UI.showToast('Seafarer profile deleted', 'success');
+                            fetchData();
+                        } catch (err) {
+                            window.UI.showToast('Error deleting candidate', 'error');
+                        }
+                    }
+                }
+            };
+
+            fetchData();
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contract Manager - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <style>
+        .contract-expiry-warning {
+            color: #fbbf24;
+            font-size: 0.85em;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .stat-card {
+            background: #112240;
+            border-radius: 8px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        .stat-value {
+            font-size: 24px;
+            font-weight: bold;
+            color: #0EA5E9;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar-container"></div>
+    
+    <div class="main-content">
+        <div id="navbar-container"></div>
+        
+        <div class="page-content">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin:0; color:#fff;">📜 Contract Manager</h1>
+                    <p class="subtitle" style="margin:5px 0 0; color:#94a3b8;">Track and manage vessel owner service agreements</p>
+                </div>
+                <button id="add-contract-btn" class="btn btn-primary" onclick="openContractModal()">+ New Contract</button>
+            </div>
+            
+            <div class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card">
+                    <span class="stat-label" style="color:#94a3b8; font-size:12px;">DRAFT</span>
+                    <span class="stat-value" id="cnt-draft">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label" style="color:#94a3b8; font-size:12px;">ACTIVE</span>
+                    <span class="stat-value" id="cnt-active" style="color:#10b981;">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label" style="color:#94a3b8; font-size:12px;">EXPIRED</span>
+                    <span class="stat-value" id="cnt-expired" style="color:#ef4444;">0</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-label" style="color:#94a3b8; font-size:12px;">CANCELLED</span>
+                    <span class="stat-value" id="cnt-cancelled" style="color:#64748b;">0</span>
+                </div>
+            </div>
+            
+            <div class="filter-bar card" style="padding: 16px; margin-bottom: 24px;">
+                <select id="status-filter" class="form-control" onchange="loadContracts()">
+                    <option value="">All Statuses</option>
+                    <option value="DRAFT">Draft</option>
+                    <option value="ACTIVE">Active</option>
+                    <option value="EXPIRED">Expired</option>
+                    <option value="CANCELLED">Cancelled</option>
+                </select>
+                <input type="text" id="company-search" class="form-control" placeholder="Search company..." onkeyup="loadContracts()">
+            </div>
+            
+            <div class="card">
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-container">
+                        <table class="table" id="contracts-table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #1e293b; background: rgba(0,0,0,0.2);">
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Title</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Company</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Status</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Signed Date</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Expiry Date</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Days Until Expiry</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="contracts-list">
+                                <!-- Populated via JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal Template for Add/Edit Contract -->
+    <template id="contract-modal-template">
+        <div id="contract-form" style="display:flex;flex-direction:column;gap:16px;">
+            <input type="hidden" id="contract-id">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Title <span style="color:#ef4444">*</span></label>
+                <input type="text" id="contract-title" class="form-control" placeholder="e.g. Master Crew Supply Agreement">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Vessel Owner (Company) <span style="color:#ef4444">*</span></label>
+                <select id="contract-company" class="form-control">
+                    <option value="">Select Company</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Appointment (Optional)</label>
+                <select id="contract-appointment" class="form-control">
+                    <option value="">None</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Status <span style="color:#ef4444">*</span></label>
+                <select id="contract-status" class="form-control">
+                    <option value="DRAFT">DRAFT</option>
+                    <option value="ACTIVE">ACTIVE</option>
+                    <option value="EXPIRED">EXPIRED</option>
+                    <option value="CANCELLED">CANCELLED</option>
+                </select>
+            </div>
+            <div style="display: flex; gap: 16px;">
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label class="form-label">Signed Date</label>
+                    <input type="date" id="contract-signed-date" class="form-control">
+                </div>
+                <div class="form-group" style="flex:1;margin:0;">
+                    <label class="form-label">Expiry Date</label>
+                    <input type="date" id="contract-expiry-date" class="form-control">
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Notes</label>
+                <textarea id="contract-notes" class="form-control" rows="3" placeholder="Agreement terms or discussion notes..."></textarea>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Upload Document (PDF/Doc)</label>
+                <input type="file" id="contract-file" class="form-control">
+            </div>
+        </div>
+    </template>
+    
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script>
+        let allContracts = [];
+        let companiesList = [];
+        let appointmentsList = [];
+        let currentContractModal = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('token')) {
+                window.location.href = '/pages/login.html';
+                return;
+            }
+
+            // Direct addEventListener setup (bypasses any inline CSP restriction)
+            const addBtn = document.getElementById('add-contract-btn');
+            if (addBtn) addBtn.addEventListener('click', () => openContractModal());
+
+            const statusFilter = document.getElementById('status-filter');
+            if (statusFilter) statusFilter.addEventListener('change', () => loadContracts());
+
+            const searchInput = document.getElementById('company-search');
+            if (searchInput) searchInput.addEventListener('input', () => loadContracts());
+
+            // Event delegation on table body for Edit & Delete
+            const tbody = document.getElementById('contracts-list');
+            if (tbody) {
+                tbody.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-action]');
+                    if (!btn) return;
+                    const action = btn.dataset.action;
+                    const id = btn.dataset.id;
+                    if (action === 'edit' && id) editContract(id);
+                    if (action === 'delete' && id) deleteContract(id);
+                });
+            }
+
+            loadDependencies();
+            loadContracts();
+        });
+        
+        async function loadDependencies() {
+            try {
+                const [companiesRes, appointmentsRes] = await Promise.all([
+                    window.ApiService.getCompanies(),
+                    window.ApiService.getAppointments()
+                ]);
+                companiesList = companiesRes.data || [];
+                appointmentsList = appointmentsRes.data || [];
+            } catch (err) {
+                console.error('Error loading dependencies:', err);
+            }
+        }
+        
+        async function loadContracts() {
+            try {
+                const statusFilter = document.getElementById('status-filter');
+                const searchFilter = document.getElementById('company-search');
+                
+                const status = statusFilter ? statusFilter.value : '';
+                const search = searchFilter ? searchFilter.value.toLowerCase() : '';
+                
+                const response = await window.ApiService.getContracts();
+                allContracts = response.data || [];
+                
+                // Update stats
+                let draft = 0, active = 0, expired = 0, cancelled = 0;
+                allContracts.forEach(c => {
+                    if (c.status === 'DRAFT') draft++;
+                    if (c.status === 'ACTIVE') active++;
+                    if (c.status === 'EXPIRED') expired++;
+                    if (c.status === 'CANCELLED') cancelled++;
+                });
+                document.getElementById('cnt-draft').textContent = draft;
+                document.getElementById('cnt-active').textContent = active;
+                document.getElementById('cnt-expired').textContent = expired;
+                document.getElementById('cnt-cancelled').textContent = cancelled;
+                
+                // Filter
+                let filtered = allContracts;
+                if (status) filtered = filtered.filter(c => c.status === status);
+                if (search) filtered = filtered.filter(c => 
+                    (c.title || '').toLowerCase().includes(search) ||
+                    (c.company?.name || '').toLowerCase().includes(search)
+                );
+                
+                renderTable(filtered);
+            } catch (err) {
+                console.error('Error loading contracts:', err);
+                if (window.UI && window.UI.showToast) {
+                    window.UI.showToast('Failed to load contracts', 'error');
+                }
+            }
+        }
+        
+        function renderTable(contracts) {
+            const tbody = document.getElementById('contracts-list');
+            if (!tbody) return;
+
+            if (contracts.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">No contracts found</td></tr>`;
+                return;
+            }
+            
+            const today = new Date();
+            
+            tbody.innerHTML = contracts.map(c => {
+                const cid = c.id || String(c._id);
+                let expiryWarning = '-';
+                let statusBadge = window.UI && window.UI.renderStatusBadge ? window.UI.renderStatusBadge(c.status) : `<span class="badge badge-gray">${c.status}</span>`;
+                
+                if (c.status === 'ACTIVE' && c.expiryDate) {
+                    const expiry = new Date(c.expiryDate);
+                    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
+                    if (diffDays < 0) {
+                        statusBadge = `<span class="badge badge-red">Expired</span>`;
+                        expiryWarning = `<span style="color:#ef4444;">Expired ${Math.abs(diffDays)}d ago</span>`;
+                    } else if (diffDays < 30) {
+                        expiryWarning = `<div class="contract-expiry-warning">⚠ ${diffDays} days</div>`;
+                    } else {
+                        expiryWarning = `<div>${diffDays} days</div>`;
+                    }
+                }
+                
+                const fileLink = c.fileUrl ? `<a href="${c.fileUrl}" target="_blank" style="color:#0ea5e9; font-weight:500;">📄 View Document</a>` : '';
+                
+                return `
+                    <tr style="border-bottom: 1px solid #1e293b; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                        <td style="padding: 15px; font-weight: bold; color: #fff;">${c.title || '-'}</td>
+                        <td style="padding: 15px;">${c.company?.name || '-'}</td>
+                        <td style="padding: 15px;">${statusBadge}</td>
+                        <td style="padding: 15px; color: #94a3b8;">${c.signedDate ? window.UI.formatDate(c.signedDate) : '-'}</td>
+                        <td style="padding: 15px; color: #94a3b8;">${c.expiryDate ? window.UI.formatDate(c.expiryDate) : '-'}</td>
+                        <td style="padding: 15px;">${expiryWarning}</td>
+                        <td style="padding: 15px; display:flex; gap:8px; align-items:center;">
+                            ${fileLink}
+                            <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${cid}" onclick="editContract('${cid}')">Edit</button>
+                            <button class="btn btn-danger btn-sm" data-action="delete" data-id="${cid}" onclick="deleteContract('${cid}')">Delete</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        async function openContractModal(contract = null) {
+            if (companiesList.length === 0) {
+                await loadDependencies();
+            }
+            const template = document.getElementById('contract-modal-template');
+            if (!template) return;
+            
+            const footerHtml = `
+                <button class="btn btn-secondary" type="button" id="cancel-contract-btn">Cancel</button>
+                <button class="btn btn-primary"   type="button" id="save-contract-btn">${contract ? 'Update Contract' : 'Save Contract'}</button>
+            `;
+
+            currentContractModal = window.UI.createModal({
+                title: contract ? 'Edit Contract' : 'New Contract',
+                bodyHtml: template.innerHTML,
+                footerHtml: footerHtml,
+                onClose: () => { currentContractModal = null; }
+            });
+
+            // Wire buttons after modal is in DOM
+            currentContractModal.querySelector('#cancel-contract-btn').addEventListener('click', () => {
+                if (currentContractModal) currentContractModal.close();
+            });
+            currentContractModal.querySelector('#save-contract-btn').addEventListener('click', handleFormSubmit);
+
+            // Extract target IDs for company and appointment
+            const targetCompId = contract ? String(contract.companyId?.id || contract.companyId?._id || contract.companyId || contract.company?.id || '') : '';
+            const targetApptId = contract ? String(contract.appointmentId?.id || contract.appointmentId?._id || contract.appointmentId || '') : '';
+
+            // Populate Companies
+            const compSelect = currentContractModal.querySelector('#contract-company');
+            compSelect.innerHTML = '<option value="">Select Company</option>';
+            companiesList.forEach(c => {
+                const cid = String(c.id || c._id);
+                const opt = document.createElement('option');
+                opt.value = cid;
+                opt.textContent = c.name;
+                if (targetCompId && targetCompId === cid) opt.selected = true;
+                compSelect.appendChild(opt);
+            });
+
+            // Populate Appointments
+            const apptSelect = currentContractModal.querySelector('#contract-appointment');
+            apptSelect.innerHTML = '<option value="">None</option>';
+            appointmentsList.forEach(a => {
+                const aid = String(a.id || a._id);
+                const opt = document.createElement('option');
+                opt.value = aid;
+                opt.textContent = `${a.company?.name || 'Company'} - ${window.UI.formatDate(a.scheduledAt)}`;
+                if (targetApptId && targetApptId === aid) opt.selected = true;
+                apptSelect.appendChild(opt);
+            });
+
+            // If editing, fill values
+            if (contract) {
+                currentContractModal.querySelector('#contract-id').value = contract.id || String(contract._id) || '';
+                currentContractModal.querySelector('#contract-title').value = contract.title || '';
+                currentContractModal.querySelector('#contract-status').value = contract.status || 'DRAFT';
+                if (contract.signedDate) currentContractModal.querySelector('#contract-signed-date').value = String(contract.signedDate).split('T')[0];
+                if (contract.expiryDate) currentContractModal.querySelector('#contract-expiry-date').value = String(contract.expiryDate).split('T')[0];
+                currentContractModal.querySelector('#contract-notes').value = contract.notes || '';
+            }
+        }
+        
+        function editContract(id) {
+            const idStr = String(id);
+            const contract = allContracts.find(c => String(c.id || c._id) === idStr);
+            if (contract) {
+                openContractModal(contract);
+            } else {
+                if (window.UI && window.UI.showToast) {
+                    window.UI.showToast('Contract not found', 'error');
+                }
+            }
+        }
+        
+        async function handleFormSubmit(e) {
+            if (e) e.preventDefault();
+            const modal = currentContractModal || document.querySelector('.modal-overlay');
+            if (!modal) return;
+            
+            const titleVal = modal.querySelector('#contract-title')?.value.trim();
+            const companyIdVal = modal.querySelector('#contract-company')?.value;
+            
+            if (!titleVal || !companyIdVal) {
+                window.UI.showToast('Title and Company are required fields', 'error');
+                return;
+            }
+
+            const id = modal.querySelector('#contract-id')?.value;
+            const formData = new FormData();
+            formData.append('title', titleVal);
+            formData.append('companyId', companyIdVal);
+            formData.append('appointmentId', modal.querySelector('#contract-appointment')?.value || '');
+            formData.append('status', modal.querySelector('#contract-status')?.value || 'DRAFT');
+            formData.append('signedDate', modal.querySelector('#contract-signed-date')?.value || '');
+            formData.append('expiryDate', modal.querySelector('#contract-expiry-date')?.value || '');
+            formData.append('notes', modal.querySelector('#contract-notes')?.value || '');
+            
+            const fileInput = modal.querySelector('#contract-file');
+            if (fileInput && fileInput.files && fileInput.files[0]) {
+                formData.append('file', fileInput.files[0]);
+            }
+            
+            const saveBtn = modal.querySelector('#save-contract-btn');
+            if (saveBtn) {
+                saveBtn.disabled = true;
+                saveBtn.textContent = 'Saving...';
+            }
+
+            try {
+                if (id) {
+                    await window.ApiService.updateContract(id, formData);
+                    window.UI.showToast('✅ Contract updated successfully', 'success');
+                } else {
+                    await window.ApiService.createContract(formData);
+                    window.UI.showToast('✅ Contract created successfully', 'success');
+                }
+                if (currentContractModal) currentContractModal.close();
+                currentContractModal = null;
+                loadContracts();
+            } catch (err) {
+                console.error('Error submitting contract form:', err);
+                const msg = err.message || err.response?.data?.message || 'Error saving contract';
+                window.UI.showToast('❌ ' + msg, 'error');
+                if (saveBtn) {
+                    saveBtn.disabled = false;
+                    saveBtn.textContent = id ? 'Update Contract' : 'Save Contract';
+                }
+            }
+        }
+        
+        async function deleteContract(id) {
+            const confirmed = await window.UI.confirm('Are you sure you want to delete this contract?');
+            if (!confirmed) return;
+
+            try {
+                await window.ApiService.deleteContract(id);
+                window.UI.showToast('✅ Contract deleted successfully', 'success');
+                loadContracts();
+            } catch (err) {
+                console.error('Error deleting contract:', err);
+                const msg = err.message || err.response?.data?.message || 'Failed to delete contract';
+                window.UI.showToast('❌ ' + msg, 'error');
+            }
+        }
+
+        // Expose global methods
+        window.openContractModal = openContractModal;
+        window.editContract = editContract;
+        window.deleteContract = deleteContract;
+        window.loadContracts = loadContracts;
+        window.handleFormSubmit = handleFormSubmit;
+    </script>
+</body>
+</html>

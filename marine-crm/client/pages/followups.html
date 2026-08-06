@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Follow-Ups - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <style>
+        .followup-item {
+            background: #112240;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
+        .followup-item:hover {
+            border-color: #1e3a8a;
+            background: #172a4d;
+        }
+        .followup-item.overdue {
+            border-color: #ef4444;
+        }
+        .followup-item.completed {
+            opacity: 0.65;
+        }
+        .followup-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            margin-top: 4px;
+            accent-color: #10b981;
+        }
+        .followup-content {
+            flex: 1;
+        }
+        .followup-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: #f1f5f9;
+        }
+        .followup-desc {
+            color: #94a3b8;
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+        }
+        .followup-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.85em;
+            color: #cbd5e1;
+        }
+        .followup-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            background: #112240;
+            border-radius: 8px;
+            color: #94a3b8;
+        }
+        .header-badges {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div id="sidebar-container"></div>
+    
+    <div class="main-content">
+        <div id="navbar-container"></div>
+        
+        <div class="page-content">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin:0; color:#fff;">🔔 Follow-Up Queue</h1>
+                    <p class="subtitle" style="margin:5px 0 0; color:#94a3b8;">Pending updates and follow-up tasks from appointments</p>
+                </div>
+                <div class="header-badges">
+                    <span class="badge badge-yellow" style="font-size: 1em;">PENDING: <span id="cnt-pending">0</span></span>
+                    <span class="badge badge-green" style="font-size: 1em;">COMPLETED: <span id="cnt-completed">0</span></span>
+                    <button id="add-followup-btn" class="btn btn-primary">+ New Follow-Up</button>
+                </div>
+            </div>
+            
+            <div class="filter-bar card" style="padding: 16px; margin-bottom: 24px;">
+                <select id="status-filter" class="form-control">
+                    <option value="">All Statuses</option>
+                    <option value="PENDING">Pending</option>
+                    <option value="COMPLETED">Completed</option>
+                    <option value="REJECTED">Rejected</option>
+                </select>
+                <input type="text" id="search-input" class="form-control" placeholder="Search company or notes...">
+            </div>
+            
+            <div id="followups-list">
+                <!-- Loaded via JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Template for Add/Edit FollowUp -->
+    <template id="followup-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <input type="hidden" id="modal-fu-id">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Appointment (Optional)</label>
+                <select id="modal-fu-appt" class="form-control">
+                    <option value="">None</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Status <span style="color:#ef4444">*</span></label>
+                <select id="modal-fu-status" class="form-control">
+                    <option value="PENDING">PENDING</option>
+                    <option value="COMPLETED">COMPLETED</option>
+                    <option value="REJECTED">REJECTED</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Next Follow-Up Date</label>
+                <input type="date" id="modal-fu-date" class="form-control">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Notes / Action Points</label>
+                <textarea id="modal-fu-notes" class="form-control" rows="4" placeholder="Follow-up details or next steps..."></textarea>
+            </div>
+        </div>
+    </template>
+    
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script>
+        let allFollowUps = [];
+        let appointmentsList = [];
+        let _fuModal = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            if (!localStorage.getItem('token')) {
+                window.location.href = '/pages/login.html';
+                return;
+            }
+
+            const addBtn = document.getElementById('add-followup-btn');
+            if (addBtn) addBtn.addEventListener('click', () => openFollowUpModal());
+
+            const statusFilter = document.getElementById('status-filter');
+            if (statusFilter) statusFilter.addEventListener('change', () => renderList());
+
+            const searchInput = document.getElementById('search-input');
+            if (searchInput) searchInput.addEventListener('input', () => renderList());
+
+            // Event delegation on list container
+            const listEl = document.getElementById('followups-list');
+            if (listEl) {
+                listEl.addEventListener('click', (e) => {
+                    const btn = e.target.closest('button[data-action]');
+                    if (!btn) return;
+                    const action = btn.dataset.action;
+                    const id = btn.dataset.id;
+                    if (action === 'edit' && id) editFollowUp(id);
+                    if (action === 'delete' && id) deleteFollowUp(id);
+                });
+
+                listEl.addEventListener('change', (e) => {
+                    if (e.target.classList.contains('followup-checkbox')) {
+                        const id = e.target.dataset.id;
+                        if (id) toggleStatus(id, e.target.checked);
+                    }
+                });
+            }
+
+            loadAppointments();
+            loadFollowUps();
+        });
+
+        async function loadAppointments() {
+            try {
+                const res = await window.ApiService.getAppointments();
+                appointmentsList = res.data || [];
+            } catch (err) {
+                console.error('Error loading appointments:', err);
+            }
+        }
+        
+        async function loadFollowUps() {
+            try {
+                const response = await window.ApiService.getFollowUps();
+                allFollowUps = response.data || [];
+                
+                let pending = 0;
+                let completed = 0;
+                
+                allFollowUps.forEach(f => {
+                    if (f.status === 'PENDING') pending++;
+                    if (f.status === 'COMPLETED') completed++;
+                });
+                
+                document.getElementById('cnt-pending').textContent = pending;
+                document.getElementById('cnt-completed').textContent = completed;
+                
+                renderList();
+            } catch (err) {
+                console.error(err);
+                if (window.UI && window.UI.showToast) {
+                    window.UI.showToast('Failed to load follow-ups', 'error');
+                }
+            }
+        }
+        
+        function renderList() {
+            const listEl = document.getElementById('followups-list');
+            if (!listEl) return;
+
+            const statusFilter = document.getElementById('status-filter')?.value || '';
+            const searchValue = (document.getElementById('search-input')?.value || '').toLowerCase();
+            
+            let filtered = allFollowUps;
+            if (statusFilter) {
+                filtered = filtered.filter(f => f.status === statusFilter);
+            }
+            if (searchValue) {
+                filtered = filtered.filter(f => {
+                    const compName = (f.appointment?.company?.name || '').toLowerCase();
+                    const notes = (f.notes || '').toLowerCase();
+                    return compName.includes(searchValue) || notes.includes(searchValue);
+                });
+            }
+            
+            if (filtered.length === 0) {
+                listEl.innerHTML = `<div class="empty-state">
+                    <div style="font-size: 2.5em; margin-bottom: 8px;">🎉</div>
+                    <div style="font-weight: 500;">No follow-ups found for selected filters.</div>
+                </div>`;
+                return;
+            }
+            
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            
+            listEl.innerHTML = filtered.map(f => {
+                const fid = f.id || String(f._id);
+                const isCompleted = f.status === 'COMPLETED';
+                let isOverdue = false;
+                if (f.status === 'PENDING' && f.nextFollowupDate) {
+                    const nextDate = new Date(f.nextFollowupDate);
+                    nextDate.setHours(0,0,0,0);
+                    if (nextDate < today) isOverdue = true;
+                }
+                
+                const companyName = f.appointment?.company?.name || 'Vessel Owner / Pipeline Task';
+                const notes = f.notes || 'No notes provided.';
+                const badge = window.UI && window.UI.renderStatusBadge ? window.UI.renderStatusBadge(f.status) : `<span class="badge badge-gray">${f.status}</span>`;
+                const dateStr = f.nextFollowupDate ? window.UI.formatDate(f.nextFollowupDate) : 'No Date';
+                
+                return `
+                    <div class="followup-item ${isCompleted ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}">
+                        <div class="followup-check">
+                            <input type="checkbox" class="followup-checkbox" data-id="${fid}" 
+                                ${isCompleted ? 'checked' : ''}>
+                        </div>
+                        <div class="followup-content">
+                            <div class="followup-title">${companyName}</div>
+                            <div class="followup-desc">${notes}</div>
+                            <div class="followup-meta">
+                                <span>Source: ${f.appointment ? ('Appt on ' + window.UI.formatDate(f.appointment.scheduledAt)) : 'Direct Follow-Up'}</span>
+                                ${isOverdue ? '<span style="color:#ef4444; font-weight:bold;">⚠️ Overdue</span>' : ''}
+                            </div>
+                        </div>
+                        <div class="followup-right">
+                            ${badge}
+                            <span style="font-size:0.85em; color:#94a3b8;">Due: ${dateStr}</span>
+                            <div style="display:flex; gap:6px;">
+                                <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${fid}">Edit</button>
+                                <button class="btn btn-danger btn-sm" data-action="delete" data-id="${fid}">Delete</button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        async function toggleStatus(id, isChecked) {
+            try {
+                const newStatus = isChecked ? 'COMPLETED' : 'PENDING';
+                await window.ApiService.updateFollowUp(id, { status: newStatus });
+                window.UI.showToast(`✅ Mark as ${newStatus.toLowerCase()}`, 'success');
+                loadFollowUps();
+            } catch (err) {
+                console.error('Toggle status error:', err);
+                window.UI.showToast('Failed to update status', 'error');
+                loadFollowUps();
+            }
+        }
+
+        async function openFollowUpModal(fu = null) {
+            if (appointmentsList.length === 0) {
+                await loadAppointments();
+            }
+
+            const template = document.getElementById('followup-modal-template');
+            if (!template) return;
+
+            const footerHtml = `
+                <button class="btn btn-secondary" type="button" id="cancel-fu-btn">Cancel</button>
+                <button class="btn btn-primary"   type="button" id="save-fu-btn">${fu ? 'Update Follow-Up' : 'Save Follow-Up'}</button>
+            `;
+
+            _fuModal = window.UI.createModal({
+                title: fu ? '✏️ Edit Follow-Up' : '🔔 New Follow-Up',
+                bodyHtml: template.innerHTML,
+                footerHtml: footerHtml,
+                onClose: () => { _fuModal = null; }
+            });
+
+            _fuModal.querySelector('#cancel-fu-btn').addEventListener('click', () => {
+                if (_fuModal) _fuModal.close();
+            });
+            _fuModal.querySelector('#save-fu-btn').addEventListener('click', handleModalSubmit);
+
+            // Populate Appointments
+            const apptSelect = _fuModal.querySelector('#modal-fu-appt');
+            apptSelect.innerHTML = '<option value="">None (Standalone)</option>';
+            const targetApptId = fu ? String(fu.appointmentId?.id || fu.appointmentId?._id || fu.appointmentId || '') : '';
+
+            appointmentsList.forEach(a => {
+                const aid = String(a.id || a._id);
+                const opt = document.createElement('option');
+                opt.value = aid;
+                opt.textContent = `${a.company?.name || 'Company'} - ${window.UI.formatDate(a.scheduledAt)}`;
+                if (targetApptId && targetApptId === aid) opt.selected = true;
+                apptSelect.appendChild(opt);
+            });
+
+            if (fu) {
+                _fuModal.querySelector('#modal-fu-id').value = fu.id || String(fu._id) || '';
+                _fuModal.querySelector('#modal-fu-status').value = fu.status || 'PENDING';
+                if (fu.nextFollowupDate) {
+                    _fuModal.querySelector('#modal-fu-date').value = String(fu.nextFollowupDate).split('T')[0];
+                }
+                _fuModal.querySelector('#modal-fu-notes').value = fu.notes || '';
+            }
+        }
+        
+        function editFollowUp(id) {
+            const idStr = String(id);
+            const fu = allFollowUps.find(x => String(x.id || x._id) === idStr);
+            if (fu) {
+                openFollowUpModal(fu);
+            } else {
+                window.UI.showToast('Follow-up not found', 'error');
+            }
+        }
+
+        async function deleteFollowUp(id) {
+            const confirmed = await window.UI.confirm('Are you sure you want to delete this follow-up task?');
+            if (!confirmed) return;
+
+            try {
+                await window.ApiService.deleteFollowUp(id);
+                window.UI.showToast('✅ Follow-up task deleted', 'success');
+                loadFollowUps();
+            } catch (err) {
+                console.error('Delete follow-up error:', err);
+                window.UI.showToast('Failed to delete follow-up', 'error');
+            }
+        }
+        
+        async function handleModalSubmit() {
+            if (!_fuModal) return;
+
+            const id = _fuModal.querySelector('#modal-fu-id')?.value;
+            const status = _fuModal.querySelector('#modal-fu-status')?.value || 'PENDING';
+            const nextFollowupDate = _fuModal.querySelector('#modal-fu-date')?.value || null;
+            const notes = _fuModal.querySelector('#modal-fu-notes')?.value || '';
+            const appointmentId = _fuModal.querySelector('#modal-fu-appt')?.value || null;
+
+            const payload = { status, nextFollowupDate, notes, appointmentId };
+            
+            const saveBtn = _fuModal.querySelector('#save-fu-btn');
+            if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
+
+            try {
+                if (id) {
+                    await window.ApiService.updateFollowUp(id, payload);
+                    window.UI.showToast('✅ Follow-up updated successfully', 'success');
+                } else {
+                    await window.ApiService.createFollowUp(payload);
+                    window.UI.showToast('✅ New follow-up created successfully', 'success');
+                }
+                if (_fuModal) _fuModal.close();
+                _fuModal = null;
+                loadFollowUps();
+            } catch (err) {
+                console.error('Save follow-up error:', err);
+                const msg = err.message || err.response?.data?.message || 'Failed to save follow-up';
+                window.UI.showToast('❌ ' + msg, 'error');
+                if (saveBtn) { saveBtn.disabled = false; saveBtn.textContent = id ? 'Update Follow-Up' : 'Save Follow-Up'; }
+            }
+        }
+
+        // Expose global methods
+        window.loadFollowUps = loadFollowUps;
+        window.toggleStatus = toggleStatus;
+        window.editFollowUp = editFollowUp;
+        window.deleteFollowUp = deleteFollowUp;
+        window.openFollowUpModal = openFollowUpModal;
+    </script>
+</body>
+</html>

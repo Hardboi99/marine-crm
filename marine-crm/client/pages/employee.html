@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Employees — Marine BDM CRM</title>
+  <meta name="description" content="Manage all company employees in Marine BDM CRM.">
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+<div class="app-layout">
+  <div id="sidebar-container"></div>
+
+  <div class="main-content">
+    <div id="navbar-container"></div>
+
+    <main class="page-content">
+
+      <!-- PAGE HEADER -->
+      <div class="page-header">
+        <div>
+          <h1 class="page-title">👨‍💼 Employees</h1>
+          <p class="page-subtitle">Manage all internal employees and HR records</p>
+        </div>
+        <button id="add-employee-btn" class="btn btn-primary">
+          <i class="fas fa-plus"></i> Add Employee
+        </button>
+      </div>
+
+      <!-- STATS ROW -->
+      <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 24px;">
+        <div class="stat-card">
+          <div class="stat-icon" style="background: linear-gradient(135deg,#0ea5e9,#6366f1);">
+            <i class="fas fa-users"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="stat-total">—</div>
+            <div class="stat-label">Total Employees</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: linear-gradient(135deg,#10b981,#059669);">
+            <i class="fas fa-briefcase"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="stat-positions">—</div>
+            <div class="stat-label">Unique Positions</div>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706);">
+            <i class="fas fa-map-marker-alt"></i>
+          </div>
+          <div class="stat-content">
+            <div class="stat-value" id="stat-locations">—</div>
+            <div class="stat-label">Locations</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- FILTER BAR -->
+      <div class="filter-bar">
+        <div class="filter-group">
+          <i class="fas fa-search filter-icon"></i>
+          <input type="text" id="search-input" class="form-control" placeholder="Search by name, position, location…" oninput="renderEmployees()">
+        </div>
+        <div class="filter-group">
+          <select id="position-filter" class="form-control" onchange="renderEmployees()">
+            <option value="">All Positions</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- TABLE CARD -->
+      <div class="card">
+        <div class="card-body" style="padding: 0;">
+          <div class="table-container">
+            <table class="table">
+              <thead>
+                <tr>
+                  <th>#</th>
+                  <th>Employee</th>
+                  <th>Position</th>
+                  <th>Phone</th>
+                  <th>Email</th>
+                  <th>Location</th>
+                  <th>Joining Date</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="employee-table-body"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+    </main>
+  </div>
+</div>
+
+<!-- ADD / EDIT MODAL TEMPLATE -->
+<template id="employee-modal-tpl">
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+    <div style="grid-column:1/-1;">
+      <label class="form-label">Full Name <span style="color:#f87171">*</span></label>
+      <input id="emp-name" class="form-control" placeholder="e.g. John Doe">
+    </div>
+    <div>
+      <label class="form-label">Employee ID</label>
+      <input id="emp-id" class="form-control" placeholder="e.g. EMP-001">
+    </div>
+    <div>
+      <label class="form-label">Position / Role</label>
+      <input id="emp-position" class="form-control" placeholder="e.g. BDM Executive">
+    </div>
+    <div>
+      <label class="form-label">Phone <span style="color:#f87171">*</span></label>
+      <input id="emp-phone" class="form-control" placeholder="+91 98765 43210">
+    </div>
+    <div>
+      <label class="form-label">Email</label>
+      <input id="emp-email" class="form-control" type="email" placeholder="john@company.com">
+    </div>
+    <div>
+      <label class="form-label">Location</label>
+      <input id="emp-location" class="form-control" placeholder="e.g. Mumbai">
+    </div>
+    <div>
+      <label class="form-label">Joining Date</label>
+      <input id="emp-joindate" class="form-control" type="date">
+    </div>
+  </div>
+</template>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="/public/js/api/api.js"></script>
+<script src="/public/js/components/ui.js"></script>
+<script src="/public/js/components/sidebar.js"></script>
+
+<script>
+// ─── State ─────────────────────────────────────────────────────────────
+let employees = [];
+let editingId = null;
+const currentUser    = window.UI ? window.UI.getUser() : JSON.parse(localStorage.getItem('user') || '{}');
+const canManage      = ['ADMIN', 'HR'].includes(currentUser.role);
+
+// ─── Load ───────────────────────────────────────────────────────────────
+async function loadEmployees() {
+  UI.showTableSkeleton(document.getElementById('employee-table-body'), 8, 6);
+  try {
+    const res = await window.ApiService.employees.list();
+    employees  = res.data || [];
+    updateStats();
+    populatePositionFilter();
+    renderEmployees();
+  } catch (err) {
+    console.error('Error loading employees:', err);
+    UI.showToast('Failed to load employees', 'error');
+    document.getElementById('employee-table-body').innerHTML =
+      `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">
+         <i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
+         Failed to load employees. Please refresh.
+       </td></tr>`;
+  }
+}
+
+// ─── Stats ──────────────────────────────────────────────────────────────
+function updateStats() {
+  const positions = new Set(employees.map(e => e.position).filter(Boolean));
+  const locations = new Set(employees.map(e => e.location).filter(Boolean));
+  UI.countUp(document.getElementById('stat-total'),     employees.length);
+  UI.countUp(document.getElementById('stat-positions'), positions.size);
+  UI.countUp(document.getElementById('stat-locations'), locations.size);
+}
+
+// ─── Position Filter ─────────────────────────────────────────────────────
+function populatePositionFilter() {
+  const sel = document.getElementById('position-filter');
+  const cur = sel.value;
+  const positions = [...new Set(employees.map(e => e.position).filter(Boolean))].sort();
+  sel.innerHTML = '<option value="">All Positions</option>' +
+    positions.map(p => `<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join('');
+}
+
+// ─── Render Table ────────────────────────────────────────────────────────
+function renderEmployees() {
+  const search    = (document.getElementById('search-input').value || '').toLowerCase();
+  const posFilter = document.getElementById('position-filter').value;
+
+  const filtered = employees.filter(e => {
+    const matchSearch = !search ||
+      e.name.toLowerCase().includes(search) ||
+      (e.position   || '').toLowerCase().includes(search) ||
+      (e.location   || '').toLowerCase().includes(search) ||
+      (e.email      || '').toLowerCase().includes(search) ||
+      (e.employeeId || '').toLowerCase().includes(search);
+    const matchPos = !posFilter || e.position === posFilter;
+    return matchSearch && matchPos;
+  });
+
+  const tbody = document.getElementById('employee-table-body');
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr><td colspan="8">
+        ${UI.renderEmptyState('👨‍💼', 'No Employees Found',
+          search || posFilter
+            ? 'No employees match your current filters.'
+            : 'Add your first employee to get started.',
+          canManage
+            ? `<button class="btn btn-primary" onclick="openEmployeeModal()"><i class="fas fa-plus"></i> Add Employee</button>`
+            : ''
+        )}
+      </td></tr>`;
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((e, idx) => {
+    const initials = e.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
+    const joinDate = e.joinDate
+      ? new Date(e.joinDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
+      : '—';
+    return `
+      <tr>
+        <td style="color:var(--text-muted);font-size:0.8rem;">${idx + 1}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:50%;
+                        background:linear-gradient(135deg,#0ea5e9,#6366f1);
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:0.7rem;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>
+            <div>
+              <div style="font-weight:600;color:var(--text-primary);">${e.name}</div>
+              ${e.employeeId ? `<div style="font-size:0.75rem;color:var(--text-muted);">${e.employeeId}</div>` : ''}
+            </div>
+          </div>
+        </td>
+        <td>${e.position ? `<span class="badge badge-blue">${e.position}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${e.phone || '—'}</td>
+        <td style="font-size:0.85rem;">${e.email || '—'}</td>
+        <td>${e.location ? `<i class="fas fa-map-marker-alt" style="font-size:0.7rem;margin-right:4px;opacity:0.6;"></i>${e.location}` : '—'}</td>
+        <td style="font-size:0.85rem;">${joinDate}</td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            ${canManage ? `
+              <button class="btn btn-secondary btn-sm" onclick="openEmployeeModal('${e.id}')" title="Edit">
+                <i class="fas fa-edit"></i>
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDeleteEmployee('${e.id}','${e.name.replace(/'/g,"&#39;")}')" title="Delete">
+                <i class="fas fa-trash"></i>
+              </button>
+            ` : `<span style="color:var(--text-muted);font-size:0.8rem;">View only</span>`}
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+// ─── Open Add / Edit Modal ───────────────────────────────────────────────
+function openEmployeeModal(id = null) {
+  if (!canManage) return UI.showToast('Only Admin or HR can manage employees.', 'warning');
+  editingId = id;
+  const emp = id ? employees.find(e => e.id === id) : null;
+  const tpl = document.getElementById('employee-modal-tpl');
+
+  const modal = UI.createModal({
+    title: emp ? '✏️ Edit Employee' : '➕ Add Employee',
+    bodyHtml: tpl.innerHTML,
+    footerHtml: `
+      <button class="btn btn-secondary" id="emp-cancel">Cancel</button>
+      <button class="btn btn-primary"   id="emp-save">${emp ? 'Update' : 'Save'} Employee</button>
+    `
+  });
+
+  if (emp) {
+    modal.querySelector('#emp-name').value     = emp.name        || '';
+    modal.querySelector('#emp-id').value       = emp.employeeId  || '';
+    modal.querySelector('#emp-position').value = emp.position    || '';
+    modal.querySelector('#emp-phone').value    = emp.phone       || '';
+    modal.querySelector('#emp-email').value    = emp.email       || '';
+    modal.querySelector('#emp-location').value = emp.location    || '';
+    if (emp.joinDate) {
+      modal.querySelector('#emp-joindate').value = new Date(emp.joinDate).toISOString().split('T')[0];
+    }
+  }
+
+  modal.querySelector('#emp-cancel').onclick = () => modal.close();
+  modal.querySelector('#emp-save').onclick   = () => saveEmployee(modal);
+}
+
+// ─── Save ────────────────────────────────────────────────────────────────
+async function saveEmployee(modal) {
+  const saveBtn = modal.querySelector('#emp-save');
+  const data = {
+    name:       modal.querySelector('#emp-name').value.trim(),
+    employeeId: modal.querySelector('#emp-id').value.trim(),
+    position:   modal.querySelector('#emp-position').value.trim(),
+    phone:      modal.querySelector('#emp-phone').value.trim(),
+    email:      modal.querySelector('#emp-email').value.trim(),
+    location:   modal.querySelector('#emp-location').value.trim(),
+    joinDate:   modal.querySelector('#emp-joindate').value,
+  };
+
+  if (!data.name || !data.phone) {
+    return UI.showToast('Name and Phone are required.', 'error');
+  }
+
+  saveBtn.disabled    = true;
+  saveBtn.innerHTML   = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+
+  try {
+    if (editingId) {
+      await window.ApiService.employees.update(editingId, data);
+      UI.showToast('Employee updated successfully.', 'success');
+    } else {
+      await window.ApiService.employees.create(data);
+      UI.showToast('Employee added successfully.', 'success');
+    }
+    modal.close();
+    await loadEmployees();
+  } catch (err) {
+    console.error('Save error:', err);
+    UI.showToast(err.message || 'Failed to save employee.', 'error');
+    saveBtn.disabled  = false;
+    saveBtn.innerHTML = editingId ? 'Update Employee' : 'Save Employee';
+  }
+}
+
+// ─── Delete ──────────────────────────────────────────────────────────────
+async function confirmDeleteEmployee(id, name) {
+  if (!canManage) return UI.showToast('Only Admin or HR can delete employees.', 'warning');
+  const confirmed = await UI.confirm({
+    title:       'Delete Employee?',
+    message:     `Are you sure you want to delete <strong>${name}</strong>? This cannot be undone.`,
+    confirmText: 'Delete',
+    cancelText:  'Cancel',
+    danger:      true
+  });
+  if (!confirmed) return;
+  try {
+    await window.ApiService.employees.delete(id);
+    UI.showToast('Employee deleted.', 'success');
+    await loadEmployees();
+  } catch (err) {
+    console.error('Delete error:', err);
+    UI.showToast(err.message || 'Failed to delete employee.', 'error');
+  }
+}
+
+// ─── Init ─────────────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', () => {
+  if (!window.UI || !window.UI.requireAuth()) return;
+  const addBtn = document.getElementById('add-employee-btn');
+  if (addBtn) {
+    if (!canManage) addBtn.style.display = 'none';
+    else addBtn.addEventListener('click', () => openEmployeeModal());
+  }
+  loadEmployees();
+});
+</script>
+
+</body>
+</html>

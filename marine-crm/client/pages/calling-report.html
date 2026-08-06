@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calling Report - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <style>
+        .ryg-selector { display: flex; gap: 10px; margin-bottom: 15px; }
+        .ryg-btn {
+            flex: 1; padding: 10px; border: 2px solid transparent; border-radius: 6px; 
+            background: #112240; color: #fff; cursor: pointer; font-weight: bold; transition: all 0.2s;
+        }
+        .ryg-btn.red { border-color: #ef4444; color: #ef4444; }
+        .ryg-btn.yellow { border-color: #f59e0b; color: #f59e0b; }
+        .ryg-btn.green { border-color: #10b981; color: #10b981; }
+        .ryg-btn.red.active { background: #ef4444; color: #fff; }
+        .ryg-btn.yellow.active { background: #f59e0b; color: #fff; }
+        .ryg-btn.green.active { background: #10b981; color: #fff; }
+        .stat-card.red { border-left: 4px solid #ef4444; }
+        .stat-card.yellow { border-left: 4px solid #f59e0b; }
+        .stat-card.green { border-left: 4px solid #10b981; }
+    </style>
+</head>
+<body>
+    <div id="sidebar-container"></div>
+    <main class="main-content">
+        <div id="navbar-container"></div>
+        <div class="page-content pageEnter">
+            <div class="page-header">
+                <div>
+                    <h1 style="margin: 0; color: #fff;">📞 Daily Calling Report</h1>
+                    <p style="margin: 5px 0 0; color: #94a3b8;">Log and track vessel owner calls with Red/Yellow/Green status</p>
+                </div>
+                <button class="btn btn-primary" onclick="openAddCallModal()">+ Log New Call</button>
+            </div>
+
+            <div class="stats-grid" style="margin-bottom: 24px;">
+                <div class="stat-card red">
+                    <div class="stat-title" style="color: #ef4444; font-weight: bold;">🔴 RED (Not Interested)</div>
+                    <div class="stat-value" id="count-red">0</div>
+                </div>
+                <div class="stat-card yellow">
+                    <div class="stat-title" style="color: #f59e0b; font-weight: bold;">🟡 YELLOW (Follow Up)</div>
+                    <div class="stat-value" id="count-yellow">0</div>
+                </div>
+                <div class="stat-card green">
+                    <div class="stat-title" style="color: #10b981; font-weight: bold;">🟢 GREEN (Positive)</div>
+                    <div class="stat-value" id="count-green">0</div>
+                </div>
+            </div>
+
+            <div class="filter-bar">
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Date</label>
+                    <input type="date" id="filter-date" class="form-control" onchange="loadCalls()">
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Status</label>
+                    <select id="filter-status" class="form-control" onchange="loadCalls()">
+                        <option value="">All Statuses</option>
+                        <option value="RED">🔴 RED</option>
+                        <option value="YELLOW">🟡 YELLOW</option>
+                        <option value="GREEN">🟢 GREEN</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin: 0;">
+                    <label class="form-label">Company Search</label>
+                    <input type="text" id="filter-company" class="form-control" placeholder="Search company..." oninput="filterTable()">
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-body" style="padding: 0;">
+                    <div class="table-container">
+                        <table class="table" style="width: 100%; border-collapse: collapse;">
+                            <thead>
+                                <tr style="border-bottom: 1px solid #1e293b; background: rgba(0,0,0,0.2);">
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Company</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">BDM</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Call Date</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Duration</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Status</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Notes</th>
+                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody id="calls-table">
+                                <!-- Populated by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Modal Template for Add Call -->
+    <template id="add-call-modal-content">
+        <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Company <span style="color: #ef4444;">*</span></label>
+                <select id="call-company" class="form-control">
+                    <option value="">Select Company...</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Call Date & Time <span style="color: #ef4444;">*</span></label>
+                <input type="datetime-local" id="call-date" class="form-control">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Duration (minutes)</label>
+                <input type="number" id="call-duration" class="form-control" min="1" placeholder="e.g. 15">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Status Color <span style="color: #ef4444;">*</span></label>
+                <div class="ryg-selector">
+                    <button type="button" class="ryg-btn red" onclick="selectRyg('RED')">🔴 RED</button>
+                    <button type="button" class="ryg-btn yellow" onclick="selectRyg('YELLOW')">🟡 YELLOW</button>
+                    <button type="button" class="ryg-btn green" onclick="selectRyg('GREEN')">🟢 GREEN</button>
+                </div>
+                <input type="hidden" id="call-status">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Notes</label>
+                <textarea id="call-notes" class="form-control" rows="3" placeholder="Discussion points..."></textarea>
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script>
+        let allCalls = [];
+        let companies = [];
+        let _callModal    = null;
+        let _detailModal  = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!localStorage.getItem('token')) {
+                window.location.href = '/pages/login.html';
+                return;
+            }
+            // Default date today
+            document.getElementById('filter-date').value = new Date().toISOString().split('T')[0];
+            
+            await fetchCompanies();
+            await loadCalls();
+        });
+
+        async function fetchCompanies() {
+            try {
+                const res = await window.ApiService.companies.list();
+                companies = res.data || [];
+            } catch (err) {
+                console.error('Error fetching companies:', err);
+                window.UI.showToast('Failed to load companies', 'error');
+            }
+        }
+
+        async function loadCalls() {
+            const table = document.getElementById('calls-table');
+            table.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;"><div class="skeleton" style="height:40px;width:100%;margin-bottom:10px;"></div><div class="skeleton" style="height:40px;width:100%;"></div></td></tr>';
+            
+            try {
+                const date = document.getElementById('filter-date').value;
+                // Pass date as a query param — the server filters by callDate
+                const res = await window.ApiService.calls.list(date ? { date } : {});
+                allCalls = res.data || [];
+                renderTable();
+            } catch (err) {
+                console.error('Error loading calls:', err);
+                window.UI.showToast('Failed to load calls', 'error');
+                table.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:30px;text-align:center;color:#94a3b8;">Error loading data</td></tr>';
+            }
+        }
+
+        function filterTable() {
+            renderTable();
+        }
+
+        function renderTable() {
+            const statusFilter = document.getElementById('filter-status').value;
+            const companySearch = document.getElementById('filter-company').value.toLowerCase();
+            
+            let filtered = allCalls.filter(c => {
+                const matchStatus = !statusFilter || c.statusColor === statusFilter;
+                const matchCompany = !companySearch || (c.company && c.company.name.toLowerCase().includes(companySearch));
+                return matchStatus && matchCompany;
+            });
+
+            // Update stats
+            document.getElementById('count-red').textContent = allCalls.filter(c => c.statusColor === 'RED').length;
+            document.getElementById('count-yellow').textContent = allCalls.filter(c => c.statusColor === 'YELLOW').length;
+            document.getElementById('count-green').textContent = allCalls.filter(c => c.statusColor === 'GREEN').length;
+
+            const table = document.getElementById('calls-table');
+            if (filtered.length === 0) {
+                table.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:30px;text-align:center;color:#94a3b8;">No calls found for selected filters</td></tr>';
+                return;
+            }
+
+            table.innerHTML = filtered.map(c => `
+                <tr style="border-bottom: 1px solid #1e293b; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 15px;">${c.company ? c.company.name : 'Unknown'}</td>
+                    <td style="padding: 15px; color: #94a3b8;">${c.user ? c.user.name : 'Unknown'}</td>
+                    <td style="padding: 15px; color: #94a3b8;">${window.UI.formatDateTime(c.callDate)}</td>
+                    <td style="padding: 15px;">${c.durationMinutes ? c.durationMinutes + ' min' : '-'}</td>
+                    <td style="padding: 15px;">${window.UI.renderRYGBadge ? window.UI.renderRYGBadge(c.statusColor) : '<span class="badge badge-gray">'+c.statusColor+'</span>'}</td>
+                    <td style="padding: 15px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cbd5e1;" title="${c.notes || ''}">${c.notes || '-'}</td>
+                    <td style="padding: 15px;">
+                        <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="viewCallDetails('${c.id}')">View</button>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        async function openAddCallModal() {
+            if (companies.length === 0) await fetchCompanies();
+
+            const template = document.getElementById('add-call-modal-content');
+            if (!template) { console.error('Template #add-call-modal-content not found'); return; }
+
+            _callModal = window.UI.createModal({
+                title: '📞 Log New Call',
+                bodyHtml: template.innerHTML,
+                footerHtml: `
+                    <button class="btn btn-secondary" type="button" id="cancel-call-btn">Cancel</button>
+                    <button class="btn btn-primary"   type="button" id="confirm-call-btn">Log Call</button>
+                `,
+                onClose: () => { _callModal = null; }
+            });
+
+            // Wire buttons via addEventListener (never inline onclick)
+            _callModal.querySelector('#cancel-call-btn').addEventListener('click', () => {
+                if (_callModal) _callModal.close();
+            });
+            _callModal.querySelector('#confirm-call-btn').addEventListener('click', submitCall);
+
+            // Populate companies
+            const select = _callModal.querySelector('#call-company');
+            select.innerHTML = '<option value="">Select Company...</option>';
+            companies.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id || (c._id ? String(c._id) : '');
+                opt.textContent = c.name;
+                select.appendChild(opt);
+            });
+
+            // Default datetime to now (local)
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            _callModal.querySelector('#call-date').value = now.toISOString().slice(0, 16);
+        }
+
+        function selectRyg(color) {
+            if (!_callModal) return;
+            _callModal.querySelectorAll('.ryg-btn').forEach(b => b.classList.remove('active'));
+            const btn = _callModal.querySelector(`.ryg-btn.${color.toLowerCase()}`);
+            if (btn) btn.classList.add('active');
+            _callModal.querySelector('#call-status').value = color;
+        }
+
+        async function submitCall() {
+            if (!_callModal) return;
+
+            const companyId   = _callModal.querySelector('#call-company')?.value  || '';
+            const callDate    = _callModal.querySelector('#call-date')?.value     || '';
+            const durationRaw = _callModal.querySelector('#call-duration')?.value || '';
+            const statusColor = _callModal.querySelector('#call-status')?.value   || '';
+            const notes       = _callModal.querySelector('#call-notes')?.value    || '';
+
+            if (!companyId || !callDate) {
+                window.UI.showToast('Please select a company and call date', 'error');
+                return;
+            }
+            if (!statusColor) {
+                window.UI.showToast('Please select a status color (RED, YELLOW, or GREEN)', 'error');
+                return;
+            }
+
+            const payload = {
+                companyId,
+                callDate,
+                durationMinutes: durationRaw ? parseInt(durationRaw, 10) : null,
+                statusColor,
+                notes
+            };
+
+            const btn = _callModal.querySelector('#confirm-call-btn');
+            if (btn) { btn.disabled = true; btn.textContent = 'Saving…'; }
+
+            try {
+                await window.ApiService.calls.create(payload);
+                window.UI.showToast('✅ Call logged successfully!', 'success');
+                if (_callModal) _callModal.close();
+                _callModal = null;
+                loadCalls();
+            } catch (err) {
+                console.error('submitCall error:', err);
+                const msg = err.message || 'Failed to log call';
+                window.UI.showToast('❌ ' + msg, 'error');
+                if (btn) { btn.disabled = false; btn.textContent = 'Log Call'; }
+            }
+        }
+
+        function viewCallDetails(id) {
+            const call = allCalls.find(c => c.id === id);
+            if (!call) return;
+
+            const bodyHtml = `
+                <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;">
+                    <div><strong style="color:#94a3b8;">Company:</strong> <span style="color:#fff;">${call.company ? call.company.name : 'Unknown'}</span></div>
+                    <div><strong style="color:#94a3b8;">BDM Executive:</strong> <span style="color:#fff;">${call.user ? call.user.name : 'Unknown'}</span></div>
+                    <div><strong style="color:#94a3b8;">Call Date:</strong> <span style="color:#fff;">${window.UI.formatDateTime(call.callDate)}</span></div>
+                    <div><strong style="color:#94a3b8;">Duration:</strong> <span style="color:#fff;">${call.durationMinutes ? call.durationMinutes + ' minutes' : '-'}</span></div>
+                    <div><strong style="color:#94a3b8;">Status:</strong> ${window.UI.renderRYGBadge ? window.UI.renderRYGBadge(call.statusColor) : call.statusColor}</div>
+                    <div><strong style="color:#94a3b8;">Notes:</strong> <p style="color:#cbd5e1;background:rgba(0,0,0,0.2);padding:10px;border-radius:6px;margin:5px 0 0;">${call.notes || 'No notes added'}</p></div>
+                </div>
+            `;
+
+            _detailModal = window.UI.createModal({
+                title: '📞 Call Log Details',
+                bodyHtml,
+                footerHtml: `<button class="btn btn-primary" type="button" id="close-detail-btn">Close</button>`,
+                onClose: () => { _detailModal = null; }
+            });
+            _detailModal.querySelector('#close-detail-btn').addEventListener('click', () => {
+                if (_detailModal) _detailModal.close();
+            });
+        }
+        // Expose global (required for inline onclick= in HTML)
+        window.openAddCallModal = openAddCallModal;
+        window.selectRyg        = selectRyg;
+        window.filterTable      = filterTable;
+        window.loadCalls        = loadCalls;
+        window.viewCallDetails  = viewCallDetails;
+    </script>
+</body>
+</html>

@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Operations & Compliance - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .ops-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+        .ops-tab {
+            cursor: pointer;
+            border: none;
+            padding: 12px 16px;
+            background: none;
+            color: var(--text-secondary);
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-bottom: 3px solid transparent;
+            transition: all var(--transition);
+        }
+        .ops-tab:hover {
+            color: var(--text-primary);
+        }
+        .ops-tab.active {
+            color: var(--accent-primary);
+            border-bottom-color: var(--accent-primary);
+        }
+        .checklist-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            margin: 15px 0;
+            padding: 12px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-color);
+        }
+        .checklist-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+        .checklist-item input {
+            cursor: pointer;
+            width: 17px;
+            height: 17px;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+            <main class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">⚙️ Operations, Compliance & Billing</h1>
+                        <p class="page-subtitle">Verify documentation, bill clients and track final deployments</p>
+                    </div>
+                </div>
+
+                <div class="ops-tabs">
+                    <button class="ops-tab active" data-tab="approvals"><i class="fas fa-user-check"></i> Client Approvals</button>
+                    <button class="ops-tab" data-tab="deployments"><i class="fas fa-anchor"></i> Onboarding Checklists</button>
+                    <button class="ops-tab" data-tab="billing"><i class="fas fa-file-invoice-dollar"></i> Client Invoices</button>
+                    <button class="ops-tab" data-tab="alerts"><i class="fas fa-bell"></i> Expiry Alerts <span class="badge badge-danger" id="alerts-count-badge" style="display:none">0</span></button>
+                </div>
+
+                <!-- 1. CLIENT APPROVALS TAB -->
+                <div id="tab-content-approvals" class="ops-tab-content">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 style="margin-bottom:15px; color:var(--accent-primary);">Proposed Candidates Awaiting Client Decision</h3>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Candidate</th>
+                                            <th>Rank</th>
+                                            <th>Client/Company</th>
+                                            <th>Vessel Details</th>
+                                            <th>Submission Date</th>
+                                            <th>Decision Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="approvals-tbody">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. DEPLOYMENTS & ONBOARDING TAB -->
+                <div id="tab-content-deployments" class="ops-tab-content" style="display:none;">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 style="margin-bottom:15px; color:var(--accent-primary);">Active Onboarding & Deployment Checklists</h3>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Seafarer</th>
+                                            <th>Requirement Details</th>
+                                            <th>Documents Check</th>
+                                            <th>Logistics Status</th>
+                                            <th>Deployment Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="deployments-tbody">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. CLIENT INVOICES TAB -->
+                <div id="tab-content-billing" class="ops-tab-content" style="display:none;">
+                    <div class="card">
+                        <div class="card-body">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+                                <h3 style="color:var(--accent-primary);">Billing & Placement Invoices</h3>
+                                <button id="add-invoice-btn" class="btn btn-primary btn-sm"><i class="fas fa-plus"></i> Generate Invoice</button>
+                            </div>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Invoice #</th>
+                                            <th>Client</th>
+                                            <th>Placed Seafarer</th>
+                                            <th>Offered Wages</th>
+                                            <th>Invoice Amount</th>
+                                            <th>Due Date</th>
+                                            <th>Status</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="billing-tbody">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. EXPIRY ALERTS TAB -->
+                <div id="tab-content-alerts" class="ops-tab-content" style="display:none;">
+                    <div class="card">
+                        <div class="card-body">
+                            <h3 style="margin-bottom:15px; color:var(--red);"><i class="fas fa-shield-alt"></i> IMO Compliance Expiry Alerts (&lt;90 days)</h3>
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Seafarer</th>
+                                            <th>Rank</th>
+                                            <th>Contact / Email</th>
+                                            <th>Critical Expiries</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="alerts-tbody">
+                                        <!-- Populated dynamically -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let proposals = [];
+            let onboardings = [];
+            let invoices = [];
+            let expiries = [];
+            let reasons = [];
+            let currentDecisionId = null;
+            let _decisionModal = null;
+            let _invoiceModal = null;
+            let _logisticsModal = null;
+
+            // Tab Switching Logic
+            const tabs = document.querySelectorAll('.ops-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const tabName = tab.getAttribute('data-tab');
+                    document.querySelectorAll('.ops-tab-content').forEach(content => {
+                        content.style.display = 'none';
+                    });
+                    document.getElementById(`tab-content-${tabName}`).style.display = 'block';
+                    loadTab(tabName);
+                });
+            });
+
+            // Fetch generic Rejection Reasons once
+            window.ApiService.getReasons().then(res => {
+                reasons = res.data || [];
+            }).catch(err => console.error(err));
+
+            async function loadTab(tabName) {
+                try {
+                    if (tabName === 'approvals') {
+                        const res = await window.ApiService.crewing.applications.getAll({ status: 'PROPOSED' });
+                        proposals = res.data || [];
+                        renderApprovals();
+                    } else if (tabName === 'deployments') {
+                        const res = await window.ApiService.ops.onboardings.getAll();
+                        onboardings = res.data || [];
+                        renderDeployments();
+                    } else if (tabName === 'billing') {
+                        const res = await window.ApiService.ops.invoices.getAll();
+                        invoices = res.data || [];
+                        renderInvoices();
+                    } else if (tabName === 'alerts') {
+                        const res = await window.ApiService.ops.expiryAlerts.getAll();
+                        expiries = res.data || [];
+                        renderAlerts();
+                    }
+                } catch (error) {
+                    console.error('Error fetching tab data:', error);
+                }
+            }
+
+            // Render Tab Content
+            function renderApprovals() {
+                const tbody = document.getElementById('approvals-tbody');
+                tbody.innerHTML = '';
+                if (proposals.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" style="text-align:center;">No pending candidates awaiting client approvals.</td></tr>`;
+                    return;
+                }
+                proposals.forEach(p => {
+                    const candName = p.candidateId ? p.candidateId.name : 'Unknown';
+                    const candRank = p.candidateId ? p.candidateId.rank : 'Unknown';
+                    const compName = p.requirementId?.companyId ? p.requirementId.companyId.name : 'Unknown';
+                    const vesselDetails = p.requirementId ? `${p.requirementId.vesselType} - Salary $${p.requirementId.salaryOffered || 0}/m` : 'Unknown';
+                    const subDate = new Date(p.createdAt).toLocaleDateString();
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${candName}</strong></td>
+                        <td><span class="badge badge-blue">${candRank}</span></td>
+                        <td>${compName}</td>
+                        <td>${vesselDetails}</td>
+                        <td>${subDate}</td>
+                        <td class="row-actions">
+                            <button class="btn btn-success btn-sm" onclick="approveProposal('${p.id}')"><i class="fas fa-check-circle"></i> Accept</button>
+                            <button class="btn btn-danger btn-sm" onclick="openRejectModal('${p.id}')"><i class="fas fa-times-circle"></i> Reject</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function renderDeployments() {
+                const tbody = document.getElementById('deployments-tbody');
+                tbody.innerHTML = '';
+                if (onboardings.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="5" style="text-align:center;">No crew members currently in the onboarding pipeline.</td></tr>`;
+                    return;
+                }
+                onboardings.forEach(o => {
+                    const name = o.candidateId ? o.candidateId.name : 'Unknown';
+                    const rank = o.candidateId ? o.candidateId.rank : 'Unknown';
+                    const company = o.requirementId?.companyId ? o.requirementId.companyId.name : 'Unknown';
+                    const vessel = o.requirementId ? o.requirementId.vesselType : 'Unknown';
+
+                    const docChecks = `
+                        <div style="font-size:0.8rem;">
+                            <i class="${o.passportValidityChecked ? 'fas fa-check-circle text-success' : 'far fa-circle'}"></i> Passport Verified<br>
+                            <i class="${o.cdcValidityChecked ? 'fas fa-check-circle text-success' : 'far fa-circle'}"></i> CDC Validated<br>
+                            <i class="${o.medicalCleared ? 'fas fa-check-circle text-success' : 'far fa-circle'}"></i> Medical Cleared
+                        </div>
+                    `;
+
+                    const logistics = `
+                        <div style="font-size:0.8rem;">
+                            <i class="${o.contractSigned ? 'fas fa-check-circle text-success' : 'far fa-circle'}"></i> Contract Signed<br>
+                            <i class="${o.ticketBooked ? 'fas fa-plane text-success' : 'far fa-circle'}"></i> Ticket: ${o.ticketBooked ? 'Booked' : 'Pending'}<br>
+                            Reporting: ${o.reportingDate ? new Date(o.reportingDate).toLocaleDateString() : 'TBD'}
+                        </div>
+                    `;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${name}</strong> <span class="badge badge-gray">${rank}</span></td>
+                        <td>${company} (Vessel: ${vessel})</td>
+                        <td>${docChecks}</td>
+                        <td>${logistics}</td>
+                        <td>
+                            <button class="btn btn-secondary btn-sm" onclick="openLogisticsModal('${o.id}')"><i class="fas fa-edit"></i> Edit Checklist</button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function renderInvoices() {
+                const tbody = document.getElementById('billing-tbody');
+                tbody.innerHTML = '';
+                if (invoices.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;">No financial invoice records found.</td></tr>`;
+                    return;
+                }
+                invoices.forEach(i => {
+                    const client = i.companyId ? i.companyId.name : 'Unknown';
+                    const crew = i.candidateId ? i.candidateId.name : 'Unknown';
+                    const wages = i.salaryAgreed ? `$${i.salaryAgreed}/m` : '-';
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${i.invoiceNumber}</strong></td>
+                        <td>${client}</td>
+                        <td>${crew}</td>
+                        <td>${wages}</td>
+                        <td><strong style="color:var(--green);">$${i.amount}</strong></td>
+                        <td>${new Date(i.dueDate).toLocaleDateString()}</td>
+                        <td>
+                            ${window.UI?.renderStatusBadge ? window.UI.renderStatusBadge(i.paymentStatus) : `<span class="badge">${i.paymentStatus}</span>`}
+                        </td>
+                        <td>
+                            <select class="form-control" style="width:120px; height:30px; padding:2px 5px; font-size:0.8rem;" onchange="updateInvoiceStatus('${i.id}', this.value)">
+                                <option value="PENDING" ${i.paymentStatus==='PENDING' ? 'selected':''}>PENDING</option>
+                                <option value="PAID" ${i.paymentStatus==='PAID' ? 'selected':''}>PAID</option>
+                                <option value="OVERDUE" ${i.paymentStatus==='OVERDUE' ? 'selected':''}>OVERDUE</option>
+                            </select>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            function renderAlerts() {
+                const tbody = document.getElementById('alerts-tbody');
+                tbody.innerHTML = '';
+                if (expiries.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="4" style="text-align:center; color:var(--green);">🟢 All seafarer documents are compliant and up-to-date!</td></tr>`;
+                    return;
+                }
+                expiries.forEach(c => {
+                    let alertsHtml = '';
+                    c.alerts.forEach(a => {
+                        alertsHtml += `<div style="margin-bottom:3px;"><span class="badge badge-danger" style="margin-right:5px;">${a.type}</span> Expiries in <strong style="color:var(--red);">${a.daysLeft} days</strong> (${new Date(a.expiryDate).toLocaleDateString()})</div>`;
+                    });
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${c.name}</strong></td>
+                        <td><span class="badge badge-blue">${c.rank}</span></td>
+                        <td>${c.contactNumber} / ${c.email}</td>
+                        <td>${alertsHtml}</td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // Actions - Approvals & Rejections
+            window.approveProposal = async (id) => {
+                if (window.UI?.confirm) {
+                    const confirmed = await window.UI.confirm('Accept this candidate for document verification?');
+                    if (confirmed) {
+                        try {
+                            await window.ApiService.crewing.applications.setDecision(id, { status: 'CLIENT_ACCEPTED' });
+                            window.UI.showToast('✅ Candidate accepted! Advanced to Documentation.', 'success');
+                            loadTab('approvals');
+                        } catch (err) {
+                            window.UI.showToast('Failed to approve candidate', 'error');
+                        }
+                    }
+                }
+            };
+
+            window.openRejectModal = (id) => {
+                currentDecisionId = id;
+                const options = reasons.map(r => `<option value="${r.id}">${r.label} (${r.category})</option>`).join('');
+
+                const bodyHtml = `
+                    <form id="rejection-form">
+                        <div class="form-group">
+                            <label class="form-label">Reason Category *</label>
+                            <select id="rej-reason" class="form-control" required>
+                                <option value="">Select Rejection Reason</option>
+                                ${options}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Notes / Feedback</label>
+                            <textarea id="rej-notes" class="form-control" placeholder="Provide extra feedback details..." rows="3"></textarea>
+                        </div>
+                    </form>
+                `;
+
+                if (window.UI?.createModal) {
+                    _decisionModal = window.UI.createModal({
+                        title: 'Reject Proposed Candidate',
+                        bodyHtml,
+                        footerHtml: `
+                            <button class="btn btn-secondary" onclick="closeDecisionModal()">Cancel</button>
+                            <button class="btn btn-danger" onclick="saveRejection()">Confirm Rejection</button>
+                        `,
+                        onClose: () => { _decisionModal = null; }
+                    });
+                }
+            };
+
+            window.closeDecisionModal = () => {
+                if (_decisionModal) _decisionModal.close();
+            };
+
+            window.saveRejection = async () => {
+                const reasonId = document.getElementById('rej-reason').value;
+                const notes = document.getElementById('rej-notes').value.trim();
+
+                if (!reasonId) {
+                    if (window.UI?.showToast) window.UI.showToast('Please select a rejection reason', 'error');
+                    return;
+                }
+
+                try {
+                    await window.ApiService.crewing.applications.setDecision(currentDecisionId, {
+                        status: 'CLIENT_REJECTED',
+                        rejectionReasonId: reasonId,
+                        rejectionNotes: notes
+                    });
+                    if (window.UI?.showToast) window.UI.showToast('❌ Candidate rejected and returned to talent pool.', 'success');
+                    if (_decisionModal) _decisionModal.close();
+                    loadTab('approvals');
+                } catch (error) {
+                    if (window.UI?.showToast) window.UI.showToast('Rejection transaction failed', 'error');
+                }
+            };
+
+            // Actions - Onboarding Logistics Modal
+            window.openLogisticsModal = async (id) => {
+                const onboarding = onboardings.find(o => o.id === id);
+                if (!onboarding) return;
+
+                const reportingDateStr = onboarding.reportingDate ? new Date(onboarding.reportingDate).toISOString().split('T')[0] : '';
+
+                const bodyHtml = `
+                    <form id="logistics-form">
+                        <h4 style="color:var(--accent-primary); border-bottom:1px solid var(--border-color); padding-bottom:5px; margin-bottom:12px;">Documentation Audit</h4>
+                        <div class="checklist-grid">
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-passport" ${onboarding.passportValidityChecked ? 'checked':''}> Passport Checked
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-cdc" ${onboarding.cdcValidityChecked ? 'checked':''}> CDC Validity Verified
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-medical" ${onboarding.medicalCleared ? 'checked':''}> Medical Cleared
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-visa" ${onboarding.visaProcessed ? 'checked':''}> Visa Processed
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-contract-prep" ${onboarding.contractPrepared ? 'checked':''}> Contract Prepared
+                            </label>
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-contract-sign" ${onboarding.contractSigned ? 'checked':''}> Contract Signed
+                            </label>
+                        </div>
+
+                        <h4 style="color:var(--accent-primary); border-bottom:1px solid var(--border-color); padding-bottom:5px; margin-bottom:12px; margin-top:15px;">Deployment Logistics</h4>
+                        <div class="checklist-grid">
+                            <label class="checklist-item">
+                                <input type="checkbox" id="chk-ticket" ${onboarding.ticketBooked ? 'checked':''}> Flight Ticket Booked
+                            </label>
+                        </div>
+
+                        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:10px;">
+                            <div class="form-group">
+                                <label class="form-label">Flight Details</label>
+                                <input type="text" id="chk-flight-details" class="form-control" value="${onboarding.flightDetails || ''}" placeholder="Airline / PNR / Dates">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Vessel Assignment</label>
+                                <input type="text" id="chk-vessel" class="form-control" value="${onboarding.vesselName || ''}" placeholder="e.g. MV Pacific Sun">
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; margin-bottom:10px;">
+                            <div class="form-group">
+                                <label class="form-label">Port of Joining</label>
+                                <input type="text" id="chk-port" class="form-control" value="${onboarding.portOfJoining || ''}" placeholder="e.g. Singapore Port">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Reporting Date</label>
+                                <input type="date" id="chk-reporting" class="form-control" value="${reportingDateStr}">
+                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-top:15px;">
+                            <label class="form-label">Onboarding Status</label>
+                            <select id="chk-status" class="form-control">
+                                <option value="PENDING" ${onboarding.status==='PENDING'?'selected':''}>PENDING (In Progress)</option>
+                                <option value="COMPLETED" ${onboarding.status==='COMPLETED'?'selected':''}>COMPLETED (On Board)</option>
+                                <option value="CANCELLED" ${onboarding.status==='CANCELLED'?'selected':''}>CANCELLED</option>
+                            </select>
+                        </div>
+                    </form>
+                `;
+
+                if (window.UI?.createModal) {
+                    _logisticsModal = window.UI.createModal({
+                        title: `Checklist: ${onboarding.candidateId.name}`,
+                        bodyHtml,
+                        footerHtml: `
+                            <button class="btn btn-secondary" onclick="closeLogisticsModal()">Cancel</button>
+                            <button class="btn btn-primary" onclick="saveLogistics('${o.id}')">Save Changes</button>
+                        `,
+                        onClose: () => { _logisticsModal = null; }
+                    });
+                }
+            };
+
+            window.closeLogisticsModal = () => {
+                if (_logisticsModal) _logisticsModal.close();
+            };
+
+            window.saveLogistics = async (id) => {
+                const payload = {
+                    passportValidityChecked: document.getElementById('chk-passport').checked,
+                    cdcValidityChecked: document.getElementById('chk-cdc').checked,
+                    medicalCleared: document.getElementById('chk-medical').checked,
+                    visaProcessed: document.getElementById('chk-visa').checked,
+                    contractPrepared: document.getElementById('chk-contract-prep').checked,
+                    contractSigned: document.getElementById('chk-contract-sign').checked,
+                    ticketBooked: document.getElementById('chk-ticket').checked,
+                    flightDetails: document.getElementById('chk-flight-details').value.trim(),
+                    vesselName: document.getElementById('chk-vessel').value.trim(),
+                    portOfJoining: document.getElementById('chk-port').value.trim(),
+                    reportingDate: document.getElementById('chk-reporting').value || null,
+                    status: document.getElementById('chk-status').value
+                };
+
+                try {
+                    await window.ApiService.ops.onboardings.update(id, payload);
+                    if (window.UI?.showToast) window.UI.showToast('✅ Deployment checklist saved', 'success');
+                    if (_logisticsModal) _logisticsModal.close();
+                    loadTab('deployments');
+                } catch (error) {
+                    if (window.UI?.showToast) window.UI.showToast('Failed to save checklist', 'error');
+                }
+            };
+
+            // Actions - Generate Invoices
+            document.getElementById('add-invoice-btn').addEventListener('click', () => {
+                openInvoiceModal();
+            });
+
+            function openInvoiceModal() {
+                // Populate client selections
+                const options = onboardings.map(o => `
+                    <option value="${o.id}" data-company="${o.requirementId?.companyId?._id || ''}" data-candidate="${o.candidateId?._id || ''}" data-requirement="${o.requirementId?._id || ''}" data-salary="${o.requirementId?.salaryOffered || 0}">
+                        ${o.candidateId.name} (${o.candidateId.rank}) placed at ${o.requirementId?.companyId?.name || 'Vessel Owner'}
+                    </option>
+                `).join('');
+
+                const bodyHtml = `
+                    <form id="invoice-form">
+                        <div class="form-group">
+                            <label class="form-label">Select Placement Record *</label>
+                            <select id="inv-placement" class="form-control" onchange="autoFillInvoiceDetails(this)" required>
+                                <option value="">Select Placed Seafarer</option>
+                                ${options}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Invoice Amount (Client Charge) *</label>
+                            <input type="number" id="inv-amount" class="form-control" required placeholder="e.g. 5000">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Candidate Service Charge (if applicable)</label>
+                            <input type="number" id="inv-charges-candidate" class="form-control" value="0">
+                        </div>
+                        <div class="form-row" style="display:grid; grid-template-columns: 1fr 1fr; gap:12px;">
+                            <div class="form-group">
+                                <label class="form-label">Salary Agreed ($/m)</label>
+                                <input type="number" id="inv-salary" class="form-control">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Due Date *</label>
+                                <input type="date" id="inv-due" class="form-control" required>
+                            </div>
+                        </div>
+                    </form>
+                `;
+
+                if (window.UI?.createModal) {
+                    _invoiceModal = window.UI.createModal({
+                        title: 'Generate Client Billing Invoice',
+                        bodyHtml,
+                        footerHtml: `
+                            <button class="btn btn-secondary" onclick="closeInvoiceModal()">Cancel</button>
+                            <button class="btn btn-primary" onclick="saveInvoice()">Generate Invoice</button>
+                        `,
+                        onClose: () => { _invoiceModal = null; }
+                    });
+                }
+            }
+
+            window.closeInvoiceModal = () => {
+                if (_invoiceModal) _invoiceModal.close();
+            };
+
+            window.autoFillInvoiceDetails = (selectElement) => {
+                const selected = selectElement.options[selectElement.selectedIndex];
+                if (!selected || !selected.value) return;
+
+                const salary = selected.getAttribute('data-salary');
+                document.getElementById('inv-salary').value = salary || 0;
+            };
+
+            window.saveInvoice = async () => {
+                const selectElement = document.getElementById('inv-placement');
+                const selected = selectElement.options[selectElement.selectedIndex];
+
+                if (!selected || !selected.value) {
+                    if (window.UI?.showToast) window.UI.showToast('Please select a seafarer placement', 'error');
+                    return;
+                }
+
+                const companyId = selected.getAttribute('data-company');
+                const candidateId = selected.getAttribute('data-candidate');
+                const requirementId = selected.getAttribute('data-requirement');
+                const amount = document.getElementById('inv-amount').value;
+                const candidateCharges = document.getElementById('inv-charges-candidate').value;
+                const salaryAgreed = document.getElementById('inv-salary').value;
+                const dueDate = document.getElementById('inv-due').value;
+
+                if (!amount || !dueDate) {
+                    if (window.UI?.showToast) window.UI.showToast('Amount and Due Date are required', 'error');
+                    return;
+                }
+
+                const payload = {
+                    companyId, candidateId, requirementId,
+                    amount: parseFloat(amount),
+                    candidateCharges: parseFloat(candidateCharges || 0),
+                    salaryAgreed: parseFloat(salaryAgreed || 0),
+                    dueDate
+                };
+
+                try {
+                    await window.ApiService.ops.invoices.create(payload);
+                    if (window.UI?.showToast) window.UI.showToast('✅ Invoice generated successfully!', 'success');
+                    if (_invoiceModal) _invoiceModal.close();
+                    loadTab('billing');
+                } catch (error) {
+                    if (window.UI?.showToast) window.UI.showToast('Error billing client', 'error');
+                }
+            };
+
+            window.updateInvoiceStatus = async (id, status) => {
+                try {
+                    await window.ApiService.ops.invoices.update(id, { paymentStatus: status });
+                    if (window.UI?.showToast) window.UI.showToast('Invoice status updated', 'success');
+                    loadTab('billing');
+                } catch (error) {
+                    if (window.UI?.showToast) window.UI.showToast('Failed to update status', 'error');
+                }
+            };
+
+            // Initial load alerts count for the badge
+            window.ApiService.ops.expiryAlerts.getAll().then(res => {
+                const badge = document.getElementById('alerts-count-badge');
+                if (badge && res.data && res.data.length > 0) {
+                    badge.textContent = res.data.length;
+                    badge.style.display = 'inline-block';
+                }
+            }).catch(() => {});
+
+            // Auto-load first tab
+            loadTab('approvals');
+        });
+    </script>
+</body>
+</html>

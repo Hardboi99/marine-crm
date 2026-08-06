@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Requirements Vacancies - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+            <main class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">📋 Open Vacancies & Requirements</h1>
+                        <p class="page-subtitle">Match seafarers with open requirements from vessel owners</p>
+                    </div>
+                    <button id="add-req-btn" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Add Job Order
+                    </button>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <select id="vessel-filter" class="form-control">
+                            <option value="">All Vessel Types</option>
+                            <option value="Tanker">Tanker</option>
+                            <option value="Bulk Carrier">Bulk Carrier</option>
+                            <option value="Container">Container</option>
+                            <option value="RoRo">RoRo</option>
+                            <option value="Gas Carrier">Gas Carrier</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="status-filter" class="form-control">
+                            <option value="">All Vacancies</option>
+                            <option value="OPEN">OPEN</option>
+                            <option value="FULFILLED">FULFILLED</option>
+                            <option value="CANCELLED">CANCELLED</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="requirements-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Vessel Owner</th>
+                                        <th>Vessel Type</th>
+                                        <th>Rank Needed</th>
+                                        <th>Exp Needed</th>
+                                        <th>Target Joining</th>
+                                        <th>Salary Offered</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="requirements-tbody">
+                                    <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="empty-state" class="empty-state" style="display: none;">
+                            <i class="fas fa-clipboard-list fa-3x"></i>
+                            <p>No job orders found matching criteria.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let requirementsData = [];
+            let companiesData = [];
+            let _reqModal = null;
+            let _matchModal = null;
+
+            const tbody = document.getElementById('requirements-tbody');
+            const vesselFilter = document.getElementById('vessel-filter');
+            const statusFilter = document.getElementById('status-filter');
+            const emptyState = document.getElementById('empty-state');
+
+            async function fetchData() {
+                try {
+                    const [reqRes, compRes] = await Promise.all([
+                        window.ApiService.crewing.requirements.getAll(),
+                        window.ApiService.companies.getAll()
+                    ]);
+                    requirementsData = reqRes.data || [];
+                    companiesData = compRes.data || [];
+                    renderTable();
+                } catch (error) {
+                    console.error('Error:', error);
+                    if (window.UI?.showToast) window.UI.showToast('Failed to load job orders', 'error');
+                }
+            }
+
+            function renderTable() {
+                const vessel = vesselFilter.value;
+                const status = statusFilter.value;
+
+                const filtered = requirementsData.filter(r => {
+                    const matchVessel = vessel ? r.vesselType === vessel : true;
+                    const matchStatus = status ? r.status === status : true;
+                    return matchVessel && matchStatus;
+                });
+
+                tbody.innerHTML = '';
+                if (filtered.length === 0) {
+                    emptyState.style.display = 'block';
+                    document.getElementById('requirements-table').style.display = 'none';
+                } else {
+                    emptyState.style.display = 'none';
+                    document.getElementById('requirements-table').style.display = 'table';
+                    filtered.forEach(r => {
+                        const tr = document.createElement('tr');
+                        const formatJoin = new Date(r.joiningDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const companyName = r.companyId ? r.companyId.name : 'Unknown';
+                        
+                        tr.innerHTML = `
+                            <td><strong>${companyName}</strong></td>
+                            <td>${r.vesselType}</td>
+                            <td><span class="badge badge-blue">${r.rank}</span></td>
+                            <td>${r.experienceMonthsRequired} months</td>
+                            <td>${formatJoin}</td>
+                            <td><strong style="color: var(--green);">$${r.salaryOffered || 0}/m</strong></td>
+                            <td>
+                                ${window.UI?.renderStatusBadge ? window.UI.renderStatusBadge(r.status) : `<span class="badge">${r.status}</span>`}
+                            </td>
+                            <td class="row-actions">
+                                <button class="btn btn-primary btn-sm" onclick="matchCandidates('${r.id}')" title="Match Qualified Seafarers"><i class="fas fa-user-check"></i> Match Crew</button>
+                                <button class="btn btn-secondary btn-sm" onclick="deleteRequirement('${r.id}')" title="Delete Vacancy"><i class="fas fa-trash"></i></button>
+                            </td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+                }
+            }
+
+            vesselFilter.addEventListener('change', renderTable);
+            statusFilter.addEventListener('change', renderTable);
+
+            document.getElementById('add-req-btn').addEventListener('click', () => {
+                openRequirementModal();
+            });
+
+            function openRequirementModal() {
+                const companyOptions = companiesData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                const rankOptions = [
+                    'Master', 'Chief Officer', '2nd Officer', '3rd Officer', 'Junior Officer', 'Bosun', 'AB', 'OS',
+                    'Chief Engineer', '2E', '3E', '4E', 'ETO', 'Fitter', 'Oiler', 'Wiper',
+                    'Cook', 'Messman'
+                ].map(r => `<option value="${r}">${r}</option>`).join('');
+
+                const bodyHtml = `
+                    <form id="requirement-form">
+                        <div class="form-group">
+                            <label class="form-label">Vessel Owner *</label>
+                            <select id="req-company" class="form-control" required>
+                                <option value="">Select Vessel Owner</option>
+                                ${companyOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Vessel Type *</label>
+                            <select id="req-vessel" class="form-control" required>
+                                <option value="">Select Vessel Type</option>
+                                <option value="Tanker">Tanker</option>
+                                <option value="Bulk Carrier">Bulk Carrier</option>
+                                <option value="Container">Container</option>
+                                <option value="RoRo">RoRo</option>
+                                <option value="Gas Carrier">Gas Carrier</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Rank Required *</label>
+                            <select id="req-rank" class="form-control" required>
+                                <option value="">Select Rank</option>
+                                ${rankOptions}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Required Experience (in Months) *</label>
+                            <input type="number" id="req-exp" class="form-control" value="0" placeholder="e.g. 12" required>
+                        </div>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">Target Joining Date *</label>
+                                <input type="date" id="req-joining" class="form-control" required>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Salary Offered ($/m)</label>
+                                <input type="number" id="req-salary" class="form-control">
+                            </div>
+                        </div>
+                    </form>
+                `;
+
+                const footerHtml = `
+                    <button class="btn btn-secondary" type="button" id="cancel-req-btn">Cancel</button>
+                    <button class="btn btn-primary"   type="button" id="save-req-btn">Save Job Order</button>
+                `;
+
+                if (window.UI?.createModal) {
+                    _reqModal = window.UI.createModal({
+                        title: 'Add Job Order Vacancy',
+                        bodyHtml,
+                        footerHtml,
+                        onClose: () => { _reqModal = null; }
+                    });
+
+                    _reqModal.querySelector('#cancel-req-btn').addEventListener('click', () => {
+                        if (_reqModal) _reqModal.close();
+                    });
+
+                    _reqModal.querySelector('#save-req-btn').addEventListener('click', saveRequirement);
+                }
+            }
+
+            async function saveRequirement() {
+                const companyId = document.getElementById('req-company').value;
+                const vesselType = document.getElementById('req-vessel').value;
+                const rank = document.getElementById('req-rank').value;
+                const exp = document.getElementById('req-exp').value;
+                const joiningDate = document.getElementById('req-joining').value;
+                const salaryOffered = document.getElementById('req-salary').value;
+
+                if (!companyId || !vesselType || !rank || !joiningDate) {
+                    if (window.UI?.showToast) window.UI.showToast('Please fill out all required fields', 'error');
+                    return;
+                }
+
+                const payload = {
+                    companyId, vesselType, rank,
+                    experienceMonthsRequired: parseInt(exp),
+                    joiningDate,
+                    salaryOffered: salaryOffered ? parseFloat(salaryOffered) : null
+                };
+
+                try {
+                    await window.ApiService.crewing.requirements.create(payload);
+                    if (window.UI?.showToast) window.UI.showToast('✅ Vacancy created successfully', 'success');
+                    if (_reqModal) _reqModal.close();
+                    fetchData();
+                } catch (error) {
+                    console.error('Error saving vacancy:', error);
+                    if (window.UI?.showToast) window.UI.showToast('Error creating requirement', 'error');
+                }
+            }
+
+            window.matchCandidates = async (id) => {
+                try {
+                    const matchedRes = await window.ApiService.crewing.requirements.match(id);
+                    const matchedCrew = matchedRes.data || [];
+                    openMatchingModal(id, matchedCrew);
+                } catch (error) {
+                    console.error('Matching Error:', error);
+                    if (window.UI?.showToast) window.UI.showToast('Error finding matched candidates', 'error');
+                }
+            };
+
+            function openMatchingModal(reqId, crewList) {
+                let matchingRowsHtml = '';
+                if (crewList.length === 0) {
+                    matchingRowsHtml = `
+                        <tr>
+                            <td colspan="5" style="text-align: center; padding: 20px;">
+                                <i class="fas fa-exclamation-triangle fa-2x" style="color: var(--yellow);"></i>
+                                <p style="margin-top: 10px;">No candidates currently match this Rank + Vessel Type experience.</p>
+                            </td>
+                        </tr>
+                    `;
+                } else {
+                    crewList.forEach(c => {
+                        const formatAvail = new Date(c.availabilityDate).toLocaleDateString();
+                        matchingRowsHtml += `
+                            <tr>
+                                <td><strong>${c.name}</strong></td>
+                                <td>${c.location}</td>
+                                <td><strong style="color: var(--accent-primary);">$${c.expectedWages}/m</strong></td>
+                                <td>${formatAvail}</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm" onclick="proposeCandidate('${reqId}', '${c.id}')"><i class="fas fa-paper-plane"></i> Propose</button>
+                                </td>
+                            </tr>
+                        `;
+                    });
+                }
+
+                const bodyHtml = `
+                    <div class="table-container" style="max-height: 50vh; overflow-y: auto;">
+                        <table class="table">
+                            <thead>
+                                <tr>
+                                    <th>Crew Name</th>
+                                    <th>Location</th>
+                                    <th>Expected Wages</th>
+                                    <th>Available From</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${matchingRowsHtml}
+                            </tbody>
+                        </table>
+                    </div>
+                `;
+
+                if (window.UI?.createModal) {
+                    _matchModal = window.UI.createModal({
+                        title: 'Auto-Matched Qualified Seafarers',
+                        bodyHtml,
+                        footerHtml: `<button class="btn btn-secondary" onclick="closeMatchModal()">Close</button>`,
+                        onClose: () => { _matchModal = null; }
+                    });
+                }
+            }
+
+            window.closeMatchModal = () => {
+                if (_matchModal) _matchModal.close();
+            };
+
+            window.proposeCandidate = async (reqId, candidateId) => {
+                try {
+                    await window.ApiService.crewing.applications.propose({ requirementId: reqId, candidateId });
+                    if (window.UI?.showToast) window.UI.showToast('✅ Candidate successfully proposed to client', 'success');
+                    if (_matchModal) _matchModal.close();
+                } catch (error) {
+                    console.error('Propose error:', error);
+                    if (window.UI?.showToast) window.UI.showToast('Error proposing candidate', 'error');
+                }
+            };
+
+            window.deleteRequirement = async (id) => {
+                if (window.UI?.confirm) {
+                    const confirmed = await window.UI.confirm('Are you sure you want to delete this requirement?');
+                    if (confirmed) {
+                        try {
+                            await window.ApiService.crewing.requirements.delete(id);
+                            window.UI.showToast('Vacancy deleted', 'success');
+                            fetchData();
+                        } catch (err) {
+                            window.UI.showToast('Error deleting requirement', 'error');
+                        }
+                    }
+                }
+            };
+
+            fetchData();
+        });
+    </script>
+</body>
+</html>

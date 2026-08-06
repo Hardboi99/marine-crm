@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Marine BDM CRM</title>
+    <link rel="stylesheet" href="/public/css/styles.css">
+    <style>
+        .page-header {
+            margin-bottom: 24px;
+        }
+        .page-title {
+            color: #fff;
+            margin: 0 0 8px 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .page-subtitle {
+            color: #94A3B8;
+            margin: 0;
+            font-size: 14px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 24px;
+        }
+        .stat-card {
+            background-color: #112240;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+            transition: transform 0.2s, box-shadow 0.2s;
+            position: relative;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
+        }
+        .stat-title {
+            color: #94A3B8;
+            font-size: 13px;
+            font-weight: 600;
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        .stat-value {
+            color: #fff;
+            font-size: 32px;
+            font-weight: 700;
+            margin: 0;
+        }
+        .stat-trend {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+        .stat-trend.neutral {
+            background-color: rgba(148, 163, 184, 0.1);
+            color: #94A3B8;
+        }
+        .skeleton {
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
+            background-size: 200% 100%;
+            animation: skeleton-loading 1.5s infinite;
+            border-radius: 4px;
+            color: transparent !important;
+        }
+        @keyframes skeleton-loading {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+        .dashboard-content-grid {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 24px;
+        }
+        .charts-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
+            margin-bottom: 24px;
+        }
+        .chart-card {
+            background-color: #112240;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            padding: 20px;
+        }
+        .card {
+            background-color: #112240;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+            margin-bottom: 24px;
+            display: flex;
+            flex-direction: column;
+        }
+        .card-header {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .card-title {
+            margin: 0;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 600;
+        }
+        .card-body {
+            padding: 20px;
+            flex: 1;
+        }
+        .quick-actions-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+        .quick-action-card {
+            background-color: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: block;
+        }
+        .quick-action-card:hover {
+            background-color: rgba(14, 165, 233, 0.1);
+            border-color: rgba(14, 165, 233, 0.3);
+        }
+        .quick-action-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+        .quick-action-title {
+            color: #fff;
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 4px;
+        }
+        .quick-action-desc {
+            color: #94A3B8;
+            font-size: 12px;
+            margin: 0;
+        }
+        .activity-feed {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+        }
+        .activity-item {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+        .activity-dot {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background-color: #0EA5E9;
+            margin-top: 5px;
+        }
+        .activity-content {
+            flex: 1;
+        }
+        .activity-text {
+            color: #fff;
+            font-size: 14px;
+            margin: 0 0 4px 0;
+        }
+        .activity-time {
+            color: #94A3B8;
+            font-size: 12px;
+            margin: 0;
+        }
+        .page-content {
+            padding: 24px;
+            animation: pageEnter 0.4s ease-out;
+        }
+        @keyframes pageEnter {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-wrapper">
+        <div id="sidebar-container"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+            
+            <div class="page-content">
+                <div class="page-header">
+                    <h1 class="page-title">BDM Sales Dashboard</h1>
+                    <p class="page-subtitle">Real-time oversight of vessel-owner accounts and sales pipeline</p>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3 class="stat-title">🏢 Total Vessel Owners</h3>
+                        <p class="stat-value skeleton" id="stat-companies">0</p>
+                        <div class="stat-trend neutral">Live</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">📞 Today's Calls</h3>
+                        <p class="stat-value skeleton" id="stat-calls">0</p>
+                        <div class="stat-trend neutral">Live</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">📋 Active Vacancies</h3>
+                        <p class="stat-value skeleton" id="stat-requirements">0</p>
+                        <div class="stat-trend neutral">Vacancies</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">👨‍✈️ Placed Crew</h3>
+                        <p class="stat-value skeleton" id="stat-placed">0</p>
+                        <div class="stat-trend neutral">Onboarded</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">💰 Total Billing</h3>
+                        <p class="stat-value skeleton" id="stat-revenue">$0</p>
+                        <div class="stat-trend neutral">Invoiced</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-content-grid">
+                    <div class="left-col">
+                        <div class="charts-grid">
+                            <div class="chart-card">
+                                <h3 class="card-title" style="margin-bottom:15px;">Call Status Distribution (RYG)</h3>
+                                <div class="chart-canvas-container">
+                                    <canvas id="callsChart"></canvas>
+                                </div>
+                            </div>
+                            <div class="chart-card">
+                                <h3 class="card-title" style="margin-bottom:15px;">Vessel Owners by Country</h3>
+                                <div class="chart-canvas-container">
+                                    <canvas id="countryChart"></canvas>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Pipeline Quick Actions</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="quick-actions-grid">
+                                    <a href="/pages/calling-report.html" class="quick-action-card">
+                                        <div class="quick-action-icon">📞</div>
+                                        <div class="quick-action-title">Daily Calling Report</div>
+                                        <p class="quick-action-desc">Log and track daily calls</p>
+                                    </a>
+                                    <a href="/pages/appointments.html" class="quick-action-card">
+                                        <div class="quick-action-icon">📅</div>
+                                        <div class="quick-action-title">Appointment Engine</div>
+                                        <p class="quick-action-desc">Manage upcoming meetings</p>
+                                    </a>
+                                    <a href="/pages/candidates.html" class="quick-action-card">
+                                        <div class="quick-action-icon">👨‍✈️</div>
+                                        <div class="quick-action-title">Seafarers Directory</div>
+                                        <p class="quick-action-desc">Add or search seafarers</p>
+                                    </a>
+                                    <a href="/pages/requirements.html" class="quick-action-card">
+                                        <div class="quick-action-icon">📋</div>
+                                        <div class="quick-action-title">Open Vacancies</div>
+                                        <p class="quick-action-desc">Match crew to job orders</p>
+                                    </a>
+                                    <a href="/pages/ops.html" class="quick-action-card">
+                                        <div class="quick-action-icon">⚙️</div>
+                                        <div class="quick-action-title">Operations Pipeline</div>
+                                        <p class="quick-action-desc">Docs, compliance & billing</p>
+                                    </a>
+                                    <a href="/pages/followups.html" class="quick-action-card">
+                                        <div class="quick-action-icon">🔔</div>
+                                        <div class="quick-action-title">Follow-up Queue</div>
+                                        <p class="quick-action-desc">Pending follow-ups list</p>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="right-col">
+                        <div class="card" style="height: 100%;">
+                            <div class="card-header">
+                                <h2 class="card-title">Recent Activity</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="activity-feed" id="activity-feed">
+                                    <div class="activity-item skeleton" style="height:40px; margin-bottom:10px;"></div>
+                                    <div class="activity-item skeleton" style="height:40px; margin-bottom:10px;"></div>
+                                    <div class="activity-item skeleton" style="height:40px; margin-bottom:10px;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    
+    <script>
+        // Check Auth
+        if (!localStorage.getItem('token')) {
+            window.location.href = '/pages/login.html';
+        }
+
+        // CountUp Animation
+        function animateCountUp(element, target, duration = 1000) {
+            let start = 0;
+            const startTime = performance.now();
+            
+            function updateCount(currentTime) {
+                const elapsed = currentTime - startTime;
+                const progress = Math.min(elapsed / duration, 1);
+                
+                // Ease out quad
+                const easeProgress = 1 - (1 - progress) * (1 - progress);
+                const currentCount = Math.floor(easeProgress * target);
+                
+                element.textContent = currentCount;
+                element.classList.remove('skeleton');
+                
+                if (progress < 1) {
+                    requestAnimationFrame(updateCount);
+                } else {
+                    element.textContent = target;
+                }
+            }
+            
+            requestAnimationFrame(updateCount);
+        }
+
+        // Chart defaults
+        Chart.defaults.color = '#94A3B8';
+        Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
+
+        async function initDashboard() {
+            try {
+                // ── Fetch real data from API ──────────────────────
+                const [statsRes, callStatusRes, countryPipelineRes, activityRes] = await Promise.allSettled([
+                    window.ApiService.getDashboardStats(),
+                    window.ApiService.getCallsByStatusChart(),
+                    window.ApiService.getCountryPipelineChart(),
+                    window.ApiService.getRecentActivity()
+                ]);
+
+                // ── Stats Cards ───────────────────────────────────
+                if (statsRes.status === 'fulfilled') {
+                    const s = statsRes.value.data;
+                    animateCountUp(document.getElementById('stat-companies'), s.totalCompanies || 0);
+                    animateCountUp(document.getElementById('stat-calls'), s.todaysCalls || 0);
+                    animateCountUp(document.getElementById('stat-requirements'), s.activeRequirements || 0);
+                    animateCountUp(document.getElementById('stat-placed'), s.candidatesPlaced || 0);
+                    // Revenue card uses $ prefix
+                    const revEl = document.getElementById('stat-revenue');
+                    if (revEl) {
+                        revEl.classList.remove('skeleton');
+                        revEl.textContent = '$' + (s.totalRevenue || 0).toLocaleString();
+                    }
+                } else {
+                    ['stat-companies','stat-calls','stat-requirements','stat-placed','stat-revenue']
+                        .forEach(id => { const el = document.getElementById(id); if(el) { el.textContent = '-'; el.classList.remove('skeleton'); } });
+                }
+
+                // ── RYG Call Status Chart ─────────────────────────
+                const callData = callStatusRes.status === 'fulfilled' ? callStatusRes.value.data : [];
+                const rygMap = { RED: 0, YELLOW: 0, GREEN: 0 };
+                callData.forEach(r => { if (rygMap.hasOwnProperty(r.statusColor)) rygMap[r.statusColor] = r._count.id; });
+                
+                new Chart(document.getElementById('callsChart'), {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Red (Not Interested)', 'Yellow (Follow Up)', 'Green (Positive)'],
+                        datasets: [{
+                            data: [rygMap.RED, rygMap.YELLOW, rygMap.GREEN],
+                            backgroundColor: ['#EF4444', '#EAB308', '#22C55E'],
+                            borderWidth: 0,
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: { position: 'bottom', labels: { color: '#94A3B8' } }
+                        }
+                    }
+                });
+
+                // ── Country Pipeline Chart ─────────────────────────
+                const pipelineData = countryPipelineRes.status === 'fulfilled' ? countryPipelineRes.value.data : [];
+                const countryMap = {};
+                pipelineData.forEach(r => {
+                    const name = r.countryName || 'Unknown';
+                    countryMap[name] = (countryMap[name] || 0) + r._count.id;
+                });
+                const sortedCountries = Object.entries(countryMap).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+                new Chart(document.getElementById('countryChart'), {
+                    type: 'bar',
+                    data: {
+                        labels: sortedCountries.map(([name]) => name),
+                        datasets: [{
+                            label: 'Vessel Owners',
+                            data: sortedCountries.map(([, count]) => count),
+                            backgroundColor: '#0EA5E9',
+                            borderRadius: 4
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: { legend: { display: false } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+
+                // ── Recent Activity Feed ──────────────────────────
+                const activityFeed = document.getElementById('activity-feed');
+                const activities = activityRes.status === 'fulfilled' ? activityRes.value.data : [];
+                
+                if (activities.length === 0) {
+                    activityFeed.innerHTML = '<p style="color:#94A3B8;text-align:center;padding:20px">No recent activity</p>';
+                } else {
+                    activityFeed.innerHTML = activities.slice(0, 8).map(act => `
+                        <div class="activity-item">
+                            <div class="activity-dot"></div>
+                            <div class="activity-content">
+                                <p class="activity-text">${act.description || act.action || 'Activity recorded'}</p>
+                                <p class="activity-time">${window.UI ? window.UI.formatRelativeTime(act.createdAt) : act.createdAt}</p>
+                            </div>
+                        </div>
+                    `).join('');
+                }
+
+            } catch (error) {
+                console.error('Error loading dashboard stats:', error);
+                if (window.UI && window.UI.showToast) {
+                    window.UI.showToast('Failed to load dashboard data', 'error');
+                }
+            }
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', initDashboard);
+
+    </script>
+</body>
+</html>
