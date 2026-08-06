@@ -12,7 +12,12 @@ const employeeSchema = new mongoose.Schema(
       required: true
     },
 
-    phone: { type: String, trim: true, required: true },
+    phone: {
+      type: String,
+      trim: true,
+      required: true,
+      match: [/^\d{10}$/, 'Phone number must be exactly 10 digits']
+    },
     email: { type: String, lowercase: true, trim: true, default: null },
     location: { type: String, trim: true, default: null },
     position: { type: String, trim: true, default: null },

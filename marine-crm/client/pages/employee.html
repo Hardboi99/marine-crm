@@ -24,9 +24,14 @@
           <h1 class="page-title">👨‍💼 Employees</h1>
           <p class="page-subtitle">Manage all internal employees and HR records</p>
         </div>
-        <button id="add-employee-btn" class="btn btn-primary">
-          <i class="fas fa-plus"></i> Add Employee
-        </button>
+        <div style="display:flex;gap:8px;">
+          <button id="export-btn" class="btn btn-secondary">
+            <i class="fas fa-file-excel"></i> Export to Excel
+          </button>
+          <button id="add-employee-btn" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Add Employee
+          </button>
+        </div>
       </div>
 
       <!-- STATS ROW -->
@@ -350,6 +355,25 @@ async function confirmDeleteEmployee(id, name) {
   }
 }
 
+// ─── Export to Excel ──────────────────────────────────────────────────────
+function exportToExcel() {
+  if (!employees.length) return UI.showToast('No employee data to export.', 'warning');
+  const rows = employees.map(e => ({
+    'Name':         e.name || '',
+    'Position':     e.position || '',
+    'Phone':        e.phone || '',
+    'Email':        e.email || '',
+    'Location':     e.location || '',
+    'Joining Date': e.joinDate ? new Date(e.joinDate).toLocaleDateString('en-GB') : '',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  ws['!cols'] = [28,22,16,28,18,16].map(w => ({ wch: w }));
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Employees');
+  XLSX.writeFile(wb, 'employees.xlsx');
+  UI.showToast('Exported employees.xlsx', 'success');
+}
+
 // ─── Init ─────────────────────────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
   if (!window.UI || !window.UI.requireAuth()) return;
@@ -358,9 +382,11 @@ window.addEventListener('DOMContentLoaded', () => {
     if (!canManage) addBtn.style.display = 'none';
     else addBtn.addEventListener('click', () => openEmployeeModal());
   }
+  document.getElementById('export-btn').addEventListener('click', exportToExcel);
   loadEmployees();
 });
 </script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
 
 </body>
 </html>
