@@ -123,6 +123,33 @@
     }
   });
 
+
+
+
+  // =========================
+  // PASSWORD SHOW/HIDE
+  // =========================
+
+  const loginPassword = document.getElementById("login-password");
+  const toggleLoginPassword = document.getElementById("toggle-login-password");
+
+  toggleLoginPassword.addEventListener("click", function () {
+
+    if (loginPassword.type === "password") {
+      loginPassword.type = "text";
+      this.textContent = "🙈";
+    } else {
+      loginPassword.type = "password";
+      this.textContent = "👁️";
+    }
+
+  });
+
+
+  // Particle Background Animation
+
+  var canvas = document.getElementById('particles-canvas');
+
   // Particle Background Animation
   var canvas = document.getElementById('particles-canvas');
   var ctx = canvas.getContext('2d');

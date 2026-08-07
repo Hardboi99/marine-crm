@@ -156,6 +156,7 @@ const ApiService = {
   getCountryPipelineChart:  ()       => api.get('/dashboard/charts/country-pipeline'),
   getMonthlyContractsChart: ()       => api.get('/dashboard/charts/monthly-contracts'),
   getRecentActivity:        ()       => api.get('/dashboard/activity'),
+  getEmployeeDashboard:     ()       => api.get('/dashboard/employee'),
   getNotifications:         ()       => api.get('/notifications'),
   markNotificationRead:     (id)     => api.patch(`/notifications/${id}/read`),
   getDailyReport:           (date)   => api.get('/reports/daily', { params: { date } }),
@@ -205,6 +206,14 @@ const ApiService = {
     create: (data)     => api.post('/employees', data),
     update: (id, data) => api.put(`/employees/${id}`, data),
     delete: (id)       => api.delete(`/employees/${id}`),
+    getTodayAttendance: ()   => api.get('/employees/attendance/today'),
+    checkIn:            (id) => api.post(`/employees/checkin/${id}`),
+    checkOut:           (id) => api.post(`/employees/checkout/${id}`),
+    submitWorksheet:    (data) => api.post('/employees/worksheet', data),
+    getWorksheets:      (params) => api.get('/employees/worksheets', { params }),
+    createTask:         (data) => api.post('/employees/tasks', data),
+    getTasks:           (params) => api.get('/employees/tasks', { params }),
+    updateTaskStatus:   (id, data) => api.patch(`/employees/tasks/${id}/status`, data),
   }
 };
 

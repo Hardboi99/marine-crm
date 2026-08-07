@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Oceanic Star Shipping — Org Chart</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+            background: radial-gradient(circle at 50% -10%, #0f3a52, #081b2b 55%, #060f18);
+        }
+
+        .header {
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            background: rgba(8, 28, 44, 0.85);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 1.25rem 1.5rem;
+            text-align: center;
+        }
+
+        .header h1 {
+            margin: 0;
+            color: #fff;
+            font-size: 1.35rem;
+            font-weight: 700;
+            letter-spacing: .03em;
+        }
+
+        .header p {
+            margin: .35rem 0 0;
+            color: rgba(165, 243, 252, 0.7);
+            font-size: .72rem;
+            letter-spacing: .15em;
+            text-transform: uppercase;
+        }
+
+        .chart-wrap {
+            padding: 3rem 1.5rem;
+            overflow-x: auto;
+        }
+
+        .tree,
+        .tree ul,
+        .tree li {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+            position: relative;
+        }
+
+        .tree {
+            display: flex;
+            justify-content: center;
+            padding-top: 8px;
+            min-width: 1150px;
+            width: max-content;
+            margin: 0 auto;
+        }
+
+        .tree ul {
+            display: flex;
+            padding-top: 34px;
+            position: relative;
+        }
+
+        .tree li {
+            flex: 1;
+            text-align: center;
+            padding: 34px 12px 0 12px;
+            position: relative;
+        }
+
+        .tree li::before,
+        .tree li::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 50%;
+            width: 50%;
+            height: 34px;
+            border-top: 2px solid rgba(94, 234, 212, 0.35);
+        }
+
+        .tree li::after {
+            right: auto;
+            left: 50%;
+            border-left: 2px solid rgba(94, 234, 212, 0.35);
+        }
+
+        .tree li:only-child::after,
+        .tree li:only-child::before {
+            display: none;
+        }
+
+        .tree li:only-child {
+            padding-top: 0;
+        }
+
+        .tree li:first-child::before,
+        .tree li:last-child::after {
+            border: 0 none;
+        }
+
+        .tree li:last-child::before {
+            border-right: 2px solid rgba(94, 234, 212, 0.35);
+            border-radius: 0 8px 0 0;
+        }
+
+        .tree li:first-child::after {
+            border-radius: 8px 0 0 0;
+        }
+
+        .tree ul ul::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            width: 0;
+            height: 34px;
+            border-left: 2px solid rgba(94, 234, 212, 0.35);
+        }
+
+        .node {
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            gap: .35rem;
+            background: rgba(255, 255, 255, 0.045);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 16px;
+            padding: .9rem 1rem;
+            min-width: 140px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.6);
+            transition: transform .2s ease, background .2s ease, border-color .2s ease;
+            opacity: 0;
+            transform: translateY(14px);
+            animation: rise .5s ease forwards;
+        }
+
+        .node:hover {
+            transform: translateY(-4px) scale(1.04);
+            border-color: rgba(255, 255, 255, 0.28);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        @keyframes rise {
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: .75rem;
+            font-weight: 800;
+            color: #04140f;
+            box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.08);
+        }
+
+        .name {
+            font-weight: 600;
+            font-size: .85rem;
+            color: #fff;
+        }
+
+        .node.small .name {
+            font-size: .75rem;
+        }
+
+        .role-pill {
+            font-size: .6rem;
+            font-weight: 700;
+            letter-spacing: .04em;
+            padding: .18rem .55rem;
+            border-radius: 999px;
+        }
+
+        .dept-header {
+            font-size: .68rem;
+            font-weight: 700;
+            letter-spacing: .08em;
+            padding: .4rem .9rem;
+            border-radius: 999px;
+            display: inline-block;
+            box-shadow: 0 4px 14px -6px rgba(0, 0, 0, 0.5);
+            opacity: 0;
+            transform: translateY(14px);
+            animation: rise .5s ease forwards;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="header">
+        <h1>TEAM HIERARCHY</h1>
+        <p>Oceanic Star Shipping Pvt Ltd &middot; Organisational Chart</p>
+    </div>
+
+    <div class="chart-wrap">
+        <ul class="tree">
+            <li>
+                <div class="node" style="border-color:#f6b350;">
+                    <div class="avatar" style="background:#f6b350;">RK</div>
+                    <span class="name">Ram B Keshari</span>
+                    <span class="role-pill" style="background:rgba(246,179,80,.18);color:#f6b350;">FOUNDER &amp;
+                        DIRECTOR</span>
+                </div>
+                <ul>
+                    <li>
+                        <div class="node" style="border-color:#7dd3c0;">
+                            <div class="avatar" style="background:#7dd3c0;">SG</div>
+                            <span class="name">Sheetal S G</span>
+                            <span class="role-pill" style="background:rgba(125,211,192,.18);color:#7dd3c0;">C.O.O</span>
+                        </div>
+                        <ul>
+                            <li>
+                                <div class="dept-header" style="background:rgba(56,189,248,.15);color:#38bdf8;">SOURCING
+                                    / CREWING</div>
+                                <ul>
+                                    <li>
+                                        <div class="node small" style="border-color:#38bdf8;">
+                                            <div class="avatar" style="background:#38bdf8;">NC</div><span
+                                                class="name">Nandini C</span><span class="role-pill"
+                                                style="background:rgba(56,189,248,.18);color:#38bdf8;">SOURCING
+                                                MGR</span>
+                                        </div>
+                                        <ul>
+                                            <li>
+                                                <div class="node small" style="border-color:#a7d8f0;">
+                                                    <div class="avatar" style="background:#a7d8f0;">UD</div><span
+                                                        class="name">Unnati D</span><span class="role-pill"
+                                                        style="background:rgba(167,216,240,.18);color:#a7d8f0;">SOURCING
+                                                        OFFICER</span>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li>
+                                        <div class="node small" style="border-color:#38bdf8;">
+                                            <div class="avatar" style="background:#38bdf8;">PS</div><span
+                                                class="name">Puja Shetty</span><span class="role-pill"
+                                                style="background:rgba(56,189,248,.18);color:#38bdf8;">SOURCING
+                                                MGR</span>
+                                        </div>
+                                        <ul>
+                                            <li>
+                                                <div class="node small" style="border-color:#a7d8f0;">
+                                                    <div class="avatar" style="background:#a7d8f0;">MK</div><span
+                                                        class="name">Monika K</span><span class="role-pill"
+                                                        style="background:rgba(167,216,240,.18);color:#a7d8f0;">SOURCING
+                                                        OFFICER</span>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li>
+                                        <div class="node small" style="border-color:#38bdf8;">
+                                            <div class="avatar" style="background:#38bdf8;">DK</div><span
+                                                class="name">Dipak Keshari</span><span class="role-pill"
+                                                style="background:rgba(56,189,248,.18);color:#38bdf8;">SOURCING
+                                                MGR</span>
+                                        </div>
+                                        <ul>
+                                            <li>
+                                                <div class="node small" style="border-color:#a7d8f0;">
+                                                    <div class="avatar" style="background:#a7d8f0;">VD</div><span
+                                                        class="name">Vijay Dubey</span><span class="role-pill"
+                                                        style="background:rgba(167,216,240,.18);color:#a7d8f0;">SOURCING
+                                                        OFFICER</span>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li>
+                                        <div class="node small" style="border-color:#38bdf8;">
+                                            <div class="avatar" style="background:#38bdf8;">AV</div><span
+                                                class="name">Aditi Verma</span><span class="role-pill"
+                                                style="background:rgba(56,189,248,.18);color:#38bdf8;">SOURCING
+                                                OFFICER</span>
+                                        </div>
+                                        <ul>
+                                            <li>
+                                                <div class="node small" style="border-color:#a7d8f0;">
+                                                    <div class="avatar" style="background:#a7d8f0;">HT</div><span
+                                                        class="name">Hemangi Thakur</span><span class="role-pill"
+                                                        style="background:rgba(167,216,240,.18);color:#a7d8f0;">SOURCING
+                                                        OFFICER</span>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <div class="dept-header" style="background:rgba(251,191,36,.15);color:#fbbf24;">
+                                    DOCUMENTATION</div>
+                                <ul>
+                                    <li>
+                                        <div class="node small" style="border-color:#fbbf24;">
+                                            <div class="avatar" style="background:#fbbf24;">PS</div><span
+                                                class="name">Prashant Sakpal</span><span class="role-pill"
+                                                style="background:rgba(251,191,36,.18);color:#fbbf24;">MANAGER -
+                                                DOCS</span>
+                                        </div>
+                                        <ul>
+                                            <li>
+                                                <div class="node small" style="border-color:#fde08a;">
+                                                    <div class="avatar" style="background:#fde08a;">RY</div><span
+                                                        class="name">Rahul Yadav</span><span class="role-pill"
+                                                        style="background:rgba(253,224,138,.18);color:#fde08a;">OFFICER
+                                                        - DOCS</span>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                    <li>
+                                        <div class="node small" style="border-color:#fbbf24;">
+                                            <div class="avatar" style="background:#fbbf24;">SG</div><span
+                                                class="name">Siddhi G</span><span class="role-pill"
+                                                style="background:rgba(251,191,36,.18);color:#fbbf24;">OFFICER -
+                                                DOCS</span>
+                                        </div>
+                                        <ul>
+                                            <li>
+                                                <div class="node small" style="border-color:#fde08a;">
+                                                    <div class="avatar" style="background:#fde08a;">HT</div><span
+                                                        class="name">Hemangi Thakur</span><span class="role-pill"
+                                                        style="background:rgba(253,224,138,.18);color:#fde08a;">OFFICER
+                                                        - DOCS</span>
+                                                </div>
+                                            </li>
+                                        </ul>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <div class="dept-header" style="background:rgba(167,139,250,.15);color:#a78bfa;">
+                                    BUSINESS DEVELOPMENT</div>
+                                <ul>
+                                    <li>
+                                        <div class="node small" style="border-color:#a78bfa;">
+                                            <div class="avatar" style="background:#a78bfa;">QK</div><span
+                                                class="name">Queeny Kapoor</span><span class="role-pill"
+                                                style="background:rgba(167,139,250,.18);color:#a78bfa;">OFFICER -
+                                                BD</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <div class="dept-header" style="background:rgba(244,114,182,.15);color:#f472b6;">SOCIAL
+                                    MEDIA</div>
+                                <ul>
+                                    <li>
+                                        <div class="node small" style="border-color:#f472b6;">
+                                            <div class="avatar" style="background:#f472b6;">JK</div><span
+                                                class="name">Jayash Keshari</span><span class="role-pill"
+                                                style="background:rgba(244,114,182,.18);color:#f472b6;">OFFICER - SOCIAL
+                                                MEDIA</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </li>
+                            <li>
+                                <div class="dept-header" style="background:rgba(148,163,184,.15);color:#94a3b8;">
+                                    ADMINISTRATION</div>
+                                <ul>
+                                    <li>
+                                        <div class="node small" style="border-color:#94a3b8;">
+                                            <div class="avatar" style="background:#94a3b8;">MS</div><span
+                                                class="name">Muskaan Singh</span><span class="role-pill"
+                                                style="background:rgba(148,163,184,.18);color:#94a3b8;">OFFICER -
+                                                ADMIN</span>
+                                        </div>
+                                    </li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li>
+                        <div class="node" style="border-color:#34d399;">
+                            <div class="avatar" style="background:#34d399;">AG</div>
+                            <span class="name">Akansha Gupta</span>
+                            <span class="role-pill" style="background:rgba(52,211,153,.18);color:#34d399;">OFFICER
+                                ACCOUNTS</span>
+                        </div>
+                    </li>
+                </ul>
+            </li>
+        </ul>
+    </div>
+
+</body>
+
+</html>

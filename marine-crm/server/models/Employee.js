@@ -4,25 +4,26 @@ const employeeSchema = new mongoose.Schema(
   {
     name: { type: String, required: true, trim: true },
 
-    // 🔥 Updated
     employeeId: {
       type: String,
       trim: true,
       unique: true,
-      required: true
+      sparse: true,   // allow null/undefined without uniqueness conflict
+      default: null
     },
 
     phone: {
       type: String,
       trim: true,
       required: true,
-      match: [/^\d{10}$/, 'Phone number must be exactly 10 digits']
     },
     email: { type: String, lowercase: true, trim: true, default: null },
+    password: { type: String, default: null },
     location: { type: String, trim: true, default: null },
     position: { type: String, trim: true, default: null },
     joinDate: { type: Date, default: null },
 
+    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     createdByName: { type: String, trim: true, required: true },
   },

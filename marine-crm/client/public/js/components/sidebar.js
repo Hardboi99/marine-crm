@@ -76,10 +76,12 @@ function renderSidebar() {
           <span class="nav-label">Follow-up Queue</span>
           <span class="nav-badge nav-badge-pulse" id="followup-badge" style="display:none">0</span>
         </a>
+        ${['ADMIN', 'HR', 'MANAGER'].includes(JSON.parse(localStorage.getItem('user') || '{}').role) ? `
         <a href="/pages/reports.html" class="nav-item ${isActive('reports')}">
           <span class="nav-icon">📈</span>
           <span class="nav-label">Reports & Analytics</span>
         </a>
+        ` : ''}
       </div>
 
       <div style="padding: 12px 8px; border-top: 1px solid rgba(255,255,255,0.05);">
@@ -163,6 +165,11 @@ function renderNavbar() {
 
       <div class="navbar-right">
         <button class="theme-toggle" id="theme-toggle-btn">🌙 Dark</button>
+
+        <button class="btn btn-secondary btn-sm" onclick="window.location.href='/pages/organization chat.html'" title="Org Chart" style="display:flex;align-items:center;gap:5px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><circle cx="12" cy="6" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="18" r="2.6" stroke="currentColor" stroke-width="1.6"/><circle cx="19" cy="18" r="2.6" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v4M9 15l-2.5 1.5M15 15l2.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
+          Org Chart
+        </button>
 
         <div class="user-menu" id="user-menu-btn" title="${user.name || 'User'}">
           <div class="user-avatar">${initials}</div>

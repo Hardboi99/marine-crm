@@ -40,6 +40,33 @@
             pointer-events: none;
         }
 
+
+        .password-wrapper {
+            position: relative;
+        }
+
+        .password-wrapper .login-input {
+            width: 100%;
+            padding-right: 45px;
+        }
+
+        .password-toggle {
+            position: absolute;
+            top: 50%;
+            right: 14px;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 18px;
+            color: #8b95a7;
+            padding: 0;
+        }
+
+        .password-toggle:hover {
+            color: #ffffff;
+        }
+
         .login-card-wrapper {
             position: relative;
             z-index: 10;
@@ -70,7 +97,7 @@
             background: linear-gradient(135deg, #0EA5E9 0%, #6366F1 100%);
             border-radius: 43px;
             display: flex;
-            align-items: center;     
+            align-items: center;
             justify-content: center;
             font-size: 2rem;
             margin-bottom: 16px;
@@ -298,8 +325,16 @@
 
                 <div class="login-input-group">
                     <label class="login-input-label" for="login-password">Password</label>
-                    <input type="password" id="login-password" class="login-input" placeholder="••••••••"
-                        value="admin123" required>
+
+                    <div class="password-wrapper">
+                        <input type="password" id="login-password" class="login-input" placeholder="••••••••"
+                            value="admin123" required>
+
+                        <button type="button" id="toggle-login-password" class="password-toggle"
+                            aria-label="Toggle Password Visibility">
+                            👁️
+                        </button>
+                    </div>
                 </div>
 
                 <button type="submit" id="login-submit-btn" class="login-btn">Sign In to Portal</button>

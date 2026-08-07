@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -9,23 +10,27 @@
         .page-header {
             margin-bottom: 24px;
         }
+
         .page-title {
             color: #fff;
             margin: 0 0 8px 0;
             font-size: 28px;
             font-weight: 600;
         }
+
         .page-subtitle {
             color: #94A3B8;
             margin: 0;
             font-size: 14px;
         }
+
         .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
             margin-bottom: 24px;
         }
+
         .stat-card {
             background-color: #112240;
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -34,10 +39,12 @@
             transition: transform 0.2s, box-shadow 0.2s;
             position: relative;
         }
+
         .stat-card:hover {
             transform: translateY(-5px);
             box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.5);
         }
+
         .stat-title {
             color: #94A3B8;
             font-size: 13px;
@@ -46,12 +53,14 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
+
         .stat-value {
             color: #fff;
             font-size: 32px;
             font-weight: 700;
             margin: 0;
         }
+
         .stat-trend {
             display: inline-block;
             padding: 4px 8px;
@@ -60,10 +69,12 @@
             font-weight: 600;
             margin-top: 10px;
         }
+
         .stat-trend.neutral {
             background-color: rgba(148, 163, 184, 0.1);
             color: #94A3B8;
         }
+
         .skeleton {
             background: linear-gradient(90deg, rgba(255, 255, 255, 0.05) 25%, rgba(255, 255, 255, 0.1) 50%, rgba(255, 255, 255, 0.05) 75%);
             background-size: 200% 100%;
@@ -71,27 +82,37 @@
             border-radius: 4px;
             color: transparent !important;
         }
+
         @keyframes skeleton-loading {
-            0% { background-position: 200% 0; }
-            100% { background-position: -200% 0; }
+            0% {
+                background-position: 200% 0;
+            }
+
+            100% {
+                background-position: -200% 0;
+            }
         }
+
         .dashboard-content-grid {
             display: grid;
             grid-template-columns: 2fr 1fr;
             gap: 24px;
         }
+
         .charts-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 24px;
             margin-bottom: 24px;
         }
+
         .chart-card {
             background-color: #112240;
             border: 1px solid rgba(255, 255, 255, 0.05);
             border-radius: 10px;
             padding: 20px;
         }
+
         .card {
             background-color: #112240;
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -100,25 +121,30 @@
             display: flex;
             flex-direction: column;
         }
+
         .card-header {
             padding: 16px 20px;
             border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
+
         .card-title {
             margin: 0;
             color: #fff;
             font-size: 16px;
             font-weight: 600;
         }
+
         .card-body {
             padding: 20px;
             flex: 1;
         }
+
         .quick-actions-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
             gap: 15px;
         }
+
         .quick-action-card {
             background-color: rgba(0, 0, 0, 0.2);
             border: 1px solid rgba(255, 255, 255, 0.05);
@@ -128,35 +154,42 @@
             transition: all 0.2s;
             display: block;
         }
+
         .quick-action-card:hover {
             background-color: rgba(14, 165, 233, 0.1);
             border-color: rgba(14, 165, 233, 0.3);
         }
+
         .quick-action-icon {
             font-size: 24px;
             margin-bottom: 10px;
         }
+
         .quick-action-title {
             color: #fff;
             font-weight: 600;
             font-size: 14px;
             margin-bottom: 4px;
         }
+
         .quick-action-desc {
             color: #94A3B8;
             font-size: 12px;
             margin: 0;
         }
+
         .activity-feed {
             display: flex;
             flex-direction: column;
             gap: 16px;
         }
+
         .activity-item {
             display: flex;
             align-items: flex-start;
             gap: 12px;
         }
+
         .activity-dot {
             width: 10px;
             height: 10px;
@@ -164,36 +197,49 @@
             background-color: #0EA5E9;
             margin-top: 5px;
         }
+
         .activity-content {
             flex: 1;
         }
+
         .activity-text {
             color: #fff;
             font-size: 14px;
             margin: 0 0 4px 0;
         }
+
         .activity-time {
             color: #94A3B8;
             font-size: 12px;
             margin: 0;
         }
+
         .page-content {
             padding: 24px;
             animation: pageEnter 0.4s ease-out;
         }
+
         @keyframes pageEnter {
-            from { opacity: 0; transform: translateY(10px); }
-            to { opacity: 1; transform: translateY(0); }
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
         }
     </style>
 </head>
+
 <body>
     <div class="app-wrapper">
         <div id="sidebar-container"></div>
         <div class="main-content">
             <div id="navbar-container"></div>
-            
-            <div class="page-content">
+
+            <div class="page-content" id="dashboard-content-area">
                 <div class="page-header">
                     <h1 class="page-title">BDM Sales Dashboard</h1>
                     <p class="page-subtitle">Real-time oversight of vessel-owner accounts and sales pipeline</p>
@@ -310,7 +356,7 @@
     <script src="/public/js/api/api.js"></script>
     <script src="/public/js/components/ui.js"></script>
     <script src="/public/js/components/sidebar.js"></script>
-    
+
     <script>
         // Check Auth
         if (!localStorage.getItem('token')) {
@@ -321,25 +367,25 @@
         function animateCountUp(element, target, duration = 1000) {
             let start = 0;
             const startTime = performance.now();
-            
+
             function updateCount(currentTime) {
                 const elapsed = currentTime - startTime;
                 const progress = Math.min(elapsed / duration, 1);
-                
+
                 // Ease out quad
                 const easeProgress = 1 - (1 - progress) * (1 - progress);
                 const currentCount = Math.floor(easeProgress * target);
-                
+
                 element.textContent = currentCount;
                 element.classList.remove('skeleton');
-                
+
                 if (progress < 1) {
                     requestAnimationFrame(updateCount);
                 } else {
                     element.textContent = target;
                 }
             }
-            
+
             requestAnimationFrame(updateCount);
         }
 
@@ -347,7 +393,14 @@
         Chart.defaults.color = '#94A3B8';
         Chart.defaults.borderColor = 'rgba(255,255,255,0.05)';
 
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const isOrgDashboard = ['ADMIN', 'HR', 'MANAGER'].includes(user.role);
+
         async function initDashboard() {
+            if (!isOrgDashboard) {
+                return reloadPersonalDashboard();
+            }
+
             try {
                 // ── Fetch real data from API ──────────────────────
                 const [statsRes, callStatusRes, countryPipelineRes, activityRes] = await Promise.allSettled([
@@ -371,15 +424,15 @@
                         revEl.textContent = '$' + (s.totalRevenue || 0).toLocaleString();
                     }
                 } else {
-                    ['stat-companies','stat-calls','stat-requirements','stat-placed','stat-revenue']
-                        .forEach(id => { const el = document.getElementById(id); if(el) { el.textContent = '-'; el.classList.remove('skeleton'); } });
+                    ['stat-companies', 'stat-calls', 'stat-requirements', 'stat-placed', 'stat-revenue']
+                        .forEach(id => { const el = document.getElementById(id); if (el) { el.textContent = '-'; el.classList.remove('skeleton'); } });
                 }
 
                 // ── RYG Call Status Chart ─────────────────────────
                 const callData = callStatusRes.status === 'fulfilled' ? callStatusRes.value.data : [];
                 const rygMap = { RED: 0, YELLOW: 0, GREEN: 0 };
                 callData.forEach(r => { if (rygMap.hasOwnProperty(r.statusColor)) rygMap[r.statusColor] = r._count.id; });
-                
+
                 new Chart(document.getElementById('callsChart'), {
                     type: 'doughnut',
                     data: {
@@ -431,7 +484,7 @@
                 // ── Recent Activity Feed ──────────────────────────
                 const activityFeed = document.getElementById('activity-feed');
                 const activities = activityRes.status === 'fulfilled' ? activityRes.value.data : [];
-                
+
                 if (activities.length === 0) {
                     activityFeed.innerHTML = '<p style="color:#94A3B8;text-align:center;padding:20px">No recent activity</p>';
                 } else {
@@ -454,9 +507,260 @@
             }
         }
 
+        // ─── BDM Personal Dashboard Functions ──────────────────────────────────
+        async function reloadPersonalDashboard() {
+            try {
+                const res = await window.ApiService.getEmployeeDashboard();
+                renderEmployeeDashboard(res.data);
+            } catch (err) {
+                console.error(err);
+                if (window.UI && window.UI.showToast) window.UI.showToast('Failed to load personal dashboard', 'error');
+            }
+        }
+
+        function renderEmployeeDashboard(data) {
+            const profile = data.profile || {};
+            const att = data.todayAttendance || {};
+            const checkedIn = Boolean(att.checkIn);
+            const checkedOut = Boolean(att.checkOut);
+
+            const formatTime = (d) => d ? new Date(d).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
+            const formatDate = (d) => d ? new Date(d).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+
+            let attStatusText = '<span style="color:#f87171;font-weight:600;">Not Checked In</span>';
+            if (checkedIn) {
+                attStatusText = `<span style="color:#34d399;font-weight:600;">Checked In: ${formatTime(att.checkIn)}</span>`;
+            }
+            if (checkedOut) {
+                attStatusText = `<span style="color:#fbbf24;font-weight:600;">Checked Out: ${formatTime(att.checkOut)}</span>`;
+            }
+
+            const pageContent = document.getElementById('dashboard-content-area');
+            pageContent.innerHTML = `
+                <div class="page-header">
+                    <h1 class="page-title">Welcome, ${profile.name || user.name} 👋</h1>
+                    <p class="page-subtitle">Personal Employee Dashboard — BDM Sales & Pipeline Overview</p>
+                </div>
+
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); margin-bottom: 24px;">
+                    <div class="stat-card">
+                        <div class="stat-title">💼 Position / Role</div>
+                        <p class="stat-value" style="font-size: 1.4rem; line-height: 2.2rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${profile.position || 'BDM Employee'}">${profile.position || 'BDM Employee'}</p>
+                        <div class="stat-trend neutral">${profile.employeeId || 'EMP'}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">⏰ Today's Attendance</div>
+                        <p class="stat-value" style="font-size: 1.15rem; line-height: 2.2rem;">${attStatusText}</p>
+                        <div style="margin-top:10px; display:flex; gap:6px;">
+                            <button id="dash-checkin" class="btn btn-sm btn-success" ${checkedIn ? 'disabled' : ''}>In</button>
+                            <button id="dash-checkout" class="btn btn-sm btn-warning" ${(!checkedIn || checkedOut) ? 'disabled' : ''}>Out</button>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">📋 Pending Tasks</div>
+                        <p class="stat-value" id="emp-stat-tasks">${data.pendingTasks || 0}</p>
+                        <div class="stat-trend neutral">Assigned to you</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-title">📑 Worksheets (Month)</div>
+                        <p class="stat-value" id="emp-stat-worksheets">${data.worksheetsThisMonth || 0}</p>
+                        <div class="stat-trend neutral">Submitted this month</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-content-grid">
+                    <div class="left-col">
+                        <div class="card" style="margin-bottom: 24px;">
+                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <h2 class="card-title">📋 My Assigned Tasks</h2>
+                            </div>
+                            <div class="card-body" style="padding:0;">
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Task Title</th>
+                                                <th>Priority</th>
+                                                <th>Status</th>
+                                                <th>Due Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="emp-tasks-body">
+                                            ${renderTasksRows(data.recentTasks)}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header">
+                                <h2 class="card-title">Pipeline Quick Actions</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="quick-actions-grid">
+                                    <a href="/pages/calling-report.html" class="quick-action-card">
+                                        <div class="quick-action-icon">📞</div>
+                                        <div class="quick-action-title">Daily Calling Report</div>
+                                        <p class="quick-action-desc">Log and track daily calls</p>
+                                    </a>
+                                    <a href="/pages/appointments.html" class="quick-action-card">
+                                        <div class="quick-action-icon">📅</div>
+                                        <div class="quick-action-title">Appointment Engine</div>
+                                        <p class="quick-action-desc">Manage upcoming meetings</p>
+                                    </a>
+                                    <a href="/pages/candidates.html" class="quick-action-card">
+                                        <div class="quick-action-icon">👨‍✈️</div>
+                                        <div class="quick-action-title">Seafarers Directory</div>
+                                        <p class="quick-action-desc">Add or search seafarers</p>
+                                    </a>
+                                    <a href="/pages/requirements.html" class="quick-action-card">
+                                        <div class="quick-action-icon">📋</div>
+                                        <div class="quick-action-title">Open Vacancies</div>
+                                        <p class="quick-action-desc">Match crew to job orders</p>
+                                    </a>
+                                    <a href="/pages/ops.html" class="quick-action-card">
+                                        <div class="quick-action-icon">⚙️</div>
+                                        <div class="quick-action-title">Operations Pipeline</div>
+                                        <p class="quick-action-desc">Docs, compliance & billing</p>
+                                    </a>
+                                    <a href="/pages/followups.html" class="quick-action-card">
+                                        <div class="quick-action-icon">🔔</div>
+                                        <div class="quick-action-title">Follow-up Queue</div>
+                                        <p class="quick-action-desc">Pending follow-ups list</p>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="right-col">
+                        <div class="card" style="margin-bottom: 24px;">
+                            <div class="card-header">
+                                <h2 class="card-title">👤 My Profile Information</h2>
+                            </div>
+                            <div class="card-body" style="display:flex; flex-direction:column; gap:12px; font-size:0.9rem;">
+                                <div><strong style="color:var(--text-muted);">Full Name:</strong> <span style="color:#fff; float:right;">${profile.name || user.name}</span></div>
+                                <div><strong style="color:var(--text-muted);">Employee ID:</strong> <span style="color:#fff; float:right;">${profile.employeeId || '—'}</span></div>
+                                <div><strong style="color:var(--text-muted);">Email:</strong> <span style="color:#fff; float:right;">${profile.email || user.email || '—'}</span></div>
+                                <div><strong style="color:var(--text-muted);">Phone:</strong> <span style="color:#fff; float:right;">${profile.phone || '—'}</span></div>
+                                <div><strong style="color:var(--text-muted);">Location:</strong> <span style="color:#fff; float:right;">${profile.location || '—'}</span></div>
+                                <div><strong style="color:var(--text-muted);">Joining Date:</strong> <span style="color:#fff; float:right;">${formatDate(profile.joinDate)}</span></div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="height: auto;">
+                            <div class="card-header">
+                                <h2 class="card-title">📋 My Recent Worksheets</h2>
+                            </div>
+                            <div class="card-body" style="padding:0;">
+                                <div style="max-height: 250px; overflow-y: auto; padding: 15px; display:flex; flex-direction:column; gap:12px;">
+                                    ${renderWorksheetsList(data.recentWorksheets)}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Event Listeners for attendance in dashboard
+            const btnIn = document.getElementById('dash-checkin');
+            const btnOut = document.getElementById('dash-checkout');
+            if (btnIn) {
+                btnIn.addEventListener('click', async () => {
+                    try {
+                        await window.ApiService.employees.checkIn(profile.id || profile._id);
+                        UI.showToast('Checked in successfully.', 'success');
+                        reloadPersonalDashboard();
+                    } catch (err) {
+                        UI.showToast(err.message || 'Check in failed.', 'error');
+                    }
+                });
+            }
+            if (btnOut) {
+                btnOut.addEventListener('click', () => {
+                    // Redirect to employee page to complete checkout worksheet
+                    UI.showToast('Redirecting to submit daily worksheet...', 'info');
+                    setTimeout(() => { window.location.href = '/pages/employee.html'; }, 1000);
+                });
+            }
+        }
+
+        function renderTasksRows(tasks) {
+            if (!tasks || tasks.length === 0) {
+                return '<tr><td colspan="5" style="text-align:center; padding:20px; color:var(--text-muted);">No tasks assigned to you</td></tr>';
+            }
+
+            const priorityBadges = {
+                LOW: '<span class="badge badge-gray">Low</span>',
+                MEDIUM: '<span class="badge badge-blue">Medium</span>',
+                HIGH: '<span class="badge badge-yellow">High</span>',
+                URGENT: '<span class="badge badge-red">Urgent 🔴</span>',
+            };
+
+            const statusBadges = {
+                PENDING: '<span class="badge badge-yellow">Pending</span>',
+                IN_PROGRESS: '<span class="badge badge-blue">In Progress</span>',
+                COMPLETED: '<span class="badge badge-green">Completed</span>',
+            };
+
+            return tasks.map(t => {
+                const dueDateStr = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'No due date';
+                const actionsHtml = t.status === 'PENDING' ? `
+                    <button class="btn btn-secondary btn-sm" onclick="changeTaskStatusDash('${t._id || t.id}', 'IN_PROGRESS')"><i class="fas fa-play"></i> Start</button>
+                ` : (t.status !== 'COMPLETED' ? `
+                    <button class="btn btn-success btn-sm" onclick="changeTaskStatusDash('${t._id || t.id}', 'COMPLETED')"><i class="fas fa-check"></i> Complete</button>
+                ` : '<span style="color:var(--accent-green);font-size:0.8rem;"><i class="fas fa-check-circle"></i> Done</span>');
+
+                return `
+                    <tr>
+                        <td>
+                            <div style="font-weight:600;color:var(--text-primary);">${t.title}</div>
+                            ${t.description ? `<div style="font-size:0.75rem;color:var(--text-muted);">${t.description}</div>` : ''}
+                        </td>
+                        <td>${priorityBadges[t.priority] || t.priority}</td>
+                        <td>${statusBadges[t.status] || t.status}</td>
+                        <td style="font-size:0.85rem;">${dueDateStr}</td>
+                        <td>${actionsHtml}</td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        async function changeTaskStatusDash(taskId, status) {
+            try {
+                await window.ApiService.employees.updateTaskStatus(taskId, { status });
+                UI.showToast(`Task marked as ${status.replace('_', ' ')}.`, 'success');
+                reloadPersonalDashboard();
+            } catch (err) {
+                UI.showToast(err.message || 'Failed to update task.', 'error');
+            }
+        }
+
+        window.changeTaskStatusDash = changeTaskStatusDash;
+
+        function renderWorksheetsList(worksheets) {
+            if (!worksheets || worksheets.length === 0) {
+                return '<p style="color:var(--text-muted); text-align:center; padding:15px 0;">No worksheets submitted yet</p>';
+            }
+
+            return worksheets.map(w => `
+                <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom: 8px;">
+                    <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:6px;">
+                        <span>📅 ${w.date}</span>
+                        <span style="color:var(--accent-blue);">${w.callsMade} calls | ${w.vesselsContacted} vessels</span>
+                    </div>
+                    <div style="font-weight:500; color:#fff; font-size:0.85rem; margin-bottom:4px;">${w.summaryOfWork}</div>
+                    ${w.notes ? `<div style="font-size:0.75rem; color:var(--text-muted); font-style:italic;">Note: ${w.notes}</div>` : ''}
+                </div>
+            `).join('');
+        }
+
         // Initialize when DOM is ready
         document.addEventListener('DOMContentLoaded', initDashboard);
 
     </script>
 </body>
+
 </html>

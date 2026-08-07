@@ -1,4 +1,30 @@
-const { Call, FollowUp, Appointment, Contract, Company, Country, Activity, Notification, Reason, Candidate, Requirement, Invoice } = require('../models');
+const { Call, FollowUp, Appointment, Contract, Company, Country, Activity, Notification, Reason, Candidate, Requirement, Invoice, Employee, Attendance, Task, Worksheet } = require('../models');
+
+// ─── EMPLOYEE PERSONAL DASHBOARD (BDM role) ────────────────────────────────
+const getEmployeeDashboard = async (req, res, next) => {
+  try {
+    const emp = await Employee.findOne({ userId: req.user.id });
+    if (!emp) {
+      return res.json({ success: true, data: { profile: null, todayAttendance: null, pendingTasks: 0, worksheetsThisMonth: 0 } });
+    }
+
+    const today = new Date().toISOString().split('T')[0];
+    const monthStart = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0];
+
+    const [todayAttendance, pendingTasks, worksheetsThisMonth, recentTasks, recentWorksheets] = await Promise.all([
+      Attendance.findOne({ employeeId: emp._id, date: today }),
+      Task.countDocuments({ assignedTo: emp._id, status: { $in: ['PENDING', 'IN_PROGRESS'] } }),
+      Worksheet.countDocuments({ employeeId: emp._id, date: { $gte: monthStart } }),
+      Task.find({ assignedTo: emp._id }).sort({ createdAt: -1 }).limit(5),
+      Worksheet.find({ employeeId: emp._id }).sort({ createdAt: -1 }).limit(5),
+    ]);
+
+    res.json({
+      success: true,
+      data: { profile: emp, todayAttendance, pendingTasks, worksheetsThisMonth, recentTasks, recentWorksheets }
+    });
+  } catch (err) { next(err); }
+};
 
 // ─── DASHBOARD STATS ──────────────────────────────────────────
 
@@ -262,4 +288,5 @@ module.exports = {
   getRejectionReasonReport,
   getDailyReport,
   getCountryWiseReport,
+  getEmployeeDashboard,
 };

@@ -23,6 +23,32 @@ async function connectWithRetry(retries = 5, delayMs = 3000) {
   return false;
 }
 
+/**
+ * Migrate: ensure the employeeId index on Employee collection is sparse.
+ * Drops the old non-sparse unique index if present and recreates it sparse.
+ */
+async function migrateEmployeeIdIndex() {
+  try {
+    const mongoose = require('mongoose');
+    const collection = mongoose.connection.collection('employees');
+    const indexes = await collection.indexes();
+    const existingIdx = indexes.find(
+      idx => idx.key && idx.key.employeeId === 1
+    );
+    if (existingIdx && !existingIdx.sparse) {
+      console.log('🔧 Migrating employeeId index to sparse=true ...');
+      await collection.dropIndex(existingIdx.name);
+      await collection.createIndex(
+        { employeeId: 1 },
+        { unique: true, sparse: true, background: true }
+      );
+      console.log('✅ employeeId index migrated to sparse.');
+    }
+  } catch (err) {
+    console.warn('⚠️  employeeId index migration warning:', err.message);
+  }
+}
+
 const startServer = async () => {
   const server = app.listen(PORT, () => {
     console.log(`🚀 Marine CRM API running on http://localhost:${PORT}`);
@@ -44,6 +70,8 @@ const startServer = async () => {
   if (!connected) {
     console.error('❌ Could not connect to MongoDB after 5 retries. Check MONGODB_URI/network.');
     console.error('   Server is running but DB requests will fail until connection is restored.');
+  } else {
+    await migrateEmployeeIdIndex();
   }
 };
 

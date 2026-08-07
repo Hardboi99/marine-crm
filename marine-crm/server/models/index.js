@@ -14,6 +14,9 @@ const Application = require('./Application');
 const Onboarding = require('./Onboarding');
 const Invoice = require('./Invoice');
 const Employee = require('./Employee');
+const Attendance = require('./Attendance');
+const Worksheet = require('./Worksheet');
+const Task = require('./Task');
 
 module.exports = {
   User,
@@ -32,4 +35,8 @@ module.exports = {
   Onboarding,
   Invoice,
   Employee,
+  Attendance,
+  Worksheet,
+  Task,
 };
+

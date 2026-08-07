@@ -1,216 +1,365 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Employees — Marine BDM CRM</title>
-  <meta name="description" content="Manage all company employees in Marine BDM CRM.">
+  <title>Employees & Tasks — Marine BDM CRM</title>
+  <meta name="description"
+    content="Manage internal employees, daily worksheets, attendance, and task assignments in Marine BDM CRM.">
   <link rel="stylesheet" href="/public/css/styles.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
 
-<div class="app-layout">
-  <div id="sidebar-container"></div>
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
 
-  <div class="main-content">
-    <div id="navbar-container"></div>
+    <div class="main-content">
+      <div id="navbar-container"></div>
 
-    <main class="page-content">
+      <main class="page-content">
 
-      <!-- PAGE HEADER -->
-      <div class="page-header">
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">👨‍💼 Employees & Tasks</h1>
+            <p class="page-subtitle">Manage internal employees, daily worksheets, attendance, and task assignments</p>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="view-worksheets-btn" class="btn btn-secondary">
+              <i class="fas fa-file-alt"></i> View Worksheets
+            </button>
+            <button id="assign-task-btn" class="btn btn-secondary">
+              <i class="fas fa-tasks"></i> Assign Task
+            </button>
+            <button id="export-btn" class="btn btn-secondary">
+              <i class="fas fa-file-excel"></i> Export Excel
+            </button>
+            <button id="add-employee-btn" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Add Employee
+            </button>
+          </div>
+        </div>
+
+        <!-- STATS ROW -->
+        <div class="stats-grid"
+          style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 24px;">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg,#0ea5e9,#6366f1);">
+              <i class="fas fa-users"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-total">—</div>
+              <div class="stat-label">Total Employees</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg,#10b981,#059669);">
+              <i class="fas fa-briefcase"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-positions">—</div>
+              <div class="stat-label">Unique Positions</div>
+            </div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706);">
+              <i class="fas fa-tasks"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-tasks">—</div>
+              <div class="stat-label">Pending Tasks</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- FILTER BAR -->
+        <div class="filter-bar">
+          <div class="filter-group">
+            <i class="fas fa-search filter-icon"></i>
+            <input type="text" id="search-input" class="form-control" placeholder="Search by name, position, location…"
+              oninput="renderEmployees()">
+          </div>
+          <div class="filter-group">
+            <select id="position-filter" class="form-control" onchange="renderEmployees()">
+              <option value="">All Positions</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- EMPLOYEES TABLE CARD -->
+        <div class="card" style="margin-bottom: 24px;">
+          <div class="card-header"
+            style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:1.05rem;color:var(--text-primary);"><i class="fas fa-id-badge"
+                style="margin-right:8px;color:var(--accent-blue);"></i> Employee Directory & Attendance</h3>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Employee</th>
+                    <th>Position</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Location</th>
+                    <th>Joining Date</th>
+                    <th>Attendance (Today)</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="employee-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- TASK ASSIGNMENTS CARD -->
+        <div class="card">
+          <div class="card-header"
+            style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:1.05rem;color:var(--text-primary);"><i class="fas fa-list-check"
+                style="margin-right:8px;color:var(--accent-green);"></i> Assigned Tasks & Pipeline Work</h3>
+          </div>
+          <div class="card-body" style="padding: 0;">
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>Task Title</th>
+                    <th>Assigned To</th>
+                    <th>Assigned By</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Due Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="tasks-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ADD / EDIT EMPLOYEE MODAL TEMPLATE -->
+  <template id="employee-modal-tpl">
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
+      <div style="grid-column:1/-1;">
+        <label class="form-label">Full Name <span style="color:#f87171">*</span></label>
+        <input id="emp-name" class="form-control" placeholder="e.g. John Doe">
+      </div>
+      <div>
+        <label class="form-label">Employee ID <span style="font-size:0.75rem;color:var(--text-muted);">(auto-generated
+            if blank)</span></label>
+        <input id="emp-id" class="form-control" placeholder="e.g. EMP-001">
+      </div>
+      <div>
+        <label class="form-label">Position / Role</label>
+        <input id="emp-position" class="form-control" placeholder="e.g. BDM Sales Executive">
+      </div>
+      <div>
+        <label class="form-label">Phone <span style="color:#f87171">*</span></label>
+        <input id="emp-phone" class="form-control" placeholder="+91 98765 43210">
+      </div>
+      <div>
+        <label class="form-label">Email (Login ID)</label>
+        <input id="emp-email" class="form-control" type="email" placeholder="john@company.com">
+      </div>
+      <div>
+        <label class="form-label" id="emp-password-label">
+          Password (for Login)
+        </label>
+
+        <div class="password-wrapper">
+          <input id="emp-password" class="form-control" type="password" placeholder="Set login password"
+            autocomplete="new-password" />
+
+          <button type="button" id="toggle-password" class="password-toggle" aria-label="Show Password">
+            👁️
+          </button>
+        </div>
+      </div>
+      <div>
+        <label class="form-label">Location</label>
+        <input id="emp-location" class="form-control" placeholder="e.g. Mumbai">
+      </div>
+      <div>
+        <label class="form-label">Joining Date</label>
+        <input id="emp-joindate" class="form-control" type="date">
+      </div>
+    </div>
+  </template>
+
+  <!-- CHECKOUT DAILY WORKSHEET MODAL TEMPLATE -->
+  <template id="worksheet-modal-tpl">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div
+        style="background:rgba(14,165,233,0.1);padding:12px;border-radius:6px;font-size:0.85rem;color:var(--text-secondary);">
+        <i class="fas fa-info-circle" style="color:var(--accent-blue);margin-right:6px;"></i>
+        Please fill in your daily work summary before completing check-out.
+      </div>
+      <div>
+        <label class="form-label">Summary of Work Done Today <span style="color:#f87171">*</span></label>
+        <textarea id="ws-summary" class="form-control" rows="3"
+          placeholder="Describe tasks, client calls, and progress completed today…"></textarea>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
         <div>
-          <h1 class="page-title">👨‍💼 Employees</h1>
-          <p class="page-subtitle">Manage all internal employees and HR records</p>
+          <label class="form-label">Calls / Contacts Made</label>
+          <input id="ws-calls" type="number" min="0" class="form-control" value="0">
         </div>
-        <div style="display:flex;gap:8px;">
-          <button id="export-btn" class="btn btn-secondary">
-            <i class="fas fa-file-excel"></i> Export to Excel
-          </button>
-          <button id="add-employee-btn" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Add Employee
-          </button>
+        <div>
+          <label class="form-label">Vessel Owners Contacted</label>
+          <input id="ws-vessels" type="number" min="0" class="form-control" value="0">
         </div>
       </div>
-
-      <!-- STATS ROW -->
-      <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); margin-bottom: 24px;">
-        <div class="stat-card">
-          <div class="stat-icon" style="background: linear-gradient(135deg,#0ea5e9,#6366f1);">
-            <i class="fas fa-users"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value" id="stat-total">—</div>
-            <div class="stat-label">Total Employees</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background: linear-gradient(135deg,#10b981,#059669);">
-            <i class="fas fa-briefcase"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value" id="stat-positions">—</div>
-            <div class="stat-label">Unique Positions</div>
-          </div>
-        </div>
-        <div class="stat-card">
-          <div class="stat-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706);">
-            <i class="fas fa-map-marker-alt"></i>
-          </div>
-          <div class="stat-content">
-            <div class="stat-value" id="stat-locations">—</div>
-            <div class="stat-label">Locations</div>
-          </div>
-        </div>
+      <div>
+        <label class="form-label">Additional Notes / Leads Followed</label>
+        <textarea id="ws-notes" class="form-control" rows="2"
+          placeholder="Any follow-up details or remarks…"></textarea>
       </div>
+    </div>
+  </template>
 
-      <!-- FILTER BAR -->
-      <div class="filter-bar">
-        <div class="filter-group">
-          <i class="fas fa-search filter-icon"></i>
-          <input type="text" id="search-input" class="form-control" placeholder="Search by name, position, location…" oninput="renderEmployees()">
-        </div>
-        <div class="filter-group">
-          <select id="position-filter" class="form-control" onchange="renderEmployees()">
-            <option value="">All Positions</option>
+  <!-- ASSIGN TASK MODAL TEMPLATE -->
+  <template id="task-modal-tpl">
+    <div style="display:flex;flex-direction:column;gap:14px;">
+      <div>
+        <label class="form-label">Task Title <span style="color:#f87171">*</span></label>
+        <input id="task-title" class="form-control" placeholder="e.g. Research Vessel Owners in Singapore Region">
+      </div>
+      <div>
+        <label class="form-label">Assign To Employee <span style="color:#f87171">*</span></label>
+        <select id="task-assignee" class="form-control">
+          <option value="">Select Employee</option>
+        </select>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+        <div>
+          <label class="form-label">Priority Level</label>
+          <select id="task-priority" class="form-control">
+            <option value="LOW">Low</option>
+            <option value="MEDIUM" selected>Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent 🔴</option>
           </select>
         </div>
-      </div>
-
-      <!-- TABLE CARD -->
-      <div class="card">
-        <div class="card-body" style="padding: 0;">
-          <div class="table-container">
-            <table class="table">
-              <thead>
-                <tr>
-                  <th>#</th>
-                  <th>Employee</th>
-                  <th>Position</th>
-                  <th>Phone</th>
-                  <th>Email</th>
-                  <th>Location</th>
-                  <th>Joining Date</th>
-                  <th>Actions</th>
-                </tr>
-              </thead>
-              <tbody id="employee-table-body"></tbody>
-            </table>
-          </div>
+        <div>
+          <label class="form-label">Due Date</label>
+          <input id="task-duedate" type="date" class="form-control">
         </div>
       </div>
+      <div>
+        <label class="form-label">Task Description / Instructions</label>
+        <textarea id="task-desc" class="form-control" rows="3"
+          placeholder="Provide details, search parameters, or instructions for the executive…"></textarea>
+      </div>
+    </div>
+  </template>
 
-    </main>
-  </div>
-</div>
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="/public/js/api/api.js"></script>
+  <script src="/public/js/components/ui.js"></script>
+  <script src="/public/js/components/sidebar.js"></script>
 
-<!-- ADD / EDIT MODAL TEMPLATE -->
-<template id="employee-modal-tpl">
-  <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-    <div style="grid-column:1/-1;">
-      <label class="form-label">Full Name <span style="color:#f87171">*</span></label>
-      <input id="emp-name" class="form-control" placeholder="e.g. John Doe">
-    </div>
-    <div>
-      <label class="form-label">Employee ID</label>
-      <input id="emp-id" class="form-control" placeholder="e.g. EMP-001">
-    </div>
-    <div>
-      <label class="form-label">Position / Role</label>
-      <input id="emp-position" class="form-control" placeholder="e.g. BDM Executive">
-    </div>
-    <div>
-      <label class="form-label">Phone <span style="color:#f87171">*</span></label>
-      <input id="emp-phone" class="form-control" placeholder="+91 98765 43210">
-    </div>
-    <div>
-      <label class="form-label">Email</label>
-      <input id="emp-email" class="form-control" type="email" placeholder="john@company.com">
-    </div>
-    <div>
-      <label class="form-label">Location</label>
-      <input id="emp-location" class="form-control" placeholder="e.g. Mumbai">
-    </div>
-    <div>
-      <label class="form-label">Joining Date</label>
-      <input id="emp-joindate" class="form-control" type="date">
-    </div>
-  </div>
-</template>
+  <script>
+    // ─── State ─────────────────────────────────────────────────────────────
+    let employees = [];
+    let attendances = {};
+    let tasks = [];
+    let editingId = null;
 
-<!-- SCRIPTS -->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-<script src="/public/js/api/api.js"></script>
-<script src="/public/js/components/ui.js"></script>
-<script src="/public/js/components/sidebar.js"></script>
+    const currentUser = window.UI ? window.UI.getUser() : JSON.parse(localStorage.getItem('user') || '{}');
+    const canManage = ['ADMIN', 'HR'].includes(currentUser.role);
 
-<script>
-// ─── State ─────────────────────────────────────────────────────────────
-let employees = [];
-let editingId = null;
-const currentUser    = window.UI ? window.UI.getUser() : JSON.parse(localStorage.getItem('user') || '{}');
-const canManage      = ['ADMIN', 'HR'].includes(currentUser.role);
+    const formatTime = (dateStr) => dateStr ? new Date(dateStr).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '';
 
-// ─── Load ───────────────────────────────────────────────────────────────
-async function loadEmployees() {
-  UI.showTableSkeleton(document.getElementById('employee-table-body'), 8, 6);
-  try {
-    const res = await window.ApiService.employees.list();
-    employees  = res.data || [];
-    updateStats();
-    populatePositionFilter();
-    renderEmployees();
-  } catch (err) {
-    console.error('Error loading employees:', err);
-    UI.showToast('Failed to load employees', 'error');
-    document.getElementById('employee-table-body').innerHTML =
-      `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">
+    // Build attendance lookup: keyed by the Employee's _id (as string)
+    function buildAttendanceMap(attendanceList) {
+      const map = {};
+      (attendanceList || []).forEach(a => {
+        // employeeId is stored as ObjectId ref; toString gives us the _id string
+        const key = a.employeeId ? a.employeeId.toString() : null;
+        if (key) map[key] = a;
+      });
+      return map;
+    }
+
+    // ─── Load All Data ─────────────────────────────────────────────────────
+    async function loadEmployees() {
+      UI.showTableSkeleton(document.getElementById('employee-table-body'), 9, 5);
+      try {
+        const [empRes, attRes] = await Promise.all([
+          window.ApiService.employees.list(),
+          window.ApiService.employees.getTodayAttendance().catch(() => ({ data: [] }))
+        ]);
+        employees = empRes.data || [];
+        attendances = buildAttendanceMap(attRes.data || []);
+
+        updateStats();
+        populatePositionFilter();
+        renderEmployees();
+        loadTasks();
+      } catch (err) {
+        console.error('Error loading employees:', err);
+        UI.showToast('Failed to load employees', 'error');
+        document.getElementById('employee-table-body').innerHTML =
+          `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">
          <i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
          Failed to load employees. Please refresh.
        </td></tr>`;
-  }
-}
+      }
+    }
 
-// ─── Stats ──────────────────────────────────────────────────────────────
-function updateStats() {
-  const positions = new Set(employees.map(e => e.position).filter(Boolean));
-  const locations = new Set(employees.map(e => e.location).filter(Boolean));
-  UI.countUp(document.getElementById('stat-total'),     employees.length);
-  UI.countUp(document.getElementById('stat-positions'), positions.size);
-  UI.countUp(document.getElementById('stat-locations'), locations.size);
-}
+    // ─── Stats ──────────────────────────────────────────────────────────────
+    function updateStats() {
+      const positions = new Set(employees.map(e => e.position).filter(Boolean));
+      const pendingTasks = tasks.filter(t => t.status !== 'COMPLETED').length;
+      UI.countUp(document.getElementById('stat-total'), employees.length);
+      UI.countUp(document.getElementById('stat-positions'), positions.size);
+      UI.countUp(document.getElementById('stat-tasks'), pendingTasks);
+    }
 
-// ─── Position Filter ─────────────────────────────────────────────────────
-function populatePositionFilter() {
-  const sel = document.getElementById('position-filter');
-  const cur = sel.value;
-  const positions = [...new Set(employees.map(e => e.position).filter(Boolean))].sort();
-  sel.innerHTML = '<option value="">All Positions</option>' +
-    positions.map(p => `<option value="${p}" ${p===cur?'selected':''}>${p}</option>`).join('');
-}
+    // ─── Position Filter ─────────────────────────────────────────────────────
+    function populatePositionFilter() {
+      const sel = document.getElementById('position-filter');
+      const cur = sel.value;
+      const positions = [...new Set(employees.map(e => e.position).filter(Boolean))].sort();
+      sel.innerHTML = '<option value="">All Positions</option>' +
+        positions.map(p => `<option value="${p}" ${p === cur ? 'selected' : ''}>${p}</option>`).join('');
+    }
 
-// ─── Render Table ────────────────────────────────────────────────────────
-function renderEmployees() {
-  const search    = (document.getElementById('search-input').value || '').toLowerCase();
-  const posFilter = document.getElementById('position-filter').value;
+    // ─── Render Employees Table ──────────────────────────────────────────────
+    function renderEmployees() {
+      const search = (document.getElementById('search-input').value || '').toLowerCase();
+      const posFilter = document.getElementById('position-filter').value;
 
-  const filtered = employees.filter(e => {
-    const matchSearch = !search ||
-      e.name.toLowerCase().includes(search) ||
-      (e.position   || '').toLowerCase().includes(search) ||
-      (e.location   || '').toLowerCase().includes(search) ||
-      (e.email      || '').toLowerCase().includes(search) ||
-      (e.employeeId || '').toLowerCase().includes(search);
-    const matchPos = !posFilter || e.position === posFilter;
-    return matchSearch && matchPos;
-  });
+      const filtered = employees.filter(e => {
+        const matchSearch = !search ||
+          e.name.toLowerCase().includes(search) ||
+          (e.position || '').toLowerCase().includes(search) ||
+          (e.location || '').toLowerCase().includes(search) ||
+          (e.email || '').toLowerCase().includes(search) ||
+          (e.employeeId || '').toLowerCase().includes(search);
+        const matchPos = !posFilter || e.position === posFilter;
+        return matchSearch && matchPos;
+      });
 
-  const tbody = document.getElementById('employee-table-body');
+      const tbody = document.getElementById('employee-table-body');
 
-  if (filtered.length === 0) {
-    tbody.innerHTML = `
-      <tr><td colspan="8">
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
+      <tr><td colspan="9">
         ${UI.renderEmptyState('👨‍💼', 'No Employees Found',
           search || posFilter
             ? 'No employees match your current filters.'
@@ -220,15 +369,20 @@ function renderEmployees() {
             : ''
         )}
       </td></tr>`;
-    return;
-  }
+        return;
+      }
 
-  tbody.innerHTML = filtered.map((e, idx) => {
-    const initials = e.name.split(' ').map(n => n[0]).join('').slice(0,2).toUpperCase();
-    const joinDate = e.joinDate
-      ? new Date(e.joinDate).toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})
-      : '—';
-    return `
+      tbody.innerHTML = filtered.map((e, idx) => {
+        const initials = e.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+        const joinDate = e.joinDate
+          ? new Date(e.joinDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' })
+          : '—';
+
+        const att = attendances[e.id] || {};
+        const checkedIn = Boolean(att.checkIn);
+        const checkedOut = Boolean(att.checkOut);
+
+        return `
       <tr>
         <td style="color:var(--text-muted);font-size:0.8rem;">${idx + 1}</td>
         <td>
@@ -249,144 +403,432 @@ function renderEmployees() {
         <td>${e.location ? `<i class="fas fa-map-marker-alt" style="font-size:0.7rem;margin-right:4px;opacity:0.6;"></i>${e.location}` : '—'}</td>
         <td style="font-size:0.85rem;">${joinDate}</td>
         <td>
+          <div style="display:flex;flex-direction:column;gap:4px;">
+            <div style="display:flex;gap:5px;">
+              <button class="btn btn-sm ${checkedIn ? 'btn-secondary' : 'btn-success'}" ${checkedIn ? 'disabled' : ''} onclick="handleCheckIn('${e.id}')">
+                <i class="fas fa-sign-in-alt"></i> In
+              </button>
+              <button class="btn btn-sm ${(!checkedIn || checkedOut) ? 'btn-secondary' : 'btn-warning'}" ${(!checkedIn || checkedOut) ? 'disabled' : ''} onclick="handleCheckOutModal('${e.id}','${e.name.replace(/'/g, "&#39;")}')">
+                <i class="fas fa-sign-out-alt"></i> Out
+              </button>
+            </div>
+            <div style="font-size:0.72rem;color:var(--text-muted);">
+              ${checkedIn ? `In: <strong style="color:var(--text-primary);">${formatTime(att.checkIn)}</strong>` : '<span class="badge badge-gray">Not Checked In</span>'}
+              ${checkedOut ? ` | Out: <strong style="color:var(--text-primary);">${formatTime(att.checkOut)}</strong>` : ''}
+            </div>
+          </div>
+        </td>
+        <td>
           <div style="display:flex;gap:6px;">
             ${canManage ? `
               <button class="btn btn-secondary btn-sm" onclick="openEmployeeModal('${e.id}')" title="Edit">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="btn btn-danger btn-sm" onclick="confirmDeleteEmployee('${e.id}','${e.name.replace(/'/g,"&#39;")}')" title="Delete">
+              <button class="btn btn-danger btn-sm" onclick="confirmDeleteEmployee('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Delete">
                 <i class="fas fa-trash"></i>
               </button>
             ` : `<span style="color:var(--text-muted);font-size:0.8rem;">View only</span>`}
           </div>
         </td>
       </tr>`;
-  }).join('');
-}
+      }).join('');
+    }
 
-// ─── Open Add / Edit Modal ───────────────────────────────────────────────
-function openEmployeeModal(id = null) {
-  if (!canManage) return UI.showToast('Only Admin or HR can manage employees.', 'warning');
-  editingId = id;
-  const emp = id ? employees.find(e => e.id === id) : null;
-  const tpl = document.getElementById('employee-modal-tpl');
+    // ─── Attendance Check In / Out ───────────────────────────────────────────
+    async function handleCheckIn(id) {
+      try {
+        const res = await window.ApiService.employees.checkIn(id);
+        attendances[id] = res.data;
+        UI.showToast('Checked in successfully.', 'success');
+        renderEmployees();
+      } catch (err) {
+        console.error('Check in error:', err);
+        UI.showToast(err.message || 'Check in failed.', 'error');
+      }
+    }
 
-  const modal = UI.createModal({
-    title: emp ? '✏️ Edit Employee' : '➕ Add Employee',
-    bodyHtml: tpl.innerHTML,
-    footerHtml: `
+    // ─── Checkout with Daily Worksheet Popup ──────────────────────────────────
+    function handleCheckOutModal(employeeId, employeeName) {
+      const tpl = document.getElementById('worksheet-modal-tpl');
+
+      const modal = UI.createModal({
+        title: `📋 Daily Worksheet & Checkout — ${employeeName}`,
+        bodyHtml: tpl.innerHTML,
+        footerHtml: `
+      <button class="btn btn-secondary" id="ws-cancel">Cancel</button>
+      <button class="btn btn-warning"   id="ws-submit"><i class="fas fa-paper-plane"></i> Submit & Check Out</button>
+    `
+      });
+
+      modal.querySelector('#ws-cancel').onclick = () => modal.close();
+      modal.querySelector('#ws-submit').onclick = async () => {
+        const summaryStr = modal.querySelector('#ws-summary').value.trim();
+        const callsVal = modal.querySelector('#ws-calls').value;
+        const vesselsVal = modal.querySelector('#ws-vessels').value;
+        const notesStr = modal.querySelector('#ws-notes').value.trim();
+
+        if (!summaryStr) {
+          return UI.showToast('Please provide a summary of your work done today.', 'error');
+        }
+
+        const submitBtn = modal.querySelector('#ws-submit');
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+
+        try {
+          // 1. Submit Worksheet
+          await window.ApiService.employees.submitWorksheet({
+            employeeId,
+            summaryOfWork: summaryStr,
+            callsMade: callsVal,
+            vesselsContacted: vesselsVal,
+            notes: notesStr
+          });
+
+          // 2. Perform Check Out
+          const res = await window.ApiService.employees.checkOut(employeeId);
+          attendances[employeeId] = res.data;
+
+          UI.showToast('Worksheet submitted & Checked out successfully.', 'success');
+          modal.close();
+          renderEmployees();
+        } catch (err) {
+          console.error('Worksheet / Checkout error:', err);
+          UI.showToast(err.message || 'Checkout failed.', 'error');
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit & Check Out';
+        }
+      };
+    }
+
+    // ─── Tasks & Assignments Logic ───────────────────────────────────────────
+    async function loadTasks() {
+      try {
+        const res = await window.ApiService.employees.getTasks();
+        tasks = res.data || [];
+        updateStats();
+        renderTasks();
+      } catch (err) {
+        console.error('Load tasks error:', err);
+      }
+    }
+
+    function renderTasks() {
+      const tbody = document.getElementById('tasks-table-body');
+      if (!tbody) return;
+
+      if (tasks.length === 0) {
+        tbody.innerHTML = `
+      <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">
+        No task assignments currently. ${canManage ? 'Click <strong>Assign Task</strong> to delegate work.' : ''}
+      </td></tr>`;
+        return;
+      }
+
+      const priorityBadges = {
+        LOW: '<span class="badge badge-gray">Low</span>',
+        MEDIUM: '<span class="badge badge-blue">Medium</span>',
+        HIGH: '<span class="badge badge-yellow">High</span>',
+        URGENT: '<span class="badge badge-red">Urgent 🔴</span>',
+      };
+
+      const statusBadges = {
+        PENDING: '<span class="badge badge-yellow">Pending</span>',
+        IN_PROGRESS: '<span class="badge badge-blue">In Progress</span>',
+        COMPLETED: '<span class="badge badge-green">Completed</span>',
+      };
+
+      tbody.innerHTML = tasks.map(t => {
+        const assigneeName = t.assignedTo ? t.assignedTo.name : 'Unassigned';
+        const dueDateStr = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'No due date';
+
+        return `
+      <tr>
+        <td>
+          <div style="font-weight:600;color:var(--text-primary);">${t.title}</div>
+          ${t.description ? `<div style="font-size:0.75rem;color:var(--text-muted);">${t.description}</div>` : ''}
+        </td>
+        <td><strong style="color:var(--accent-blue);">${assigneeName}</strong></td>
+        <td style="font-size:0.85rem;color:var(--text-muted);">${t.assignedByName || 'Admin'}</td>
+        <td>${priorityBadges[t.priority] || t.priority}</td>
+        <td>${statusBadges[t.status] || t.status}</td>
+        <td style="font-size:0.85rem;">${dueDateStr}</td>
+        <td>
+          <div style="display:flex;gap:6px;">
+            ${t.status === 'PENDING' ? `
+              <button class="btn btn-secondary btn-sm" onclick="changeTaskStatus('${t._id || t.id}', 'IN_PROGRESS')">
+                <i class="fas fa-play"></i> Start
+              </button>
+            ` : ''}
+            ${t.status !== 'COMPLETED' ? `
+              <button class="btn btn-success btn-sm" onclick="changeTaskStatus('${t._id || t.id}', 'COMPLETED')">
+                <i class="fas fa-check"></i> Complete
+              </button>
+            ` : '<span style="color:var(--accent-green);font-size:0.8rem;"><i class="fas fa-check-circle"></i> Done</span>'}
+          </div>
+        </td>
+      </tr>`;
+      }).join('');
+    }
+
+    async function changeTaskStatus(taskId, status) {
+      try {
+        await window.ApiService.employees.updateTaskStatus(taskId, { status });
+        UI.showToast(`Task marked as ${status.replace('_', ' ')}.`, 'success');
+        loadTasks();
+      } catch (err) {
+        UI.showToast(err.message || 'Failed to update task.', 'error');
+      }
+    }
+
+    function openAssignTaskModal() {
+      if (!canManage) return UI.showToast('Only Admin or HR can assign tasks.', 'warning');
+      const tpl = document.getElementById('task-modal-tpl');
+
+      const modal = UI.createModal({
+        title: '📋 Assign New Task',
+        bodyHtml: tpl.innerHTML,
+        footerHtml: `
+      <button class="btn btn-secondary" id="task-cancel">Cancel</button>
+      <button class="btn btn-primary"   id="task-save"><i class="fas fa-plus"></i> Assign Task</button>
+    `
+      });
+
+      // Populate Employee dropdown
+      const sel = modal.querySelector('#task-assignee');
+      sel.innerHTML = '<option value="">Select Employee</option>' +
+        employees.map(e => `<option value="${e.id}">${e.name} (${e.position || 'Employee'})</option>`).join('');
+
+      modal.querySelector('#task-cancel').onclick = () => modal.close();
+      modal.querySelector('#task-save').onclick = async () => {
+        const titleVal = modal.querySelector('#task-title').value.trim();
+        const assigneeVal = modal.querySelector('#task-assignee').value;
+        const priorityVal = modal.querySelector('#task-priority').value;
+        const dueVal = modal.querySelector('#task-duedate').value;
+        const descVal = modal.querySelector('#task-desc').value.trim();
+
+        if (!titleVal || !assigneeVal) {
+          return UI.showToast('Title and Employee selection are required.', 'error');
+        }
+
+        try {
+          await window.ApiService.employees.createTask({
+            title: titleVal,
+            assignedTo: assigneeVal,
+            priority: priorityVal,
+            dueDate: dueVal,
+            description: descVal
+          });
+
+          UI.showToast('Task assigned successfully.', 'success');
+          modal.close();
+          loadTasks();
+        } catch (err) {
+          UI.showToast(err.message || 'Failed to assign task.', 'error');
+        }
+      };
+    }
+
+    // ─── View Worksheets History Modal ──────────────────────────────────────
+    async function openWorksheetsViewModal() {
+      try {
+        const res = await window.ApiService.employees.getWorksheets();
+        const list = res.data || [];
+
+        const tableRows = list.length === 0
+          ? `<tr><td colspan="5" style="text-align:center;padding:20px;">No worksheets submitted yet.</td></tr>`
+          : list.map(w => `
+        <tr>
+          <td style="font-size:0.85rem;">${w.date}</td>
+          <td><strong>${w.employeeId ? w.employeeId.name : 'Employee'}</strong></td>
+          <td style="font-size:0.85rem;">${w.callsMade} calls | ${w.vesselsContacted} vessels</td>
+          <td style="font-size:0.85rem;">${w.summaryOfWork}</td>
+          <td style="font-size:0.8rem;color:var(--text-muted);">${w.notes || '—'}</td>
+        </tr>
+      `).join('');
+
+        const bodyHtml = `
+      <div class="table-container" style="max-height:400px;overflow-y:auto;">
+        <table class="table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Employee</th>
+              <th>Activity</th>
+              <th>Summary of Work</th>
+              <th>Notes</th>
+            </tr>
+          </thead>
+          <tbody>${tableRows}</tbody>
+        </table>
+      </div>
+    `;
+
+        UI.createModal({
+          title: '📑 Submitted Daily Worksheets History',
+          bodyHtml,
+          footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Close</button>`
+        });
+      } catch (err) {
+        UI.showToast('Failed to load worksheets.', 'error');
+      }
+    }
+
+    // ─── Open Add / Edit Employee Modal ──────────────────────────────────────
+    function openEmployeeModal(id = null) {
+      if (!canManage) return UI.showToast('Only Admin or HR can manage employees.', 'warning');
+      editingId = id;
+      const emp = id ? employees.find(e => e.id === id) : null;
+      const tpl = document.getElementById('employee-modal-tpl');
+
+      const modal = UI.createModal({
+        title: emp ? '✏️ Edit Employee' : '➕ Add Employee & Create Login',
+        bodyHtml: tpl.innerHTML,
+        footerHtml: `
       <button class="btn btn-secondary" id="emp-cancel">Cancel</button>
       <button class="btn btn-primary"   id="emp-save">${emp ? 'Update' : 'Save'} Employee</button>
     `
-  });
+      });
 
-  if (emp) {
-    modal.querySelector('#emp-name').value     = emp.name        || '';
-    modal.querySelector('#emp-id').value       = emp.employeeId  || '';
-    modal.querySelector('#emp-position').value = emp.position    || '';
-    modal.querySelector('#emp-phone').value    = emp.phone       || '';
-    modal.querySelector('#emp-email').value    = emp.email       || '';
-    modal.querySelector('#emp-location').value = emp.location    || '';
-    if (emp.joinDate) {
-      modal.querySelector('#emp-joindate').value = new Date(emp.joinDate).toISOString().split('T')[0];
+      if (emp) {
+        modal.querySelector('#emp-name').value = emp.name || '';
+        const empIdInput = modal.querySelector('#emp-id');
+        empIdInput.value = emp.employeeId || '';
+        // Make Employee ID read-only during edit to prevent accidental changes
+        empIdInput.readOnly = true;
+        empIdInput.style.opacity = '0.6';
+        empIdInput.title = 'Employee ID cannot be changed after creation';
+        modal.querySelector('#emp-position').value = emp.position || '';
+        modal.querySelector('#emp-phone').value = emp.phone || '';
+        modal.querySelector('#emp-email').value = emp.email || '';
+        // Never pre-fill password — show placeholder only
+        const pwdInput = modal.querySelector('#emp-password');
+        pwdInput.placeholder = 'Leave blank to keep existing password';
+        modal.querySelector('#emp-location').value = emp.location || '';
+        if (emp.joinDate) {
+          modal.querySelector('#emp-joindate').value = new Date(emp.joinDate).toISOString().split('T')[0];
+        }
+      }
+
+      modal.querySelector('#emp-cancel').onclick = () => modal.close();
+      modal.querySelector('#emp-save').onclick = () => saveEmployee(modal);
     }
-  }
 
-  modal.querySelector('#emp-cancel').onclick = () => modal.close();
-  modal.querySelector('#emp-save').onclick   = () => saveEmployee(modal);
-}
+    // ─── Save Employee ───────────────────────────────────────────────────────
+    async function saveEmployee(modal) {
+      const saveBtn = modal.querySelector('#emp-save');
+      const nameVal = modal.querySelector('#emp-name').value.trim();
+      const phoneVal = modal.querySelector('#emp-phone').value.trim();
+      const passwordVal = modal.querySelector('#emp-password').value.trim();
 
-// ─── Save ────────────────────────────────────────────────────────────────
-async function saveEmployee(modal) {
-  const saveBtn = modal.querySelector('#emp-save');
-  const data = {
-    name:       modal.querySelector('#emp-name').value.trim(),
-    employeeId: modal.querySelector('#emp-id').value.trim(),
-    position:   modal.querySelector('#emp-position').value.trim(),
-    phone:      modal.querySelector('#emp-phone').value.trim(),
-    email:      modal.querySelector('#emp-email').value.trim(),
-    location:   modal.querySelector('#emp-location').value.trim(),
-    joinDate:   modal.querySelector('#emp-joindate').value,
-  };
+      if (!nameVal || !phoneVal) {
+        return UI.showToast('Name and Phone are required.', 'error');
+      }
 
-  if (!data.name || !data.phone) {
-    return UI.showToast('Name and Phone are required.', 'error');
-  }
+      const data = {
+        name: nameVal,
+        employeeId: modal.querySelector('#emp-id').value.trim() || undefined,
+        position: modal.querySelector('#emp-position').value.trim() || undefined,
+        phone: phoneVal,
+        email: modal.querySelector('#emp-email').value.trim() || undefined,
+        location: modal.querySelector('#emp-location').value.trim() || undefined,
+        joinDate: modal.querySelector('#emp-joindate').value || undefined,
+      };
 
-  saveBtn.disabled    = true;
-  saveBtn.innerHTML   = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+      // Only include password if user actually typed something
+      if (passwordVal) {
+        data.password = passwordVal;
+      }
 
-  try {
-    if (editingId) {
-      await window.ApiService.employees.update(editingId, data);
-      UI.showToast('Employee updated successfully.', 'success');
-    } else {
-      await window.ApiService.employees.create(data);
-      UI.showToast('Employee added successfully.', 'success');
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+
+      try {
+        if (editingId) {
+          await window.ApiService.employees.update(editingId, data);
+          UI.showToast('Employee updated successfully.', 'success');
+        } else {
+          await window.ApiService.employees.create(data);
+          UI.showToast('Employee and Login account created successfully.', 'success');
+        }
+        modal.close();
+        await loadEmployees();
+      } catch (err) {
+        console.error('Save error:', err);
+        const errMsg = (err && err.message) ? err.message : 'Failed to save employee.';
+        UI.showToast(errMsg, 'error');
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = editingId ? 'Update Employee' : 'Save Employee';
+      }
     }
-    modal.close();
-    await loadEmployees();
-  } catch (err) {
-    console.error('Save error:', err);
-    UI.showToast(err.message || 'Failed to save employee.', 'error');
-    saveBtn.disabled  = false;
-    saveBtn.innerHTML = editingId ? 'Update Employee' : 'Save Employee';
-  }
-}
 
-// ─── Delete ──────────────────────────────────────────────────────────────
-async function confirmDeleteEmployee(id, name) {
-  if (!canManage) return UI.showToast('Only Admin or HR can delete employees.', 'warning');
-  const confirmed = await UI.confirm({
-    title:       'Delete Employee?',
-    message:     `Are you sure you want to delete <strong>${name}</strong>? This cannot be undone.`,
-    confirmText: 'Delete',
-    cancelText:  'Cancel',
-    danger:      true
-  });
-  if (!confirmed) return;
-  try {
-    await window.ApiService.employees.delete(id);
-    UI.showToast('Employee deleted.', 'success');
-    await loadEmployees();
-  } catch (err) {
-    console.error('Delete error:', err);
-    UI.showToast(err.message || 'Failed to delete employee.', 'error');
-  }
-}
+    // ─── Delete ──────────────────────────────────────────────────────────────
+    async function confirmDeleteEmployee(id, name) {
+      if (!canManage) return UI.showToast('Only Admin or HR can delete employees.', 'warning');
+      const confirmed = await UI.confirm({
+        title: 'Delete Employee?',
+        message: `Are you sure you want to delete <strong>${name}</strong>? This cannot be undone.`,
+        confirmText: 'Delete',
+        cancelText: 'Cancel',
+        danger: true
+      });
+      if (!confirmed) return;
+      try {
+        await window.ApiService.employees.delete(id);
+        UI.showToast('Employee deleted.', 'success');
+        await loadEmployees();
+      } catch (err) {
+        console.error('Delete error:', err);
+        UI.showToast(err.message || 'Failed to delete employee.', 'error');
+      }
+    }
 
-// ─── Export to Excel ──────────────────────────────────────────────────────
-function exportToExcel() {
-  if (!employees.length) return UI.showToast('No employee data to export.', 'warning');
-  const rows = employees.map(e => ({
-    'Name':         e.name || '',
-    'Position':     e.position || '',
-    'Phone':        e.phone || '',
-    'Email':        e.email || '',
-    'Location':     e.location || '',
-    'Joining Date': e.joinDate ? new Date(e.joinDate).toLocaleDateString('en-GB') : '',
-  }));
-  const ws = XLSX.utils.json_to_sheet(rows);
-  ws['!cols'] = [28,22,16,28,18,16].map(w => ({ wch: w }));
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, 'Employees');
-  XLSX.writeFile(wb, 'employees.xlsx');
-  UI.showToast('Exported employees.xlsx', 'success');
-}
+    // ─── Export to Excel ──────────────────────────────────────────────────────
+    function exportToExcel() {
+      if (!employees.length) return UI.showToast('No employee data to export.', 'warning');
+      const rows = employees.map(e => ({
+        'Name': e.name || '',
+        'Position': e.position || '',
+        'Phone': e.phone || '',
+        'Email': e.email || '',
+        'Location': e.location || '',
+        'Joining Date': e.joinDate ? new Date(e.joinDate).toLocaleDateString('en-GB') : '',
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws['!cols'] = [28, 22, 16, 28, 18, 16].map(w => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, 'Employees');
+      XLSX.writeFile(wb, 'employees.xlsx');
+      UI.showToast('Exported employees.xlsx', 'success');
+    }
 
-// ─── Init ─────────────────────────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  if (!window.UI || !window.UI.requireAuth()) return;
-  const addBtn = document.getElementById('add-employee-btn');
-  if (addBtn) {
-    if (!canManage) addBtn.style.display = 'none';
-    else addBtn.addEventListener('click', () => openEmployeeModal());
-  }
-  document.getElementById('export-btn').addEventListener('click', exportToExcel);
-  loadEmployees();
-});
-</script>
-<script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    window.addEventListener('DOMContentLoaded', () => {
+      if (!window.UI || !window.UI.requireAuth()) return;
+
+      const addBtn = document.getElementById('add-employee-btn');
+      const assignBtn = document.getElementById('assign-task-btn');
+      const worksheetBtn = document.getElementById('view-worksheets-btn');
+
+      if (addBtn) {
+        if (!canManage) addBtn.style.display = 'none';
+        else addBtn.addEventListener('click', () => openEmployeeModal());
+      }
+
+      if (assignBtn) {
+        if (!canManage) assignBtn.style.display = 'none';
+        else assignBtn.addEventListener('click', openAssignTaskModal);
+      }
+
+      if (worksheetBtn) {
+        worksheetBtn.addEventListener('click', openWorksheetsViewModal);
+      }
+
+      document.getElementById('export-btn').addEventListener('click', exportToExcel);
+      loadEmployees();
+    });
+  </script>
 
 </body>
+
 </html>
