@@ -22,6 +22,7 @@ const employeeSchema = new mongoose.Schema(
     location: { type: String, trim: true, default: null },
     position: { type: String, trim: true, default: null },
     joinDate: { type: Date, default: null },
+    dateOfBirth: { type: Date, default: null },
 
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },

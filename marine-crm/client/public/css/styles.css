@@ -2581,31 +2581,39 @@ textarea.form-control {
 }
 
 .password-wrapper {
-    position: relative;
-    width: 100%;
+  position: relative;
+  width: 100%;
 }
 
 .password-wrapper .form-control {
-    width: 100%;
-    padding-right: 45px; /* Space for eye icon */
+  width: 100%;
+  padding-right: 45px;
+  /* Space for eye icon */
 }
 
 .password-toggle {
-    position: absolute;
-    right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
-    background: transparent;
-    border: none;
-    cursor: pointer;
-    font-size: 18px;
-    color: #9ca3af;
-    padding: 0;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-size: 18px;
+  color: #9ca3af;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .password-toggle:hover {
-    color: white;
+  color: white;
+}
+
+.date-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
 }

@@ -34,7 +34,7 @@ const listEmployees = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const createEmployee = async (req, res, next) => {
   try {
-    const { name, employeeId, phone, email, password, location, position, joinDate } = req.body;
+    const { name, employeeId, phone, email, password, location, position, joinDate, dateOfBirth } = req.body;
 
     if (!name || !phone) {
       return res.status(400).json({ success: false, message: 'Name and phone are required.' });
@@ -84,6 +84,7 @@ const createEmployee = async (req, res, next) => {
       location: location ? location.trim() : null,
       position: position ? position.trim() : null,
       joinDate: joinDate ? new Date(joinDate) : null,
+      dateOfBirth: dateOfBirth ? new Date(dateOfBirth) : null,
       userId,
       createdById: req.user.id,
       createdByName: req.user.name,
@@ -113,13 +114,14 @@ const updateEmployee = async (req, res, next) => {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ success: false, message: 'Employee not found.' });
 
-    const { name, phone, email, password, location, position, joinDate, employeeId } = req.body;
+    const { name, phone, email, password, location, position, joinDate, employeeId,dateOfBirth } = req.body;
     if (name)                   employee.name     = name.trim();
     if (phone)                  employee.phone    = phone.trim();
     if (email !== undefined)    employee.email    = email ? email.toLowerCase().trim() : null;
     if (location !== undefined) employee.location = location ? location.trim() : null;
     if (position !== undefined) employee.position = position ? position.trim() : null;
     if (joinDate !== undefined) employee.joinDate = joinDate ? new Date(joinDate) : null;
+    if (dateOfBirth !== undefined) employee.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
 
     if (employeeId !== undefined && employeeId !== null && employeeId.trim() !== employee.employeeId) {
       const conflict = await Employee.findOne({ employeeId: employeeId.trim(), _id: { $ne: employee._id } });

@@ -195,7 +195,12 @@
         <label class="form-label">Joining Date</label>
         <input id="emp-joindate" class="form-control" type="date">
       </div>
+      <div>
+        <label class="form-label">Date of Birth</label>
+        <input id="emp-dob" class="form-control" type="date">
+      </div>
     </div>
+
   </template>
 
   <!-- CHECKOUT DAILY WORKSHEET MODAL TEMPLATE -->
@@ -690,6 +695,22 @@
     `
       });
 
+      // Password show/hide
+      const passwordInput = modal.querySelector("#emp-password");
+      const togglePassword = modal.querySelector("#toggle-password");
+
+      togglePassword.addEventListener("click", function () {
+
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          this.innerHTML = "🙈";
+        } else {
+          passwordInput.type = "password";
+          this.innerHTML = "👁️";
+        }
+
+      });
+
       if (emp) {
         modal.querySelector('#emp-name').value = emp.name || '';
         const empIdInput = modal.querySelector('#emp-id');
@@ -707,6 +728,11 @@
         modal.querySelector('#emp-location').value = emp.location || '';
         if (emp.joinDate) {
           modal.querySelector('#emp-joindate').value = new Date(emp.joinDate).toISOString().split('T')[0];
+        }
+
+        if (emp.dateOfBirth) {
+          modal.querySelector('#emp-dob').value =
+            new Date(emp.dateOfBirth).toISOString().split('T')[0];
         }
       }
 
@@ -733,6 +759,7 @@
         email: modal.querySelector('#emp-email').value.trim() || undefined,
         location: modal.querySelector('#emp-location').value.trim() || undefined,
         joinDate: modal.querySelector('#emp-joindate').value || undefined,
+        dateOfBirth: modal.querySelector('#emp-dob').value || undefined,
       };
 
       // Only include password if user actually typed something
@@ -793,6 +820,7 @@
         'Email': e.email || '',
         'Location': e.location || '',
         'Joining Date': e.joinDate ? new Date(e.joinDate).toLocaleDateString('en-GB') : '',
+        'Date of Birth': e.dateOfBirth ? new Date(e.dateOfBirth).toLocaleDateString('en-GB') : '',
       }));
       const ws = XLSX.utils.json_to_sheet(rows);
       ws['!cols'] = [28, 22, 16, 28, 18, 16].map(w => ({ wch: w }));
