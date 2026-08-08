@@ -4,7 +4,17 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Appointment Decision Engine - Marine CRM</title>
-    <link rel="stylesheet" href="/public/css/styles.css">
+    <!-- Apply saved theme before first paint to avoid a flash of the wrong theme -->
+    <script>
+        (function () {
+            var t = localStorage.getItem('theme') || 'dark';
+            if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+    <link rel="stylesheet" href="/public/css/styles1.css">
+    
+
+    <link rel="stylesheet" href="/public/css/css-fixes.css">
     <style>
         .outcome-action-btn {
             padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold;
@@ -17,18 +27,24 @@
         .pending-btn { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid #f59e0b; }
         .pending-btn:hover { background: #f59e0b; color: #fff; }
         .outcome-actions-container { display: flex; gap: 10px; }
-        .reason-panel, .details-panel { display: none; margin-top: 10px; padding: 15px; background: rgba(0,0,0,0.2); border-radius: 6px; border: 1px solid #1e293b; }
+        .reason-panel, .details-panel {
+            display: none; margin-top: 10px; padding: 15px;
+            background: var(--bg-subtle, rgba(0,0,0,0.2));
+            border-radius: 6px;
+            border: 1px solid var(--border-color, #1e293b);
+        }
     </style>
 </head>
 <body>
+    <div id="ocean-bg"></div>
     <div id="sidebar-container"></div>
     <main class="main-content">
         <div id="navbar-container"></div>
         <div class="page-content pageEnter">
             <div class="page-header">
                 <div>
-                    <h1 style="margin: 0; color: #fff;">📅 Appointment Decision Engine</h1>
-                    <p style="margin: 5px 0 0; color: #94a3b8;">YES / NO / PENDING outcome tracker for vessel owner meetings</p>
+                    <h1 class="page-title" style="margin: 0;">📅 Appointment Decision Engine</h1>
+                    <p class="page-subtitle" style="margin: 5px 0 0;">YES / NO / PENDING outcome tracker for vessel owner meetings</p>
                 </div>
                 <button class="btn btn-primary" onclick="openBookModal()">+ Book Appointment</button>
             </div>
@@ -55,13 +71,13 @@
                     <div class="table-container">
                         <table class="table" style="width: 100%; border-collapse: collapse;">
                             <thead>
-                                <tr style="border-bottom: 1px solid #1e293b; background: rgba(0,0,0,0.2);">
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Company</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Scheduled At</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Booked By</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Outcome</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Notes</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Actions</th>
+                                <tr style="border-bottom: 1px solid var(--border-color, #1e293b); background: var(--bg-subtle, rgba(0,0,0,0.2));">
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Company</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Scheduled At</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Booked By</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Outcome</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Notes</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="appointments-table">
@@ -120,7 +136,7 @@
 
             <div class="details-panel" id="yes-details-panel">
                 <p style="color:#10b981;font-weight:bold;margin:0 0 10px 0;">🎉 Great! Contract details to follow.</p>
-                <p style="color:#94a3b8;font-size:14px;margin:0;">You can proceed to create a contract from the company page.</p>
+                <p style="color:var(--text-muted, #94a3b8);font-size:14px;margin:0;">You can proceed to create a contract from the company page.</p>
             </div>
 
             <div class="form-group" style="margin-top:15px;">
@@ -173,7 +189,7 @@
 
         async function loadAppointments() {
             const tbody = document.getElementById('appointments-table');
-            tbody.innerHTML = '<tr><td colspan="6" style="padding:30px;text-align:center;color:#94a3b8;">Loading…</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--text-muted, #94a3b8);">Loading…</td></tr>';
             try {
                 const res = await window.ApiService.getAppointments();
                 allAppointments = Array.isArray(res.data) ? res.data : [];
@@ -200,38 +216,38 @@
 
             const filtered = allAppointments.filter(a => {
                 const matchOut = outcomeFilter === ''       ? true
-                               : outcomeFilter === 'UNSET' ? !a.outcome
-                               : a.outcome === outcomeFilter;
+                            : outcomeFilter === 'UNSET' ? !a.outcome
+                            : a.outcome === outcomeFilter;
                 const matchCo  = !companySearch || (a.company?.name || '').toLowerCase().includes(companySearch);
                 return matchOut && matchCo;
             });
 
             const tbody = document.getElementById('appointments-table');
             if (filtered.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="padding:30px;text-align:center;color:#94a3b8;">No appointments found</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="padding:30px;text-align:center;color:var(--text-muted, #94a3b8);">No appointments found</td></tr>';
                 return;
             }
 
             tbody.innerHTML = filtered.map(a => `
-                <tr style="border-bottom:1px solid #1e293b;transition:background 0.2s;"
-                    onmouseover="this.style.background='rgba(255,255,255,0.02)'"
+                <tr style="border-bottom:1px solid var(--border-color, #1e293b);transition:background 0.2s;"
+                    onmouseover="this.style.background='var(--hover-bg, rgba(255,255,255,0.02))'"
                     onmouseout="this.style.background='transparent'">
-                    <td style="padding:15px;font-weight:bold;color:#fff;">${a.company ? a.company.name : 'Unknown'}</td>
-                    <td style="padding:15px;color:#94a3b8;">${window.UI.formatDateTime(a.scheduledAt)}</td>
-                    <td style="padding:15px;color:#94a3b8;">${a.createdBy ? a.createdBy.name : 'Unknown'}</td>
+                    <td style="padding:15px;font-weight:bold;color:var(--text-primary, #fff);">${a.company ? a.company.name : 'Unknown'}</td>
+                    <td style="padding:15px;color:var(--text-muted, #94a3b8);">${window.UI.formatDateTime(a.scheduledAt)}</td>
+                    <td style="padding:15px;color:var(--text-muted, #94a3b8);">${a.createdBy ? a.createdBy.name : 'Unknown'}</td>
                     <td style="padding:15px;">
                         ${a.outcome
                             ? `<div style="display:flex;align-items:center;gap:10px;">
-                                   ${getOutcomeBadge(a.outcome)}
-                                   <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="openOutcomeModal('${a.id}')">Change</button>
-                               </div>`
+                                ${getOutcomeBadge(a.outcome)}
+                                <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="openOutcomeModal('${a.id}')">Change</button>
+                            </div>`
                             : `<div class="outcome-actions-container">
-                                   <button type="button" class="outcome-action-btn yes-btn"     onclick="openOutcomeModal('${a.id}','YES')">✅</button>
-                                   <button type="button" class="outcome-action-btn no-btn"      onclick="openOutcomeModal('${a.id}','NO')">❌</button>
-                                   <button type="button" class="outcome-action-btn pending-btn" onclick="openOutcomeModal('${a.id}','PENDING')">⏳</button>
-                               </div>`}
+                                <button type="button" class="outcome-action-btn yes-btn"     onclick="openOutcomeModal('${a.id}','YES')">✅</button>
+                                <button type="button" class="outcome-action-btn no-btn"      onclick="openOutcomeModal('${a.id}','NO')">❌</button>
+                                <button type="button" class="outcome-action-btn pending-btn" onclick="openOutcomeModal('${a.id}','PENDING')">⏳</button>
+                            </div>`}
                     </td>
-                    <td style="padding:15px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:#cbd5e1;"
+                    <td style="padding:15px;max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text-secondary, #cbd5e1);"
                         title="${(a.meetingNotes || '').replace(/"/g, '&quot;')}">${a.meetingNotes || '-'}</td>
                     <td style="padding:15px;">
                         <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px;" onclick="viewAppointmentDetails('${a.id}')">View</button>
@@ -258,13 +274,11 @@
                     onClose: () => { _bookModal = null; }
                 });
 
-                // Wire buttons with addEventListener (not onclick attr) — avoids scope issues
                 _bookModal.querySelector('#cancel-book-btn').addEventListener('click', () => {
                     if (_bookModal) _bookModal.close();
                 });
                 _bookModal.querySelector('#confirm-book-btn').addEventListener('click', submitAppt);
 
-                // Populate company dropdown
                 const select = _bookModal.querySelector('#appt-company');
                 if (select) {
                     select.innerHTML = '<option value="">Select Company...</option>';
@@ -278,7 +292,6 @@
                     });
                 }
 
-                // Default scheduled time to now (local timezone)
                 const scheduledInput = _bookModal.querySelector('#appt-scheduled');
                 if (scheduledInput) {
                     const now = new Date();
@@ -440,38 +453,38 @@
             _detailsModal = window.UI.createModal({
                 title: '📋 Appointment Details',
                 bodyHtml: `
-                    <div style="display:flex;flex-direction:column;gap:14px;font-size:14px;color:#e2e8f0;">
+                    <div style="display:flex;flex-direction:column;gap:14px;font-size:14px;color:var(--text-primary, #e2e8f0);">
                         <div style="background:rgba(14,165,233,0.1);padding:14px 18px;border-radius:8px;border:1px solid rgba(14,165,233,0.25);">
                             <div style="font-size:18px;font-weight:bold;color:#0ea5e9;margin-bottom:4px;">🏢 ${co.name || 'Unknown'}</div>
-                            <div style="color:#94a3b8;font-size:13px;">
-                                Contact: <strong style="color:#fff;">${co.contactPerson || 'N/A'}</strong> &nbsp;|&nbsp;
+                            <div style="color:var(--text-muted, #94a3b8);font-size:13px;">
+                                Contact: <strong style="color:var(--text-primary, #fff);">${co.contactPerson || 'N/A'}</strong> &nbsp;|&nbsp;
                                 Phone: ${co.phone || 'N/A'} &nbsp;|&nbsp;
                                 Email: ${co.email || 'N/A'}
                             </div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                            <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
-                                <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;">Scheduled</div>
-                                <div style="color:#fff;font-weight:600;margin-top:4px;">📅 ${window.UI.formatDateTime(appt.scheduledAt)}</div>
+                            <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                                <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;">Scheduled</div>
+                                <div style="color:var(--text-primary, #fff);font-weight:600;margin-top:4px;">📅 ${window.UI.formatDateTime(appt.scheduledAt)}</div>
                             </div>
-                            <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
-                                <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;">Booked By</div>
-                                <div style="color:#fff;font-weight:600;margin-top:4px;">👤 ${appt.createdBy?.name || 'Unknown'}</div>
+                            <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                                <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;">Booked By</div>
+                                <div style="color:var(--text-primary, #fff);font-weight:600;margin-top:4px;">👤 ${appt.createdBy?.name || 'Unknown'}</div>
                             </div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                            <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
-                                <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;">Outcome</div>
+                            <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                                <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;">Outcome</div>
                                 <div style="margin-top:6px;">${getOutcomeBadge(appt.outcome)}</div>
                             </div>
-                            <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
-                                <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;">Reason</div>
+                            <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                                <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;">Reason</div>
                                 <div style="color:#f59e0b;font-weight:600;margin-top:4px;">${appt.reason?.label || 'None'}</div>
                             </div>
                         </div>
-                        <div style="background:#112240;padding:12px;border-radius:6px;border:1px solid #1e293b;">
-                            <div style="color:#94a3b8;font-size:11px;text-transform:uppercase;font-weight:bold;margin-bottom:6px;">Meeting Notes</div>
-                            <div style="color:#cbd5e1;line-height:1.5;font-size:13px;white-space:pre-wrap;">${appt.meetingNotes || 'No meeting notes added.'}</div>
+                        <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                            <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;margin-bottom:6px;">Meeting Notes</div>
+                            <div style="color:var(--text-secondary, #cbd5e1);line-height:1.5;font-size:13px;white-space:pre-wrap;">${appt.meetingNotes || 'No meeting notes added.'}</div>
                         </div>
                     </div>
                 `,
@@ -501,5 +514,7 @@
         window.viewAppointmentDetails = viewAppointmentDetails;
         window.filterTable            = filterTable;
     </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+    <script src="/public/js/components/cursor.js"></script>
 </body>
 </html>

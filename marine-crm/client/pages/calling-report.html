@@ -4,12 +4,20 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Calling Report - Marine CRM</title>
-    <link rel="stylesheet" href="/public/css/styles.css">
+    <!-- Apply saved theme before first paint to avoid a flash of the wrong theme -->
+    <script>
+        (function () {
+            var t = localStorage.getItem('theme') || 'dark';
+            if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+    <link rel="stylesheet" href="/public/css/styles1.css">
+    <link rel="stylesheet" href="/public/css/css-fixes.css">
     <style>
         .ryg-selector { display: flex; gap: 10px; margin-bottom: 15px; }
         .ryg-btn {
-            flex: 1; padding: 10px; border: 2px solid transparent; border-radius: 6px; 
-            background: #112240; color: #fff; cursor: pointer; font-weight: bold; transition: all 0.2s;
+            flex: 1; padding: 10px; border: 2px solid transparent; border-radius: 6px;
+            background: var(--bg-elevated, #112240); color: var(--text-primary, #fff); cursor: pointer; font-weight: bold; transition: all 0.2s;
         }
         .ryg-btn.red { border-color: #ef4444; color: #ef4444; }
         .ryg-btn.yellow { border-color: #f59e0b; color: #f59e0b; }
@@ -23,14 +31,15 @@
     </style>
 </head>
 <body>
+    <div id="ocean-bg"></div>
     <div id="sidebar-container"></div>
     <main class="main-content">
         <div id="navbar-container"></div>
         <div class="page-content pageEnter">
             <div class="page-header">
                 <div>
-                    <h1 style="margin: 0; color: #fff;">📞 Daily Calling Report</h1>
-                    <p style="margin: 5px 0 0; color: #94a3b8;">Log and track vessel owner calls with Red/Yellow/Green status</p>
+                    <h1 class="page-title" style="margin: 0;">📞 Daily Calling Report</h1>
+                    <p class="page-subtitle" style="margin: 5px 0 0;">Log and track vessel owner calls with Red/Yellow/Green status</p>
                 </div>
                 <button class="btn btn-primary" onclick="openAddCallModal()">+ Log New Call</button>
             </div>
@@ -75,14 +84,14 @@
                     <div class="table-container">
                         <table class="table" style="width: 100%; border-collapse: collapse;">
                             <thead>
-                                <tr style="border-bottom: 1px solid #1e293b; background: rgba(0,0,0,0.2);">
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Company</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">BDM</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Call Date</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Duration</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Status</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Notes</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Actions</th>
+                                <tr style="border-bottom: 1px solid var(--border-color, #1e293b); background: var(--bg-subtle, rgba(0,0,0,0.2));">
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Company</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">BDM</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Call Date</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Duration</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Status</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Notes</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Actions</th>
                                 </tr>
                             </thead>
                             <tbody id="calls-table">
@@ -143,9 +152,7 @@
                 window.location.href = '/pages/login.html';
                 return;
             }
-            // Default date today
-            document.getElementById('filter-date').value = new Date().toISOString().split('T')[0];
-            
+
             await fetchCompanies();
             await loadCalls();
         });
@@ -163,17 +170,16 @@
         async function loadCalls() {
             const table = document.getElementById('calls-table');
             table.innerHTML = '<tr><td colspan="7" style="padding:20px;text-align:center;"><div class="skeleton" style="height:40px;width:100%;margin-bottom:10px;"></div><div class="skeleton" style="height:40px;width:100%;"></div></td></tr>';
-            
+
             try {
                 const date = document.getElementById('filter-date').value;
-                // Pass date as a query param — the server filters by callDate
                 const res = await window.ApiService.calls.list(date ? { date } : {});
                 allCalls = res.data || [];
                 renderTable();
             } catch (err) {
                 console.error('Error loading calls:', err);
                 window.UI.showToast('Failed to load calls', 'error');
-                table.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:30px;text-align:center;color:#94a3b8;">Error loading data</td></tr>';
+                table.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:30px;text-align:center;color:var(--text-muted, #94a3b8);">Error loading data</td></tr>';
             }
         }
 
@@ -184,32 +190,31 @@
         function renderTable() {
             const statusFilter = document.getElementById('filter-status').value;
             const companySearch = document.getElementById('filter-company').value.toLowerCase();
-            
+
             let filtered = allCalls.filter(c => {
                 const matchStatus = !statusFilter || c.statusColor === statusFilter;
                 const matchCompany = !companySearch || (c.company && c.company.name.toLowerCase().includes(companySearch));
                 return matchStatus && matchCompany;
             });
 
-            // Update stats
             document.getElementById('count-red').textContent = allCalls.filter(c => c.statusColor === 'RED').length;
             document.getElementById('count-yellow').textContent = allCalls.filter(c => c.statusColor === 'YELLOW').length;
             document.getElementById('count-green').textContent = allCalls.filter(c => c.statusColor === 'GREEN').length;
 
             const table = document.getElementById('calls-table');
             if (filtered.length === 0) {
-                table.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:30px;text-align:center;color:#94a3b8;">No calls found for selected filters</td></tr>';
+                table.innerHTML = '<tr><td colspan="7" class="empty-state" style="padding:30px;text-align:center;color:var(--text-muted, #94a3b8);">No calls found for selected filters</td></tr>';
                 return;
             }
 
             table.innerHTML = filtered.map(c => `
-                <tr style="border-bottom: 1px solid #1e293b; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-                    <td style="padding: 15px;">${c.company ? c.company.name : 'Unknown'}</td>
-                    <td style="padding: 15px; color: #94a3b8;">${c.user ? c.user.name : 'Unknown'}</td>
-                    <td style="padding: 15px; color: #94a3b8;">${window.UI.formatDateTime(c.callDate)}</td>
-                    <td style="padding: 15px;">${c.durationMinutes ? c.durationMinutes + ' min' : '-'}</td>
+                <tr style="border-bottom: 1px solid var(--border-color, #1e293b); transition: background 0.2s;" onmouseover="this.style.background='var(--hover-bg, rgba(255,255,255,0.02))'" onmouseout="this.style.background='transparent'">
+                    <td style="padding: 15px; color: var(--text-primary, #fff);">${c.company ? c.company.name : 'Unknown'}</td>
+                    <td style="padding: 15px; color: var(--text-muted, #94a3b8);">${c.user ? c.user.name : 'Unknown'}</td>
+                    <td style="padding: 15px; color: var(--text-muted, #94a3b8);">${window.UI.formatDateTime(c.callDate)}</td>
+                    <td style="padding: 15px; color: var(--text-primary, #fff);">${c.durationMinutes ? c.durationMinutes + ' min' : '-'}</td>
                     <td style="padding: 15px;">${window.UI.renderRYGBadge ? window.UI.renderRYGBadge(c.statusColor) : '<span class="badge badge-gray">'+c.statusColor+'</span>'}</td>
-                    <td style="padding: 15px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #cbd5e1;" title="${c.notes || ''}">${c.notes || '-'}</td>
+                    <td style="padding: 15px; max-width: 200px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text-secondary, #cbd5e1);" title="${c.notes || ''}">${c.notes || '-'}</td>
                     <td style="padding: 15px;">
                         <button class="btn btn-secondary" style="padding: 5px 10px; font-size: 12px;" onclick="viewCallDetails('${c.id}')">View</button>
                     </td>
@@ -233,13 +238,11 @@
                 onClose: () => { _callModal = null; }
             });
 
-            // Wire buttons via addEventListener (never inline onclick)
             _callModal.querySelector('#cancel-call-btn').addEventListener('click', () => {
                 if (_callModal) _callModal.close();
             });
             _callModal.querySelector('#confirm-call-btn').addEventListener('click', submitCall);
 
-            // Populate companies
             const select = _callModal.querySelector('#call-company');
             select.innerHTML = '<option value="">Select Company...</option>';
             companies.forEach(c => {
@@ -249,7 +252,6 @@
                 select.appendChild(opt);
             });
 
-            // Default datetime to now (local)
             const now = new Date();
             now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
             _callModal.querySelector('#call-date').value = now.toISOString().slice(0, 16);
@@ -312,12 +314,12 @@
 
             const bodyHtml = `
                 <div style="display:flex;flex-direction:column;gap:12px;font-size:14px;">
-                    <div><strong style="color:#94a3b8;">Company:</strong> <span style="color:#fff;">${call.company ? call.company.name : 'Unknown'}</span></div>
-                    <div><strong style="color:#94a3b8;">BDM Executive:</strong> <span style="color:#fff;">${call.user ? call.user.name : 'Unknown'}</span></div>
-                    <div><strong style="color:#94a3b8;">Call Date:</strong> <span style="color:#fff;">${window.UI.formatDateTime(call.callDate)}</span></div>
-                    <div><strong style="color:#94a3b8;">Duration:</strong> <span style="color:#fff;">${call.durationMinutes ? call.durationMinutes + ' minutes' : '-'}</span></div>
-                    <div><strong style="color:#94a3b8;">Status:</strong> ${window.UI.renderRYGBadge ? window.UI.renderRYGBadge(call.statusColor) : call.statusColor}</div>
-                    <div><strong style="color:#94a3b8;">Notes:</strong> <p style="color:#cbd5e1;background:rgba(0,0,0,0.2);padding:10px;border-radius:6px;margin:5px 0 0;">${call.notes || 'No notes added'}</p></div>
+                    <div><strong style="color:var(--text-muted, #94a3b8);">Company:</strong> <span style="color:var(--text-primary, #fff);">${call.company ? call.company.name : 'Unknown'}</span></div>
+                    <div><strong style="color:var(--text-muted, #94a3b8);">BDM Executive:</strong> <span style="color:var(--text-primary, #fff);">${call.user ? call.user.name : 'Unknown'}</span></div>
+                    <div><strong style="color:var(--text-muted, #94a3b8);">Call Date:</strong> <span style="color:var(--text-primary, #fff);">${window.UI.formatDateTime(call.callDate)}</span></div>
+                    <div><strong style="color:var(--text-muted, #94a3b8);">Duration:</strong> <span style="color:var(--text-primary, #fff);">${call.durationMinutes ? call.durationMinutes + ' minutes' : '-'}</span></div>
+                    <div><strong style="color:var(--text-muted, #94a3b8);">Status:</strong> ${window.UI.renderRYGBadge ? window.UI.renderRYGBadge(call.statusColor) : call.statusColor}</div>
+                    <div><strong style="color:var(--text-muted, #94a3b8);">Notes:</strong> <p style="color:var(--text-secondary, #cbd5e1);background:var(--bg-subtle, rgba(0,0,0,0.2));padding:10px;border-radius:6px;margin:5px 0 0;">${call.notes || 'No notes added'}</p></div>
                 </div>
             `;
 
@@ -331,12 +333,13 @@
                 if (_detailModal) _detailModal.close();
             });
         }
-        // Expose global (required for inline onclick= in HTML)
         window.openAddCallModal = openAddCallModal;
         window.selectRyg        = selectRyg;
         window.filterTable      = filterTable;
         window.loadCalls        = loadCalls;
         window.viewCallDetails  = viewCallDetails;
     </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+    <script src="/public/js/components/cursor.js"></script>
 </body>
 </html>

@@ -76,7 +76,7 @@ const UI = {
         // Use the native HTMLElement.remove() via prototype to avoid any override
         HTMLElement.prototype.remove.call(overlay);
         if (onClose) onClose();
-      }, 200);
+      }, 200);    
     };
 
     const closeBtn = overlay.querySelector('#modal-close-btn');

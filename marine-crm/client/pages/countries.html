@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Country Management - Marine CRM</title>
-    <link rel="stylesheet" href="/public/css/styles.css">
+    <link rel="stylesheet" href="/public/css/styles1.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <div class="app-layout">
         <div id="sidebar-container"></div>
@@ -38,9 +40,57 @@
                                 </thead>
                                 <tbody id="countries-tbody">
                                     <!-- Skeleton loader initially -->
-                                    <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
-                                    <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
-                                    <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                                    <tr class="skeleton-row">
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                    </tr>
+                                    <tr class="skeleton-row">
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                    </tr>
+                                    <tr class="skeleton-row">
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -72,7 +122,7 @@
 
             const tbody = document.getElementById('countries-tbody');
             const emptyState = document.getElementById('empty-state');
-            
+
             async function fetchData() {
                 try {
                     const [countRes, compRes] = await Promise.all([
@@ -84,7 +134,7 @@
                     renderTable();
                 } catch (error) {
                     console.error('Error fetching data:', error);
-                    if(window.UI && window.UI.showToast) {
+                    if (window.UI && window.UI.showToast) {
                         window.UI.showToast('Failed to load data', 'error');
                     }
                 }
@@ -101,8 +151,8 @@
                     countriesData.forEach(country => {
                         // API returns camelCase: code, isActive, _count.companies
                         const compCount = country._count ? country._count.companies : 0;
-                        const statusBadge = country.isActive !== false 
-                            ? '<span class="badge badge-green">Active</span>' 
+                        const statusBadge = country.isActive !== false
+                            ? '<span class="badge badge-green">Active</span>'
                             : '<span class="badge badge-gray">Inactive</span>';
 
                         const tr = document.createElement('tr');
@@ -137,7 +187,7 @@
                 const title = country ? 'Edit Country' : 'Add Country';
                 // API returns camelCase: code, isActive
                 const isActive = country ? country.isActive !== false : true;
-                
+
                 const bodyHtml = `
                     <form id="country-form">
                         <div class="form-group">
@@ -146,7 +196,7 @@
                         </div>
                         <div class="form-group">
                             <label class="form-label">ISO Code (e.g. AE) *</label>
-                            <input type="text" id="country-iso" class="form-control" value="${country ? (country.code || '') : ''}" required maxlength="2">
+                            <input type="text" id="country-iso" class="form-control" value="${country ? (country.code || '') : ''}" required maxlength="5">
                         </div>
                         <div class="form-group" style="display: flex; align-items: center; gap: 10px;">
                             <input type="checkbox" id="country-active" ${isActive ? 'checked' : ''}>
@@ -161,7 +211,8 @@
                 `;
 
                 if (window.UI && window.UI.createModal) {
-                    window.currentModal = window.UI.createModal({ title, bodyHtml, footerHtml,
+                    window.currentModal = window.UI.createModal({
+                        title, bodyHtml, footerHtml,
                         onClose: () => { window.currentModal = null; }
                     });
                     window.currentModal.querySelector('#cancel-country-btn').addEventListener('click', () => {
@@ -185,9 +236,9 @@
                 // Send 'code' and 'isActive' — matching what the server's createCountry/updateCountry expects
                 const code = document.getElementById('country-iso').value.trim().toUpperCase();
                 const isActive = document.getElementById('country-active').checked;
-                
+
                 if (!name || !code) {
-                    if(window.UI && window.UI.showToast) window.UI.showToast('Name and ISO Code are required', 'error');
+                    if (window.UI && window.UI.showToast) window.UI.showToast('Name and ISO Code are required', 'error');
                     return;
                 }
 
@@ -196,16 +247,16 @@
                 try {
                     if (currentEditId) {
                         await window.ApiService.countries.update(currentEditId, payload);
-                        if(window.UI && window.UI.showToast) window.UI.showToast('Country updated successfully', 'success');
+                        if (window.UI && window.UI.showToast) window.UI.showToast('Country updated successfully', 'success');
                     } else {
                         await window.ApiService.countries.create(payload);
-                        if(window.UI && window.UI.showToast) window.UI.showToast('Country created successfully', 'success');
+                        if (window.UI && window.UI.showToast) window.UI.showToast('Country created successfully', 'success');
                     }
                     closeModal();
                     fetchData();
                 } catch (error) {
                     console.error('Error saving country:', error);
-                    if(window.UI && window.UI.showToast) window.UI.showToast('Error saving country', 'error');
+                    if (window.UI && window.UI.showToast) window.UI.showToast('Error saving country', 'error');
                 }
             }
 
@@ -213,17 +264,17 @@
                 const proceed = async () => {
                     try {
                         await window.ApiService.countries.delete(id);
-                        if(window.UI && window.UI.showToast) window.UI.showToast('Country deleted', 'success');
+                        if (window.UI && window.UI.showToast) window.UI.showToast('Country deleted', 'success');
                         fetchData();
-                    } catch(err) {
+                    } catch (err) {
                         console.error('Delete err', err);
-                        if(window.UI && window.UI.showToast) window.UI.showToast('Error deleting country', 'error');
+                        if (window.UI && window.UI.showToast) window.UI.showToast('Error deleting country', 'error');
                     }
                 };
 
                 if (window.UI && window.UI.confirm) {
                     const confirmed = await window.UI.confirm('Are you sure you want to delete this country?');
-                    if(confirmed) proceed();
+                    if (confirmed) proceed();
                 } else if (confirm('Are you sure you want to delete this country?')) {
                     proceed();
                 }
@@ -232,5 +283,8 @@
             fetchData();
         });
     </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+    <script src="/public/js/components/cursor.js"></script>
 </body>
+
 </html>

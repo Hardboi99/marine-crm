@@ -107,8 +107,11 @@ function renderSidebar() {
 
   const closeMobileSidebar = () => {
     const sidebar = document.getElementById('app-sidebar');
+    const toggleBtn = document.getElementById('sidebar-toggle-btn');
     if (sidebar) sidebar.classList.remove('mobile-open');
     if (overlay) overlay.classList.remove('active');
+    if (toggleBtn) toggleBtn.classList.remove('is-open');
+    document.body.classList.remove('no-scroll');
   };
 
   overlay.addEventListener('click', closeMobileSidebar);
@@ -122,6 +125,22 @@ function renderSidebar() {
     });
   });
 
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') closeMobileSidebar();
+  });
+
+
+  // Restore desktop collapsed state from a previous session
+  if (window.innerWidth > 768) {
+    const collapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    if (collapsed) {
+      const sidebar = document.getElementById('app-sidebar');
+      const mainContent = document.querySelector('.main-content');
+      if (sidebar) sidebar.classList.add('collapsed');
+      if (mainContent) mainContent.classList.add('sidebar-collapsed');
+    }
+  }
   // Set user info
   try {
     const user = JSON.parse(localStorage.getItem('user') || '{}');
@@ -186,19 +205,28 @@ function renderNavbar() {
     </nav>
   `;
 
-  // Sidebar toggle
-  document.getElementById('sidebar-toggle-btn').addEventListener('click', () => {
+
+  // ── Sidebar toggle (targets .main-content directly, and keeps the
+  //    hamburger<->close animation in sync via the .is-open class) ──
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  toggleBtn.addEventListener('click', () => {
     const sidebar = document.getElementById('app-sidebar');
+    const mainContent = document.querySelector('.main-content');
     const overlay = document.getElementById('sidebar-overlay');
     if (!sidebar) return;
+
     if (window.innerWidth <= 768) {
+      // Mobile / tablet: full-screen drawer
       const isOpen = sidebar.classList.toggle('mobile-open');
-      if (overlay) {
-        if (isOpen) overlay.classList.add('active');
-        else overlay.classList.remove('active');
-      }
+      if (overlay) overlay.classList.toggle('active', isOpen);
+      toggleBtn.classList.toggle('is-open', isOpen);
+      document.body.classList.toggle('no-scroll', isOpen);
     } else {
-      sidebar.classList.toggle('collapsed');
+      // Desktop: collapse to icon rail, content expands to fill the space
+      const collapsed = sidebar.classList.toggle('collapsed');
+      if (mainContent) mainContent.classList.toggle('sidebar-collapsed', collapsed);
+      toggleBtn.classList.toggle('is-open', collapsed);
+      localStorage.setItem('sidebarCollapsed', collapsed ? 'true' : 'false');
     }
   });
 
@@ -247,3 +275,43 @@ document.addEventListener('DOMContentLoaded', () => {
   renderNavbar();
 });
 
+
+// Injects the standard footer into the current page's .main-content,
+// right after .page-content, so every authenticated page gets it for
+// free without editing each HTML file individually.
+function renderFooter() {
+  if (document.querySelector('.app-footer')) return; // already there
+  const mainContent = document.querySelector('.main-content');
+  if (!mainContent) return;
+
+  const footer = document.createElement('footer');
+  footer.className = 'app-footer';
+  footer.innerHTML = `
+    <span>Marine CRM &copy; 2026</span>
+    <span class="footer-sep">•</span>
+    <span>Built for Vessel Management &amp; Sales Pipeline</span>
+    <span class="footer-sep">•</span>
+    <span>Version 1.0 | Support</span>
+  `;
+  mainContent.appendChild(footer);
+}
+
+// Apply the saved theme as early as possible (before first paint of content)
+// so there is no flash of the wrong theme.
+(function applyStoredThemeEarly() {
+  const savedTheme = localStorage.getItem('theme') || 'dark';
+  if (savedTheme === 'light') {
+    document.documentElement.setAttribute('data-theme', 'light');
+  } else {
+    document.documentElement.removeAttribute('data-theme');
+  }
+})();
+
+document.addEventListener('DOMContentLoaded', () => {
+  // Auth guard
+  if (!UI.requireAuth()) return;
+
+  renderSidebar();
+  renderNavbar();
+  renderFooter();
+});
