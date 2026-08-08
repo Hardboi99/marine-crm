@@ -114,10 +114,10 @@ const updateEmployee = async (req, res, next) => {
     const employee = await Employee.findById(req.params.id);
     if (!employee) return res.status(404).json({ success: false, message: 'Employee not found.' });
 
-    const { name, phone, email, password, location, position, joinDate, employeeId,dateOfBirth } = req.body;
-    if (name)                   employee.name     = name.trim();
-    if (phone)                  employee.phone    = phone.trim();
-    if (email !== undefined)    employee.email    = email ? email.toLowerCase().trim() : null;
+    const { name, phone, email, password, location, position, joinDate, employeeId, dateOfBirth } = req.body;
+    if (name) employee.name = name.trim();
+    if (phone) employee.phone = phone.trim();
+    if (email !== undefined) employee.email = email ? email.toLowerCase().trim() : null;
     if (location !== undefined) employee.location = location ? location.trim() : null;
     if (position !== undefined) employee.position = position ? position.trim() : null;
     if (joinDate !== undefined) employee.joinDate = joinDate ? new Date(joinDate) : null;
