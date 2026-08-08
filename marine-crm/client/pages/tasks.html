@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Task Management — Marine BDM CRM</title>
+  <meta name="description" content="Manage and monitor employee tasks in Marine BDM CRM.">
+
+  <link rel="stylesheet" href="/public/css/styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+
+<body>
+
+  <div class="app-layout">
+
+    <!-- SIDEBAR -->
+    <div id="sidebar-container"></div>
+
+    <div class="main-content">
+
+      <!-- NAVBAR -->
+      <div id="navbar-container"></div>
+
+      <main class="page-content">
+
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">📋 Task Management</h1>
+            <p class="page-subtitle">
+              Manage, monitor and track employee tasks
+            </p>
+          </div>
+
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button id="assign-task-btn" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Assign Task
+            </button>
+          </div>
+        </div>
+
+        <!-- TASK STATS -->
+        <div class="stats-grid"
+          style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));margin-bottom:24px;">
+
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-tasks"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-total-tasks">0</div>
+              <div class="stat-label">Total Tasks</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-clock"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-pending">0</div>
+              <div class="stat-label">Pending</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-spinner"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-progress">0</div>
+              <div class="stat-label">In Progress</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-check-circle"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-completed">0</div>
+              <div class="stat-label">Completed</div>
+            </div>
+          </div>
+
+          <div class="stat-card">
+            <div class="stat-icon">
+              <i class="fas fa-exclamation-triangle"></i>
+            </div>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-overdue">0</div>
+              <div class="stat-label">Overdue</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- FILTER BAR -->
+        <div class="filter-bar">
+
+          <div class="filter-group">
+            <i class="fas fa-search filter-icon"></i>
+            <input
+              type="text"
+              id="task-search"
+              class="form-control"
+              placeholder="Search task..."
+            >
+          </div>
+
+          <div class="filter-group">
+            <select id="employee-filter" class="form-control">
+              <option value="">All Employees</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <select id="status-filter" class="form-control">
+              <option value="">All Statuses</option>
+              <option value="PENDING">Pending</option>
+              <option value="IN_PROGRESS">In Progress</option>
+              <option value="COMPLETED">Completed</option>
+            </select>
+          </div>
+
+          <div class="filter-group">
+            <select id="priority-filter" class="form-control">
+              <option value="">All Priorities</option>
+              <option value="LOW">Low</option>
+              <option value="MEDIUM">Medium</option>
+              <option value="HIGH">High</option>
+              <option value="URGENT">Urgent</option>
+            </select>
+          </div>
+
+        </div>
+
+        <!-- DATE FILTER -->
+        <div class="filter-bar">
+
+          <div class="filter-group">
+            <label class="form-label">From Date</label>
+            <input
+              type="date"
+              id="from-date"
+              class="form-control"
+            >
+          </div>
+
+          <div class="filter-group">
+            <label class="form-label">To Date</label>
+            <input
+              type="date"
+              id="to-date"
+              class="form-control"
+            >
+          </div>
+
+          <div class="filter-group" style="align-self:end;">
+            <button
+              id="clear-filters"
+              class="btn btn-secondary"
+            >
+              <i class="fas fa-times"></i> Clear Filters
+            </button>
+          </div>
+
+        </div>
+
+        <!-- TASK TABLE -->
+        <div class="card">
+
+          <div class="card-header"
+            style="padding:16px 20px;border-bottom:1px solid var(--border-color);">
+
+            <h3 style="margin:0;font-size:1.05rem;color:var(--text-primary);">
+              <i class="fas fa-list-check"
+                style="margin-right:8px;color:var(--accent-blue);"></i>
+              Assigned Tasks & Pipeline Work
+            </h3>
+
+          </div>
+
+          <div class="card-body" style="padding:0;">
+
+            <div class="table-container">
+
+              <table class="table">
+
+                <thead>
+                  <tr>
+                    <th>Task</th>
+                    <th>Assigned To</th>
+                    <th>Assigned By</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Assigned Date</th>
+                    <th>Due Date</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+
+                <tbody id="tasks-table-body">
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </main>
+    </div>
+  </div>
+
+
+  <!-- ASSIGN TASK MODAL -->
+  <template id="task-modal-tpl">
+
+    <div style="display:flex;flex-direction:column;gap:14px;">
+
+      <div>
+        <label class="form-label">
+          Task Title <span style="color:#f87171">*</span>
+        </label>
+
+        <input
+          id="task-title"
+          class="form-control"
+          placeholder="e.g. Research Vessel Owners in Singapore Region"
+        >
+      </div>
+
+      <div>
+        <label class="form-label">
+          Assign To Employee <span style="color:#f87171">*</span>
+        </label>
+
+        <select id="task-assignee" class="form-control">
+          <option value="">Select Employee</option>
+        </select>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+        <div>
+          <label class="form-label">Priority Level</label>
+
+          <select id="task-priority" class="form-control">
+            <option value="LOW">Low</option>
+            <option value="MEDIUM" selected>Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent 🔴</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="form-label">Due Date</label>
+
+          <input
+            id="task-duedate"
+            type="date"
+            class="form-control"
+          >
+        </div>
+
+      </div>
+
+      <div>
+        <label class="form-label">
+          Task Description / Instructions
+        </label>
+
+        <textarea
+          id="task-desc"
+          class="form-control"
+          rows="3"
+          placeholder="Provide details, search parameters, or instructions..."
+        ></textarea>
+      </div>
+
+    </div>
+
+  </template>
+
+
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="/public/js/api/api.js"></script>
+  <script src="/public/js/components/ui.js"></script>
+  <script src="/public/js/components/sidebar.js"></script>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+<script src="/public/js/api/api.js"></script>
+<script src="/public/js/components/ui.js"></script>
+<script src="/public/js/components/sidebar.js"></script>
+
+<script>
+let employees = [];
+let tasks = [];
+
+const currentUser = window.UI
+    ? window.UI.getUser()
+    : JSON.parse(localStorage.getItem('user') || '{}');
+
+const canManage = ['ADMIN', 'HR'].includes(currentUser.role);
+
+
+// ============================================================
+// INITIALIZE PAGE
+// ============================================================
+
+document.addEventListener('DOMContentLoaded', async () => {
+
+    // Check login
+    if (!localStorage.getItem('token')) {
+        window.location.href = '/pages/login.html';
+        return;
+    }
+
+    // HR/Admin only
+    if (!canManage) {
+        const assignBtn = document.getElementById('assign-task-btn');
+
+        if (assignBtn) {
+            assignBtn.style.display = 'none';
+        }
+    }
+
+    await loadEmployees();
+    await loadTasks();
+
+    setupEventListeners();
+});
+
+
+// ============================================================
+// LOAD EMPLOYEES
+// ============================================================
+
+async function loadEmployees() {
+
+    try {
+
+        const response = await window.ApiService.employees.list();
+
+        employees = response.data || [];
+
+        populateEmployeeDropdowns();
+
+    } catch (error) {
+
+        console.error('Failed to load employees:', error);
+
+        if (window.UI) {
+            UI.showToast(
+                error.message || 'Failed to load employees.',
+                'error'
+            );
+        }
+    }
+}
+
+
+// ============================================================
+// POPULATE EMPLOYEE DROPDOWNS
+// ============================================================
+
+function populateEmployeeDropdowns() {
+
+    const taskAssignee =
+        document.getElementById('task-assignee');
+
+    const employeeFilter =
+        document.getElementById('employee-filter');
+
+
+    if (taskAssignee) {
+
+        taskAssignee.innerHTML = `
+            <option value="">Select Employee</option>
+        `;
+
+        employees.forEach(employee => {
+
+            const id = employee._id || employee.id;
+
+            taskAssignee.innerHTML += `
+                <option value="${id}">
+                    ${escapeHtml(employee.name)}
+                    ${employee.position ? ` - ${escapeHtml(employee.position)}` : ''}
+                </option>
+            `;
+        });
+    }
+
+
+    if (employeeFilter) {
+
+        employeeFilter.innerHTML = `
+            <option value="">All Employees</option>
+        `;
+
+        employees.forEach(employee => {
+
+            const id = employee._id || employee.id;
+
+            employeeFilter.innerHTML += `
+                <option value="${id}">
+                    ${escapeHtml(employee.name)}
+                </option>
+            `;
+        });
+    }
+}
+
+
+// ============================================================
+// LOAD TASKS
+// ============================================================
+
+async function loadTasks() {
+
+    try {
+
+        const params = {};
+
+        const employee =
+            document.getElementById('employee-filter')?.value;
+
+        const status =
+            document.getElementById('status-filter')?.value;
+
+        const priority =
+            document.getElementById('priority-filter')?.value;
+
+        const fromDate =
+            document.getElementById('from-date')?.value;
+
+        const toDate =
+            document.getElementById('to-date')?.value;
+
+
+        if (employee) {
+            params.assignedTo = employee;
+        }
+
+        if (status) {
+            params.status = status;
+        }
+
+        if (priority) {
+            params.priority = priority;
+        }
+
+        if (fromDate) {
+            params.fromDate = fromDate;
+        }
+
+        if (toDate) {
+            params.toDate = toDate;
+        }
+
+
+        const response =
+            await window.ApiService.employees.getTasks(params);
+
+        tasks = response.data || [];
+
+        applySearch();
+
+    } catch (error) {
+
+        console.error('Load tasks error:', error);
+
+        if (window.UI) {
+            UI.showToast(
+                error.message || 'Failed to load tasks.',
+                'error'
+            );
+        }
+    }
+}
+
+
+// ============================================================
+// SEARCH
+// ============================================================
+
+function applySearch() {
+
+    const search =
+        document.getElementById('task-search')?.value
+            .trim()
+            .toLowerCase() || '';
+
+    let filteredTasks = tasks;
+
+    if (search) {
+
+        filteredTasks = tasks.filter(task => {
+
+            const title =
+                (task.title || '').toLowerCase();
+
+            const description =
+                (task.description || '').toLowerCase();
+
+            const employee =
+                (task.assignedTo?.name || '').toLowerCase();
+
+            const assignedBy =
+                (task.assignedByName || '').toLowerCase();
+
+            return (
+                title.includes(search) ||
+                description.includes(search) ||
+                employee.includes(search) ||
+                assignedBy.includes(search)
+            );
+        });
+    }
+
+    renderTasks(filteredTasks);
+    updateStats(tasks);
+}
+
+
+// ============================================================
+// RENDER TASK TABLE
+// ============================================================
+
+function renderTasks(taskList) {
+
+    const tbody =
+        document.getElementById('tasks-table-body');
+
+    if (!tbody) return;
+
+
+    if (!taskList.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="8"
+                    style="text-align:center;padding:30px;color:var(--text-muted);">
+                    No tasks found.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+
+    tbody.innerHTML = taskList.map(task => {
+
+        const assignedTo =
+            task.assignedTo?.name || 'Unassigned';
+
+        const assignedBy =
+            task.assignedByName || 'Admin';
+
+        const assignedDate =
+            task.createdAt
+                ? formatDate(task.createdAt)
+                : '-';
+
+        const dueDate =
+            task.dueDate
+                ? formatDate(task.dueDate)
+                : 'No due date';
+
+
+        const priorityBadge = {
+
+            LOW:
+                '<span class="badge badge-gray">Low</span>',
+
+            MEDIUM:
+                '<span class="badge badge-blue">Medium</span>',
+
+            HIGH:
+                '<span class="badge badge-yellow">High</span>',
+
+            URGENT:
+                '<span class="badge badge-red">Urgent</span>'
+
+        }[task.priority] || '';
+
+
+        const statusBadge = {
+
+            PENDING:
+                '<span class="badge badge-yellow">Pending</span>',
+
+            IN_PROGRESS:
+                '<span class="badge badge-blue">In Progress</span>',
+
+            COMPLETED:
+                '<span class="badge badge-green">Completed</span>'
+
+        }[task.status] || '';
+
+
+        let actionButton = '';
+
+        if (task.status === 'PENDING') {
+
+            actionButton = `
+                <button
+                    class="btn btn-sm btn-primary"
+                    onclick="changeTaskStatus('${task._id}', 'IN_PROGRESS')">
+                    Start
+                </button>
+            `;
+
+        } else if (task.status === 'IN_PROGRESS') {
+
+            actionButton = `
+                <button
+                    class="btn btn-sm btn-success"
+                    onclick="changeTaskStatus('${task._id}', 'COMPLETED')">
+                    Complete
+                </button>
+            `;
+
+        } else {
+
+            actionButton = `
+                <span style="color:var(--text-muted);">
+                    Completed
+                </span>
+            `;
+        }
+
+
+        return `
+            <tr>
+
+                <td>
+                    <div style="font-weight:600;color:var(--text-primary);">
+                        ${escapeHtml(task.title)}
+                    </div>
+
+                    ${
+                        task.description
+                            ? `
+                                <div style="
+                                    font-size:0.82rem;
+                                    color:var(--text-muted);
+                                    margin-top:4px;">
+                                    ${escapeHtml(task.description)}
+                                </div>
+                              `
+                            : ''
+                    }
+                </td>
+
+                <td>
+                    ${escapeHtml(assignedTo)}
+                </td>
+
+                <td>
+                    ${escapeHtml(assignedBy)}
+                </td>
+
+                <td>
+                    ${priorityBadge}
+                </td>
+
+                <td>
+                    ${statusBadge}
+                </td>
+
+                <td>
+                    ${assignedDate}
+                </td>
+
+                <td>
+                    ${dueDate}
+                </td>
+
+                <td>
+                    ${actionButton}
+                </td>
+
+            </tr>
+        `;
+
+    }).join('');
+}
+
+
+// ============================================================
+// UPDATE TASK STATUS
+// ============================================================
+
+async function changeTaskStatus(taskId, status) {
+
+    try {
+
+        await window.ApiService.employees.updateTaskStatus(
+            taskId,
+            { status }
+        );
+
+        UI.showToast(
+            'Task status updated successfully.',
+            'success'
+        );
+
+        await loadTasks();
+
+    } catch (error) {
+
+        console.error('Task status error:', error);
+
+        UI.showToast(
+            error.message || 'Failed to update task.',
+            'error'
+        );
+    }
+}
+
+
+// ============================================================
+// TASK STATISTICS
+// ============================================================
+
+function updateStats(taskList) {
+
+    const total =
+        taskList.length;
+
+    const pending =
+        taskList.filter(t => t.status === 'PENDING').length;
+
+    const progress =
+        taskList.filter(t => t.status === 'IN_PROGRESS').length;
+
+    const completed =
+        taskList.filter(t => t.status === 'COMPLETED').length;
+
+
+    const now = new Date();
+
+    const overdue =
+        taskList.filter(t => {
+
+            if (!t.dueDate) return false;
+
+            if (t.status === 'COMPLETED') return false;
+
+            return new Date(t.dueDate) < now;
+
+        }).length;
+
+
+    document.getElementById('stat-total-tasks').textContent = total;
+    document.getElementById('stat-pending').textContent = pending;
+    document.getElementById('stat-progress').textContent = progress;
+    document.getElementById('stat-completed').textContent = completed;
+    document.getElementById('stat-overdue').textContent = overdue;
+}
+
+
+// ============================================================
+// ASSIGN TASK MODAL
+// ============================================================
+
+function openAssignTaskModal() {
+
+    if (!canManage) {
+        UI.showToast(
+            'Only Admin or HR can assign tasks.',
+            'error'
+        );
+        return;
+    }
+
+    const bodyHtml = `
+        <div style="display:flex;flex-direction:column;gap:14px;">
+
+            <div>
+                <label class="form-label">
+                    Task Title <span style="color:#f87171">*</span>
+                </label>
+
+                <input
+                    id="task-title"
+                    class="form-control"
+                    placeholder="e.g. Research Vessel Owners in Singapore Region"
+                >
+            </div>
+
+            <div>
+                <label class="form-label">
+                    Assign To Employee <span style="color:#f87171">*</span>
+                </label>
+
+                <select id="task-assignee" class="form-control">
+                    <option value="">Select Employee</option>
+                    ${employees.map(employee => `
+                        <option value="${employee._id || employee.id}">
+                            ${escapeHtml(employee.name)}
+                            ${employee.position
+                                ? ` - ${escapeHtml(employee.position)}`
+                                : ''}
+                        </option>
+                    `).join('')}
+                </select>
+            </div>
+
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+
+                <div>
+                    <label class="form-label">Priority Level</label>
+
+                    <select id="task-priority" class="form-control">
+                        <option value="LOW">Low</option>
+                        <option value="MEDIUM" selected>Medium</option>
+                        <option value="HIGH">High</option>
+                        <option value="URGENT">Urgent 🔴</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="form-label">Due Date</label>
+
+                    <input
+                        id="task-duedate"
+                        type="date"
+                        class="form-control"
+                    >
+                </div>
+
+            </div>
+
+            <div>
+                <label class="form-label">
+                    Task Description / Instructions
+                </label>
+
+                <textarea
+                    id="task-desc"
+                    class="form-control"
+                    rows="3"
+                    placeholder="Provide details, search parameters, or instructions..."
+                ></textarea>
+            </div>
+
+        </div>
+    `;
+
+
+    const footerHtml = `
+        <button
+            type="button"
+            class="btn btn-secondary"
+            id="task-cancel-btn">
+            Cancel
+        </button>
+
+        <button
+            type="button"
+            class="btn btn-primary"
+            id="task-submit-btn">
+            <i class="fas fa-paper-plane"></i>
+            Assign Task
+        </button>
+    `;
+
+
+    const modal = UI.createModal({
+        title: 'Assign New Task',
+        bodyHtml: bodyHtml,
+        footerHtml: footerHtml,
+        customClass: 'task-modal'
+    });
+
+
+    // Cancel button
+    const cancelBtn =
+        modal.querySelector('#task-cancel-btn');
+
+    if (cancelBtn) {
+        cancelBtn.addEventListener('click', () => {
+            modal.close();
+        });
+    }
+
+
+    // Submit button
+    const submitBtn =
+        modal.querySelector('#task-submit-btn');
+
+    if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+            await submitTask(modal);
+        });
+    }
+}
+
+// ============================================================
+// SUBMIT TASK
+// ============================================================
+
+async function submitTask(modal) {
+
+    const title =
+        modal.querySelector('#task-title')?.value.trim();
+
+    const assignedTo =
+        modal.querySelector('#task-assignee')?.value;
+
+    const priority =
+        modal.querySelector('#task-priority')?.value || 'MEDIUM';
+
+    const dueDate =
+        modal.querySelector('#task-duedate')?.value || '';
+
+    const description =
+        modal.querySelector('#task-desc')?.value.trim() || '';
+
+
+    if (!title) {
+
+        UI.showToast(
+            'Please enter a task title.',
+            'error'
+        );
+
+        return;
+    }
+
+
+    if (!assignedTo) {
+
+        UI.showToast(
+            'Please select an employee.',
+            'error'
+        );
+
+        return;
+    }
+
+
+    try {
+
+        await window.ApiService.employees.createTask({
+
+            title,
+            description,
+            assignedTo,
+            priority,
+            dueDate: dueDate || null
+
+        });
+
+
+        UI.showToast(
+            'Task assigned successfully.',
+            'success'
+        );
+
+
+        if (typeof modal.close === 'function') {
+            modal.close();
+        }
+
+
+        await loadTasks();
+
+
+    } catch (error) {
+
+        console.error('Create task error:', error);
+
+        UI.showToast(
+            error.message || 'Failed to assign task.',
+            'error'
+        );
+    }
+}
+
+
+// ============================================================
+// EVENT LISTENERS
+// ============================================================
+
+function setupEventListeners() {
+
+    const assignButton =
+        document.getElementById('assign-task-btn');
+
+    if (assignButton && canManage) {
+
+        assignButton.addEventListener(
+            'click',
+            openAssignTaskModal
+        );
+    }
+
+
+    const search =
+        document.getElementById('task-search');
+
+    if (search) {
+
+        search.addEventListener(
+            'input',
+            applySearch
+        );
+    }
+
+
+    [
+        'employee-filter',
+        'status-filter',
+        'priority-filter',
+        'from-date',
+        'to-date'
+    ].forEach(id => {
+
+        const element =
+            document.getElementById(id);
+
+        if (element) {
+
+            element.addEventListener(
+                'change',
+                loadTasks
+            );
+        }
+    });
+
+
+    const clearButton =
+        document.getElementById('clear-filters');
+
+    if (clearButton) {
+
+        clearButton.addEventListener(
+            'click',
+            async () => {
+
+                document.getElementById('task-search').value = '';
+                document.getElementById('employee-filter').value = '';
+                document.getElementById('status-filter').value = '';
+                document.getElementById('priority-filter').value = '';
+                document.getElementById('from-date').value = '';
+                document.getElementById('to-date').value = '';
+
+                await loadTasks();
+            }
+        );
+    }
+}
+
+
+// ============================================================
+// HELPERS
+// ============================================================
+
+function formatDate(date) {
+
+    if (!date) return '-';
+
+    return new Date(date).toLocaleDateString(
+        'en-GB',
+        {
+            day: '2-digit',
+            month: 'short',
+            year: 'numeric'
+        }
+    );
+}
+
+
+function escapeHtml(value) {
+
+    if (value === null || value === undefined) {
+        return '';
+    }
+
+    return String(value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+
+</script>
+</body>
+</html>

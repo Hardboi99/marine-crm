@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Requirements Vacancies - Marine CRM</title>
-    <link rel="stylesheet" href="/public/css/styles.css">
+    <link rel="stylesheet" href="/public/css/styles1.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <div class="app-layout">
         <div id="sidebar-container"></div>
@@ -61,7 +63,32 @@
                                     </tr>
                                 </thead>
                                 <tbody id="requirements-tbody">
-                                    <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                                    <tr class="skeleton-row">
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -128,7 +155,7 @@
                         const tr = document.createElement('tr');
                         const formatJoin = new Date(r.joiningDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
                         const companyName = r.companyId ? r.companyId.name : 'Unknown';
-                        
+
                         tr.innerHTML = `
                             <td><strong>${companyName}</strong></td>
                             <td>${r.vesselType}</td>
@@ -361,5 +388,8 @@
             fetchData();
         });
     </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+    <script src="/public/js/components/cursor.js"></script>
 </body>
+
 </html>

@@ -1,10 +1,11 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Follow-Ups - Marine CRM</title>
-    <link rel="stylesheet" href="/public/css/styles.css">
+    <link rel="stylesheet" href="/public/css/styles1.css">
     <style>
         .followup-item {
             background: #112240;
@@ -17,16 +18,20 @@
             border: 1px solid transparent;
             transition: all 0.2s ease;
         }
+
         .followup-item:hover {
             border-color: #1e3a8a;
             background: #172a4d;
         }
+
         .followup-item.overdue {
             border-color: #ef4444;
         }
+
         .followup-item.completed {
             opacity: 0.65;
         }
+
         .followup-checkbox {
             width: 22px;
             height: 22px;
@@ -34,33 +39,39 @@
             margin-top: 4px;
             accent-color: #10b981;
         }
+
         .followup-content {
             flex: 1;
         }
+
         .followup-title {
             font-size: 1.1em;
             font-weight: bold;
             margin-bottom: 4px;
             color: #f1f5f9;
         }
+
         .followup-desc {
             color: #94a3b8;
             font-size: 0.9em;
             margin-bottom: 8px;
             white-space: pre-wrap;
         }
+
         .followup-meta {
             display: flex;
             gap: 12px;
             font-size: 0.85em;
             color: #cbd5e1;
         }
+
         .followup-right {
             display: flex;
             flex-direction: column;
             align-items: flex-end;
             gap: 8px;
         }
+
         .empty-state {
             text-align: center;
             padding: 48px;
@@ -68,6 +79,7 @@
             border-radius: 8px;
             color: #94a3b8;
         }
+
         .header-badges {
             display: flex;
             gap: 12px;
@@ -75,25 +87,29 @@
         }
     </style>
 </head>
+
 <body>
     <div id="sidebar-container"></div>
-    
+
     <div class="main-content">
         <div id="navbar-container"></div>
-        
+
         <div class="page-content">
             <div class="page-header">
                 <div>
                     <h1 style="margin:0; color:#fff;">🔔 Follow-Up Queue</h1>
-                    <p class="subtitle" style="margin:5px 0 0; color:#94a3b8;">Pending updates and follow-up tasks from appointments</p>
+                    <p class="subtitle" style="margin:5px 0 0; color:#94a3b8;">Pending updates and follow-up tasks from
+                        appointments</p>
                 </div>
                 <div class="header-badges">
-                    <span class="badge badge-yellow" style="font-size: 1em;">PENDING: <span id="cnt-pending">0</span></span>
-                    <span class="badge badge-green" style="font-size: 1em;">COMPLETED: <span id="cnt-completed">0</span></span>
+                    <span class="badge badge-yellow" style="font-size: 1em;">PENDING: <span
+                            id="cnt-pending">0</span></span>
+                    <span class="badge badge-green" style="font-size: 1em;">COMPLETED: <span
+                            id="cnt-completed">0</span></span>
                     <button id="add-followup-btn" class="btn btn-primary">+ New Follow-Up</button>
                 </div>
             </div>
-            
+
             <div class="filter-bar card" style="padding: 16px; margin-bottom: 24px;">
                 <select id="status-filter" class="form-control">
                     <option value="">All Statuses</option>
@@ -103,7 +119,7 @@
                 </select>
                 <input type="text" id="search-input" class="form-control" placeholder="Search company or notes...">
             </div>
-            
+
             <div id="followups-list">
                 <!-- Loaded via JS -->
             </div>
@@ -134,11 +150,12 @@
             </div>
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Notes / Action Points</label>
-                <textarea id="modal-fu-notes" class="form-control" rows="4" placeholder="Follow-up details or next steps..."></textarea>
+                <textarea id="modal-fu-notes" class="form-control" rows="4"
+                    placeholder="Follow-up details or next steps..."></textarea>
             </div>
         </div>
     </template>
-    
+
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="/public/js/api/api.js"></script>
     <script src="/public/js/components/ui.js"></script>
@@ -195,23 +212,23 @@
                 console.error('Error loading appointments:', err);
             }
         }
-        
+
         async function loadFollowUps() {
             try {
                 const response = await window.ApiService.getFollowUps();
                 allFollowUps = response.data || [];
-                
+
                 let pending = 0;
                 let completed = 0;
-                
+
                 allFollowUps.forEach(f => {
                     if (f.status === 'PENDING') pending++;
                     if (f.status === 'COMPLETED') completed++;
                 });
-                
+
                 document.getElementById('cnt-pending').textContent = pending;
                 document.getElementById('cnt-completed').textContent = completed;
-                
+
                 renderList();
             } catch (err) {
                 console.error(err);
@@ -220,14 +237,14 @@
                 }
             }
         }
-        
+
         function renderList() {
             const listEl = document.getElementById('followups-list');
             if (!listEl) return;
 
             const statusFilter = document.getElementById('status-filter')?.value || '';
             const searchValue = (document.getElementById('search-input')?.value || '').toLowerCase();
-            
+
             let filtered = allFollowUps;
             if (statusFilter) {
                 filtered = filtered.filter(f => f.status === statusFilter);
@@ -239,7 +256,7 @@
                     return compName.includes(searchValue) || notes.includes(searchValue);
                 });
             }
-            
+
             if (filtered.length === 0) {
                 listEl.innerHTML = `<div class="empty-state">
                     <div style="font-size: 2.5em; margin-bottom: 8px;">🎉</div>
@@ -247,25 +264,25 @@
                 </div>`;
                 return;
             }
-            
+
             const today = new Date();
-            today.setHours(0,0,0,0);
-            
+            today.setHours(0, 0, 0, 0);
+
             listEl.innerHTML = filtered.map(f => {
                 const fid = f.id || String(f._id);
                 const isCompleted = f.status === 'COMPLETED';
                 let isOverdue = false;
                 if (f.status === 'PENDING' && f.nextFollowupDate) {
                     const nextDate = new Date(f.nextFollowupDate);
-                    nextDate.setHours(0,0,0,0);
+                    nextDate.setHours(0, 0, 0, 0);
                     if (nextDate < today) isOverdue = true;
                 }
-                
+
                 const companyName = f.appointment?.company?.name || 'Vessel Owner / Pipeline Task';
                 const notes = f.notes || 'No notes provided.';
                 const badge = window.UI && window.UI.renderStatusBadge ? window.UI.renderStatusBadge(f.status) : `<span class="badge badge-gray">${f.status}</span>`;
                 const dateStr = f.nextFollowupDate ? window.UI.formatDate(f.nextFollowupDate) : 'No Date';
-                
+
                 return `
                     <div class="followup-item ${isCompleted ? 'completed' : ''} ${isOverdue ? 'overdue' : ''}">
                         <div class="followup-check">
@@ -292,7 +309,7 @@
                 `;
             }).join('');
         }
-        
+
         async function toggleStatus(id, isChecked) {
             try {
                 const newStatus = isChecked ? 'COMPLETED' : 'PENDING';
@@ -354,7 +371,7 @@
                 _fuModal.querySelector('#modal-fu-notes').value = fu.notes || '';
             }
         }
-        
+
         function editFollowUp(id) {
             const idStr = String(id);
             const fu = allFollowUps.find(x => String(x.id || x._id) === idStr);
@@ -378,7 +395,7 @@
                 window.UI.showToast('Failed to delete follow-up', 'error');
             }
         }
-        
+
         async function handleModalSubmit() {
             if (!_fuModal) return;
 
@@ -389,7 +406,7 @@
             const appointmentId = _fuModal.querySelector('#modal-fu-appt')?.value || null;
 
             const payload = { status, nextFollowupDate, notes, appointmentId };
-            
+
             const saveBtn = _fuModal.querySelector('#save-fu-btn');
             if (saveBtn) { saveBtn.disabled = true; saveBtn.textContent = 'Saving...'; }
 
@@ -419,5 +436,8 @@
         window.deleteFollowUp = deleteFollowUp;
         window.openFollowUpModal = openFollowUpModal;
     </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+    <script src="/public/js/components/cursor.js"></script>
 </body>
+
 </html>

@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Seafarers Directory - Marine CRM</title>
-    <link rel="stylesheet" href="/public/css/styles.css">
+    <link rel="stylesheet" href="/public/css/styles1.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
+
 <body>
     <div class="app-layout">
         <div id="sidebar-container"></div>
@@ -26,7 +28,8 @@
                 <div class="filter-bar">
                     <div class="filter-group">
                         <i class="fas fa-search filter-icon"></i>
-                        <input type="text" id="search-input" class="form-control" placeholder="Search by name, location or email...">
+                        <input type="text" id="search-input" class="form-control"
+                            placeholder="Search by name, location or email...">
                     </div>
                     <div class="filter-group">
                         <select id="rank-filter" class="form-control">
@@ -89,8 +92,58 @@
                                 </thead>
                                 <tbody id="candidates-tbody">
                                     <!-- Skeleton loader initially -->
-                                    <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
-                                    <tr class="skeleton-row"><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td><td><div class="skeleton-box"></div></td></tr>
+                                    <tr class="skeleton-row">
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                    </tr>
+                                    <tr class="skeleton-row">
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                        <td>
+                                            <div class="skeleton-box"></div>
+                                        </td>
+                                    </tr>
                                 </tbody>
                             </table>
                         </div>
@@ -139,9 +192,9 @@
                 const status = statusFilter.value;
 
                 const filtered = candidatesData.filter(c => {
-                    const matchSearch = c.name.toLowerCase().includes(search) || 
-                                        c.location.toLowerCase().includes(search) || 
-                                        c.email.toLowerCase().includes(search);
+                    const matchSearch = c.name.toLowerCase().includes(search) ||
+                        c.location.toLowerCase().includes(search) ||
+                        c.email.toLowerCase().includes(search);
                     const matchRank = rank ? c.rank === rank : true;
                     const matchStatus = status ? c.status === status : true;
                     return matchSearch && matchRank && matchStatus;
@@ -349,7 +402,7 @@
             function addExperienceRow(vesselType = '', rank = '', months = '') {
                 const container = document.getElementById('experience-container');
                 const rowId = `exp-row-${expCount++}`;
-                
+
                 const rankOptions = [
                     'Master', 'Chief Officer', '2nd Officer', '3rd Officer', 'Junior Officer', 'Bosun', 'AB', 'OS',
                     'Chief Engineer', '2E', '3E', '4E', 'ETO', 'Fitter', 'Oiler', 'Wiper',
@@ -477,5 +530,8 @@
             fetchData();
         });
     </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+    <script src="/public/js/components/cursor.js"></script>
 </body>
+
 </html>

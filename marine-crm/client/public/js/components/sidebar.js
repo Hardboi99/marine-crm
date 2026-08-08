@@ -48,11 +48,17 @@ function renderSidebar() {
           <span class="nav-label">Contracts</span>
         </a>
 
-        <div class="nav-section-label">HR & Employees</div>
-        <a href="/pages/employee.html" class="nav-item ${isActive('employee')}">
-          <span class="nav-icon">👨‍💼</span>
-          <span class="nav-label">Employees</span>
-        </a>
+<div class="nav-section-label">HR & Employees</div>
+
+<a href="/pages/employee.html" class="nav-item ${isActive('employee')}">
+  <span class="nav-icon">👨‍✈️ </span>
+  <span class="nav-label"> Crew </span>
+</a>
+
+<a href="/pages/tasks.html" class="nav-item ${isActive('tasks')}">
+  <span class="nav-icon">📋</span>
+  <span class="nav-label">Task Management</span>
+</a>
 
         <div class="nav-section-label">Crewing & Recruitment</div>
         <a href="/pages/candidates.html" class="nav-item ${isActive('candidates')}">

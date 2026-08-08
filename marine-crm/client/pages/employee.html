@@ -24,21 +24,18 @@
         <!-- PAGE HEADER -->
         <div class="page-header">
           <div>
-            <h1 class="page-title">👨‍💼 Employees & Tasks</h1>
-            <p class="page-subtitle">Manage internal employees, daily worksheets, attendance, and task assignments</p>
+            <h1 class="page-title"> 👨‍✈️ Crew </h1>
+            <p class="page-subtitle">Manage internal crew members, daily worksheets, attendance</p>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button id="view-worksheets-btn" class="btn btn-secondary">
               <i class="fas fa-file-alt"></i> View Worksheets
             </button>
-            <button id="assign-task-btn" class="btn btn-secondary">
-              <i class="fas fa-tasks"></i> Assign Task
-            </button>
             <button id="export-btn" class="btn btn-secondary">
               <i class="fas fa-file-excel"></i> Export Excel
             </button>
             <button id="add-employee-btn" class="btn btn-primary">
-              <i class="fas fa-plus"></i> Add Employee
+              <i class="fas fa-plus"></i> Add Crew Member
             </button>
           </div>
         </div>
@@ -52,7 +49,7 @@
             </div>
             <div class="stat-content">
               <div class="stat-value" id="stat-total">—</div>
-              <div class="stat-label">Total Employees</div>
+              <div class="stat-label">Total Crew Members</div>
             </div>
           </div>
           <div class="stat-card">
@@ -62,15 +59,6 @@
             <div class="stat-content">
               <div class="stat-value" id="stat-positions">—</div>
               <div class="stat-label">Unique Positions</div>
-            </div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-icon" style="background: linear-gradient(135deg,#f59e0b,#d97706);">
-              <i class="fas fa-tasks"></i>
-            </div>
-            <div class="stat-content">
-              <div class="stat-value" id="stat-tasks">—</div>
-              <div class="stat-label">Pending Tasks</div>
             </div>
           </div>
         </div>
@@ -102,7 +90,7 @@
                 <thead>
                   <tr>
                     <th>#</th>
-                    <th>Employee</th>
+                    <th>Crew Member</th>
                     <th>Position</th>
                     <th>Phone</th>
                     <th>Email</th>
@@ -118,32 +106,8 @@
           </div>
         </div>
 
-        <!-- TASK ASSIGNMENTS CARD -->
-        <div class="card">
-          <div class="card-header"
-            style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
-            <h3 style="margin:0;font-size:1.05rem;color:var(--text-primary);"><i class="fas fa-list-check"
-                style="margin-right:8px;color:var(--accent-green);"></i> Assigned Tasks & Pipeline Work</h3>
-          </div>
-          <div class="card-body" style="padding: 0;">
-            <div class="table-container">
-              <table class="table">
-                <thead>
-                  <tr>
-                    <th>Task Title</th>
-                    <th>Assigned To</th>
-                    <th>Assigned By</th>
-                    <th>Priority</th>
-                    <th>Status</th>
-                    <th>Due Date</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody id="tasks-table-body"></tbody>
-              </table>
-            </div>
-          </div>
-        </div>
+
+        
 
       </main>
     </div>
@@ -157,9 +121,9 @@
         <input id="emp-name" class="form-control" placeholder="e.g. John Doe">
       </div>
       <div>
-        <label class="form-label">Employee ID <span style="font-size:0.75rem;color:var(--text-muted);">(auto-generated
+        <label class="form-label">Crew Member ID <span style="font-size:0.75rem;color:var(--text-muted);">(auto-generated
             if blank)</span></label>
-        <input id="emp-id" class="form-control" placeholder="e.g. EMP-001">
+        <input id="emp-id" class="form-control" placeholder="e.g. CRW-001">
       </div>
       <div>
         <label class="form-label">Position / Role</label>
@@ -174,9 +138,7 @@
         <input id="emp-email" class="form-control" type="email" placeholder="john@company.com">
       </div>
       <div>
-        <label class="form-label" id="emp-password-label">
-          Password (for Login)
-        </label>
+
 
         <div class="password-wrapper">
           <input id="emp-password" class="form-control" type="password" placeholder="Set login password"
@@ -187,7 +149,7 @@
           </button>
         </div>
       </div>
-      <div>
+            <div>
         <label class="form-label">Location</label>
         <input id="emp-location" class="form-control" placeholder="e.g. Mumbai">
       </div>
@@ -314,7 +276,6 @@
         updateStats();
         populatePositionFilter();
         renderEmployees();
-        loadTasks();
       } catch (err) {
         console.error('Error loading employees:', err);
         UI.showToast('Failed to load employees', 'error');
@@ -502,134 +463,6 @@
           UI.showToast(err.message || 'Checkout failed.', 'error');
           submitBtn.disabled = false;
           submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit & Check Out';
-        }
-      };
-    }
-
-    // ─── Tasks & Assignments Logic ───────────────────────────────────────────
-    async function loadTasks() {
-      try {
-        const res = await window.ApiService.employees.getTasks();
-        tasks = res.data || [];
-        updateStats();
-        renderTasks();
-      } catch (err) {
-        console.error('Load tasks error:', err);
-      }
-    }
-
-    function renderTasks() {
-      const tbody = document.getElementById('tasks-table-body');
-      if (!tbody) return;
-
-      if (tasks.length === 0) {
-        tbody.innerHTML = `
-      <tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-muted);">
-        No task assignments currently. ${canManage ? 'Click <strong>Assign Task</strong> to delegate work.' : ''}
-      </td></tr>`;
-        return;
-      }
-
-      const priorityBadges = {
-        LOW: '<span class="badge badge-gray">Low</span>',
-        MEDIUM: '<span class="badge badge-blue">Medium</span>',
-        HIGH: '<span class="badge badge-yellow">High</span>',
-        URGENT: '<span class="badge badge-red">Urgent 🔴</span>',
-      };
-
-      const statusBadges = {
-        PENDING: '<span class="badge badge-yellow">Pending</span>',
-        IN_PROGRESS: '<span class="badge badge-blue">In Progress</span>',
-        COMPLETED: '<span class="badge badge-green">Completed</span>',
-      };
-
-      tbody.innerHTML = tasks.map(t => {
-        const assigneeName = t.assignedTo ? t.assignedTo.name : 'Unassigned';
-        const dueDateStr = t.dueDate ? new Date(t.dueDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'No due date';
-
-        return `
-      <tr>
-        <td>
-          <div style="font-weight:600;color:var(--text-primary);">${t.title}</div>
-          ${t.description ? `<div style="font-size:0.75rem;color:var(--text-muted);">${t.description}</div>` : ''}
-        </td>
-        <td><strong style="color:var(--accent-blue);">${assigneeName}</strong></td>
-        <td style="font-size:0.85rem;color:var(--text-muted);">${t.assignedByName || 'Admin'}</td>
-        <td>${priorityBadges[t.priority] || t.priority}</td>
-        <td>${statusBadges[t.status] || t.status}</td>
-        <td style="font-size:0.85rem;">${dueDateStr}</td>
-        <td>
-          <div style="display:flex;gap:6px;">
-            ${t.status === 'PENDING' ? `
-              <button class="btn btn-secondary btn-sm" onclick="changeTaskStatus('${t._id || t.id}', 'IN_PROGRESS')">
-                <i class="fas fa-play"></i> Start
-              </button>
-            ` : ''}
-            ${t.status !== 'COMPLETED' ? `
-              <button class="btn btn-success btn-sm" onclick="changeTaskStatus('${t._id || t.id}', 'COMPLETED')">
-                <i class="fas fa-check"></i> Complete
-              </button>
-            ` : '<span style="color:var(--accent-green);font-size:0.8rem;"><i class="fas fa-check-circle"></i> Done</span>'}
-          </div>
-        </td>
-      </tr>`;
-      }).join('');
-    }
-
-    async function changeTaskStatus(taskId, status) {
-      try {
-        await window.ApiService.employees.updateTaskStatus(taskId, { status });
-        UI.showToast(`Task marked as ${status.replace('_', ' ')}.`, 'success');
-        loadTasks();
-      } catch (err) {
-        UI.showToast(err.message || 'Failed to update task.', 'error');
-      }
-    }
-
-    function openAssignTaskModal() {
-      if (!canManage) return UI.showToast('Only Admin or HR can assign tasks.', 'warning');
-      const tpl = document.getElementById('task-modal-tpl');
-
-      const modal = UI.createModal({
-        title: '📋 Assign New Task',
-        bodyHtml: tpl.innerHTML,
-        footerHtml: `
-      <button class="btn btn-secondary" id="task-cancel">Cancel</button>
-      <button class="btn btn-primary"   id="task-save"><i class="fas fa-plus"></i> Assign Task</button>
-    `
-      });
-
-      // Populate Employee dropdown
-      const sel = modal.querySelector('#task-assignee');
-      sel.innerHTML = '<option value="">Select Employee</option>' +
-        employees.map(e => `<option value="${e.id}">${e.name} (${e.position || 'Employee'})</option>`).join('');
-
-      modal.querySelector('#task-cancel').onclick = () => modal.close();
-      modal.querySelector('#task-save').onclick = async () => {
-        const titleVal = modal.querySelector('#task-title').value.trim();
-        const assigneeVal = modal.querySelector('#task-assignee').value;
-        const priorityVal = modal.querySelector('#task-priority').value;
-        const dueVal = modal.querySelector('#task-duedate').value;
-        const descVal = modal.querySelector('#task-desc').value.trim();
-
-        if (!titleVal || !assigneeVal) {
-          return UI.showToast('Title and Employee selection are required.', 'error');
-        }
-
-        try {
-          await window.ApiService.employees.createTask({
-            title: titleVal,
-            assignedTo: assigneeVal,
-            priority: priorityVal,
-            dueDate: dueVal,
-            description: descVal
-          });
-
-          UI.showToast('Task assigned successfully.', 'success');
-          modal.close();
-          loadTasks();
-        } catch (err) {
-          UI.showToast(err.message || 'Failed to assign task.', 'error');
         }
       };
     }
@@ -835,7 +668,6 @@
       if (!window.UI || !window.UI.requireAuth()) return;
 
       const addBtn = document.getElementById('add-employee-btn');
-      const assignBtn = document.getElementById('assign-task-btn');
       const worksheetBtn = document.getElementById('view-worksheets-btn');
 
       if (addBtn) {
@@ -843,10 +675,6 @@
         else addBtn.addEventListener('click', () => openEmployeeModal());
       }
 
-      if (assignBtn) {
-        if (!canManage) assignBtn.style.display = 'none';
-        else assignBtn.addEventListener('click', openAssignTaskModal);
-      }
 
       if (worksheetBtn) {
         worksheetBtn.addEventListener('click', openWorksheetsViewModal);
