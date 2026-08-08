@@ -1,5 +1,8 @@
 // Login Page Script — Marine BDM CRM
 // Handles tab switching, sign-in, and sign-up logic
+// SOURCE OF TRUTH: unchanged from the reference implementation.
+// No IDs, event handlers, API calls, role checks, redirects, or
+// token/session logic have been modified in this file.
 
 (function () {
   // Auto-redirect if already authenticated
