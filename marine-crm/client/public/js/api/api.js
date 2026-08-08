@@ -201,6 +201,31 @@ const ApiService = {
     }
   },
 
+  reception: {
+    visitors: {
+      getAll:   (params)   => api.get('/reception/visitors', { params }),
+      create:   (data)     => api.post('/reception/visitors', data),
+      checkout: (id)       => api.patch(`/reception/visitors/${id}/checkout`)
+    },
+    calls: {
+      getAll:   (params)   => api.get('/reception/calls', { params }),
+      create:   (data)     => api.post('/reception/calls', data),
+      updateStatus: (id, data) => api.patch(`/reception/calls/${id}/status`, data)
+    },
+    ppe: {
+      getStock:     ()     => api.get('/reception/ppe/stock'),
+      updateStock:  (data) => api.post('/reception/ppe/stock', data),
+      getIssuances: ()     => api.get('/reception/ppe/issuances'),
+      issue:        (data) => api.post('/reception/ppe/issuances', data),
+      return:       (id)   => api.patch(`/reception/ppe/issuances/${id}/return`)
+    },
+    docs: {
+      getAll:       ()     => api.get('/reception/docs'),
+      create:       (data) => api.post('/reception/docs', data),
+      updateStatus: (id, data) => api.patch(`/reception/docs/${id}/status`, data)
+    }
+  },
+
   employees: {
     list:   ()         => api.get('/employees'),
     create: (data)     => api.post('/employees', data),

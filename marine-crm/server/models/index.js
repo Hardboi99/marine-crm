@@ -17,6 +17,11 @@ const Employee = require('./Employee');
 const Attendance = require('./Attendance');
 const Worksheet = require('./Worksheet');
 const Task = require('./Task');
+const Visitor = require('./Visitor');
+const ReceptionCall = require('./ReceptionCall');
+const PpeStock = require('./PpeStock');
+const PpeIssuance = require('./PpeIssuance');
+const DocIntake = require('./DocIntake');
 
 module.exports = {
   User,
@@ -38,5 +43,11 @@ module.exports = {
   Attendance,
   Worksheet,
   Task,
+  Visitor,
+  ReceptionCall,
+  PpeStock,
+  PpeIssuance,
+  DocIntake,
 };
+
 

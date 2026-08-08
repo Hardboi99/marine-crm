@@ -75,6 +75,10 @@ function renderSidebar() {
           <span class="nav-icon">⚙️</span>
           <span class="nav-label">Operations Pipeline</span>
         </a>
+        <a href="/pages/reception.html" class="nav-item ${isActive('reception')}">
+          <span class="nav-icon">🛎️</span>
+          <span class="nav-label">Reception Desk</span>
+        </a>
 
         <div class="nav-section-label">Updates & Analytics</div>
         <a href="/pages/followups.html" class="nav-item ${isActive('followups')}">

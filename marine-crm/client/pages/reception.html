@@ -1,0 +1,1010 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reception Desk - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles1.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .reception-tabs {
+            display: flex;
+            border-bottom: 1px solid var(--border-color, #1e293b);
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .reception-tab {
+            cursor: pointer;
+            border: none;
+            padding: 12px 16px;
+            background: none;
+            color: var(--text-secondary, #94a3b8);
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-bottom: 3px solid transparent;
+            transition: all var(--transition, 0.2s);
+        }
+
+        .reception-tab:hover {
+            color: var(--text-primary, #fff);
+        }
+
+        .reception-tab.active {
+            color: var(--accent-primary, #0ea5e9);
+            border-bottom-color: var(--accent-primary, #0ea5e9);
+        }
+
+        .split-grid {
+            display: grid;
+            grid-template-columns: 1fr 2fr;
+            gap: 24px;
+        }
+
+        @media (max-width: 1024px) {
+            .split-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .stock-badge {
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.85em;
+        }
+
+        .stock-badge.low {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .stock-badge.good {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-layout">
+        <div id="sidebar-container"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+            <main class="page-content pageEnter">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">🛎️ Reception Desk</h1>
+                        <p class="page-subtitle">Digitize front office tasks: log visitors, inquiries, PPE gear checkout, and physical documents collection</p>
+                    </div>
+                </div>
+
+                <div class="reception-tabs">
+                    <button class="reception-tab active" data-tab="visitors"><i class="fas fa-id-card"></i> Visitors Entry</button>
+                    <button class="reception-tab" data-tab="calls"><i class="fas fa-phone-alt"></i> General Calls</button>
+                    <button class="reception-tab" data-tab="ppe"><i class="fas fa-hard-hat"></i> PPE Stock & Issuance</button>
+                    <button class="reception-tab" data-tab="docs"><i class="fas fa-passport"></i> CDC & Passport Custody</button>
+                </div>
+
+                <!-- 1. VISITORS TAB -->
+                <div id="tab-content-visitors" class="reception-tab-content">
+                    <div class="stats-grid" style="margin-bottom: 20px;">
+                        <div class="stat-card">
+                            <span class="stat-label">Currently In Office</span>
+                            <span class="stat-value" id="stats-visitors-in">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Total Visits Today</span>
+                            <span class="stat-value" id="stats-visitors-total">0</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                            <h2 class="card-title" style="margin:0;">Visitor Check-In Log</h2>
+                            <button class="btn btn-primary btn-sm" onclick="openVisitorModal()">+ Check In Visitor</button>
+                        </div>
+                        <div class="card-body" style="padding:0;">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Visitor Name</th>
+                                            <th>Phone</th>
+                                            <th>Company</th>
+                                            <th>Purpose</th>
+                                            <th>Staff to Meet</th>
+                                            <th>Check In</th>
+                                            <th>Check Out</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="visitors-tbody">
+                                        <!-- Populated via script -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. CALLS TAB -->
+                <div id="tab-content-calls" class="reception-tab-content" style="display:none;">
+                    <div class="stats-grid" style="margin-bottom: 20px;">
+                        <div class="stat-card">
+                            <span class="stat-label">Pending Callback</span>
+                            <span class="stat-value" id="stats-calls-pending" style="color: #fbbf24;">0</span>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">Total Inquiries</span>
+                            <span class="stat-value" id="stats-calls-total">0</span>
+                        </div>
+                    </div>
+                    <div class="card">
+                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                            <h2 class="card-title" style="margin:0;">Incoming Calls Log</h2>
+                            <button class="btn btn-primary btn-sm" onclick="openCallModal()">+ Log Incoming Call</button>
+                        </div>
+                        <div class="card-body" style="padding:0;">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Caller Name</th>
+                                            <th>Phone</th>
+                                            <th>Company</th>
+                                            <th>Message</th>
+                                            <th>Status</th>
+                                            <th>Forwarded To</th>
+                                            <th>Logged Date</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="calls-tbody">
+                                        <!-- Populated via script -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 3. PPE TAB -->
+                <div id="tab-content-ppe" class="reception-tab-content" style="display:none;">
+                    <div class="split-grid">
+                        <div class="card">
+                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                                <h2 class="card-title" style="margin:0;">PPE Stock Inventory</h2>
+                                <button class="btn btn-secondary btn-sm" onclick="openPpeStockModal()">Adjust Stock</button>
+                            </div>
+                            <div class="card-body" style="padding:0;">
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Item Name</th>
+                                                <th>Total Stock</th>
+                                                <th>Available</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ppe-stock-tbody">
+                                            <!-- Populated via script -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card">
+                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                                <h2 class="card-title" style="margin:0;">PPE Issuance History</h2>
+                                <button class="btn btn-primary btn-sm" onclick="openPpeIssueModal()">+ Issue Gear</button>
+                            </div>
+                            <div class="card-body" style="padding:0;">
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Employee/Crew</th>
+                                                <th>Item Name</th>
+                                                <th>Qty</th>
+                                                <th>Issued Date</th>
+                                                <th>Status</th>
+                                                <th>Return Date</th>
+                                                <th>Action</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="ppe-issuances-tbody">
+                                            <!-- Populated via script -->
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 4. DOCS INTAKE TAB -->
+                <div id="tab-content-docs" class="reception-tab-content" style="display:none;">
+                    <div class="card">
+                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                            <h2 class="card-title" style="margin:0;">Physical Passport & CDC Collection Logs</h2>
+                            <button class="btn btn-primary btn-sm" onclick="openDocModal()">+ Log Document Intake</button>
+                        </div>
+                        <div class="card-body" style="padding:0;">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Seafarer Name</th>
+                                            <th>Document Type</th>
+                                            <th>Doc Number</th>
+                                            <th>Collected Date</th>
+                                            <th>Custody Location</th>
+                                            <th>Status</th>
+                                            <th>Remarks</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="docs-tbody">
+                                        <!-- Populated via script -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- MODAL TEMPLATES -->
+
+    <!-- Visitor Modal Content -->
+    <template id="visitor-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Visitor Name <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="visitor-name" class="form-control" placeholder="e.g. Capt. Sandeep Kumar" required>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Phone Number <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="visitor-phone" class="form-control" placeholder="e.g. +91 9876543210" required>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Company Name</label>
+                <input type="text" id="visitor-company" class="form-control" placeholder="e.g. Seven Seas Shipping">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Purpose of Visit</label>
+                <input type="text" id="visitor-purpose" class="form-control" placeholder="e.g. Interview, Document Submission">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Contact Person / Staff to Meet</label>
+                <select id="visitor-contact" class="form-control">
+                    <option value="">Select Staff...</option>
+                </select>
+            </div>
+        </div>
+    </template>
+
+    <!-- General Call Modal Content -->
+    <template id="call-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Caller Name <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="call-name" class="form-control" placeholder="e.g. John Doe" required>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Phone Number <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="call-phone" class="form-control" placeholder="e.g. +971 501234567" required>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Company Name</label>
+                <input type="text" id="call-company" class="form-control" placeholder="e.g. Alpha Marine">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Message / Inquiry Details <span style="color:#ef4444;">*</span></label>
+                <textarea id="call-message" class="form-control" rows="3" placeholder="Inquiry notes..." required></textarea>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Forward To Staff (Optional)</label>
+                <select id="call-forward" class="form-control">
+                    <option value="">Do not forward...</option>
+                </select>
+            </div>
+        </div>
+    </template>
+
+    <!-- PPE Stock Update Modal -->
+    <template id="ppe-stock-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">PPE Item Type</label>
+                <select id="ppe-stock-item" class="form-control">
+                    <option value="Helmet">Helmet 🪖</option>
+                    <option value="Safety Shoes">Safety Shoes 🥾</option>
+                    <option value="Coverall">Coverall 🧥</option>
+                    <option value="Safety Glasses">Safety Glasses 🥽</option>
+                    <option value="Work Gloves">Work Gloves 🧤</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Total Stock Quantity</label>
+                <input type="number" id="ppe-stock-total" class="form-control" min="0" placeholder="e.g. 50">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Available / Unissued Quantity</label>
+                <input type="number" id="ppe-stock-avail" class="form-control" min="0" placeholder="e.g. 50">
+            </div>
+        </div>
+    </template>
+
+    <!-- PPE Issue Modal -->
+    <template id="ppe-issue-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Issue to Crew Member (Employee) <span style="color:#ef4444;">*</span></label>
+                <select id="ppe-issue-emp" class="form-control">
+                    <option value="">Select Employee...</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Select PPE Gear <span style="color:#ef4444;">*</span></label>
+                <select id="ppe-issue-item" class="form-control">
+                    <option value="">Select Gear...</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Quantity <span style="color:#ef4444;">*</span></label>
+                <input type="number" id="ppe-issue-qty" class="form-control" min="1" value="1">
+            </div>
+        </div>
+    </template>
+
+    <!-- Doc Intake Modal -->
+    <template id="doc-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Check Seafarer Association</label>
+                <div style="display:flex; gap:15px; margin-top:5px;">
+                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="candidate" checked> Candidate Seafarer</label>
+                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="employee"> Crew Staff</label>
+                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="other"> Unlisted</label>
+                </div>
+            </div>
+            <div class="form-group" id="doc-assoc-select-group" style="margin:0;">
+                <label class="form-label">Select Profile</label>
+                <select id="doc-assoc-select" class="form-control">
+                    <option value="">Search Profile...</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Seafarer Name <span style="color:#ef4444;">*</span></label>
+                <input type="text" id="doc-name" class="form-control" placeholder="Enter Full Name" required>
+            </div>
+            <div style="display:flex; gap:12px;">
+                <div class="form-group" style="flex:1; margin:0;">
+                    <label class="form-label">Document Type <span style="color:#ef4444;">*</span></label>
+                    <select id="doc-type" class="form-control">
+                        <option value="PASSPORT">Passport</option>
+                        <option value="CDC">CDC (Continuous Discharge Cert)</option>
+                        <option value="COC">COC (Cert of Competency)</option>
+                        <option value="OTHER">Other Certificate</option>
+                    </select>
+                </div>
+                <div class="form-group" style="flex:1; margin:0;">
+                    <label class="form-label">Document Number</label>
+                    <input type="text" id="doc-number" class="form-control" placeholder="e.g. Z1234567">
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Physical Custody Storage Location</label>
+                <input type="text" id="doc-location" class="form-control" placeholder="e.g. Safety Lock Box A - Slot 4">
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Remarks / Description</label>
+                <input type="text" id="doc-remarks" class="form-control" placeholder="e.g. Submitted for Visa application">
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script>
+        let employees = [];
+        let candidates = [];
+        let ppeStocks = [];
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            // Load Navigation Sidebar
+            if (!localStorage.getItem('token')) {
+                window.location.href = '/pages/login.html';
+                return;
+            }
+
+            // Tab Navigation Setup
+            const tabs = document.querySelectorAll('.reception-tab');
+            tabs.forEach(tab => {
+                tab.addEventListener('click', () => {
+                    tabs.forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+
+                    const target = tab.getAttribute('data-tab');
+                    document.querySelectorAll('.reception-tab-content').forEach(content => {
+                        content.style.display = 'none';
+                    });
+                    document.getElementById(`tab-content-${target}`).style.display = 'block';
+                    loadTab(target);
+                });
+            });
+
+            // Initial fetch of directory lists
+            await loadDirectories();
+            // Default tab
+            loadTab('visitors');
+        });
+
+        async function loadDirectories() {
+            try {
+                const [empRes, candRes] = await Promise.all([
+                    window.ApiService.employees.list(),
+                    window.ApiService.crewing.candidates.getAll()
+                ]);
+                employees = empRes.data || [];
+                candidates = candRes.data || [];
+            } catch (err) {
+                console.error('Error loading directories:', err);
+            }
+        }
+
+        async function loadTab(tabName) {
+            try {
+                if (tabName === 'visitors') {
+                    const res = await window.ApiService.reception.visitors.getAll();
+                    const list = res.data || [];
+                    renderVisitors(list);
+                } else if (tabName === 'calls') {
+                    const res = await window.ApiService.reception.calls.getAll();
+                    const list = res.data || [];
+                    renderCalls(list);
+                } else if (tabName === 'ppe') {
+                    const [stockRes, issueRes] = await Promise.all([
+                        window.ApiService.reception.ppe.getStock(),
+                        window.ApiService.reception.ppe.getIssuances()
+                    ]);
+                    ppeStocks = stockRes.data || [];
+                    renderPpeStock(ppeStocks);
+                    renderPpeIssuances(issueRes.data || []);
+                } else if (tabName === 'docs') {
+                    const res = await window.ApiService.reception.docs.getAll();
+                    renderDocs(res.data || []);
+                }
+            } catch (err) {
+                console.error(`Error loading tab: ${tabName}`, err);
+                if (window.UI) window.UI.showToast('Failed to sync database logs', 'error');
+            }
+        }
+
+        // ─── VISITOR LOGS HANDLERS ──────────────────────────────────────
+
+        function renderVisitors(visitors) {
+            const tbody = document.getElementById('visitors-tbody');
+            tbody.innerHTML = '';
+            
+            let total = visitors.length;
+            let currentIn = visitors.filter(v => !v.checkOutTime).length;
+            
+            document.getElementById('stats-visitors-in').textContent = currentIn;
+            document.getElementById('stats-visitors-total').textContent = total;
+
+            if (total === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No visitors logged today.</td></tr>';
+                return;
+            }
+
+            visitors.forEach(v => {
+                const tr = document.createElement('tr');
+                const inTime = v.checkInTime ? new Date(v.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+                const outTime = v.checkOutTime ? new Date(v.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
+                
+                let actionBtn = '';
+                if (!v.checkOutTime) {
+                    actionBtn = `<button class="btn btn-secondary btn-sm" onclick="checkOutVisitor('${v.id}')"><i class="fas fa-sign-out-alt"></i> Checkout</button>`;
+                } else {
+                    actionBtn = `<span class="badge badge-gray">Checked Out</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td><strong>${v.name}</strong></td>
+                    <td>${v.phone}</td>
+                    <td>${v.company || '-'}</td>
+                    <td>${v.purpose || '-'}</td>
+                    <td>${v.contactPerson || '-'}</td>
+                    <td>${inTime}</td>
+                    <td>${outTime}</td>
+                    <td class="row-actions">${actionBtn}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openVisitorModal() {
+            const tpl = document.getElementById('visitor-modal-template');
+            const clone = tpl.content.cloneNode(true);
+            
+            // Populate contact person select
+            const select = clone.querySelector('#visitor-contact');
+            employees.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.name;
+                opt.textContent = `${e.name} (${e.position || 'Staff'})`;
+                select.appendChild(opt);
+            });
+
+            window.UI.createModal({
+                title: 'Visitor Check-In',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                             <button class="btn btn-primary" id="save-visitor-btn">Save & Check In</button>`,
+                onClose: () => {}
+            });
+
+            // Replace modal-body element with cloning
+            document.querySelector('.modal-body').appendChild(clone);
+
+            document.getElementById('save-visitor-btn').addEventListener('click', async () => {
+                const name = document.getElementById('visitor-name').value.trim();
+                const phone = document.getElementById('visitor-phone').value.trim();
+                const company = document.getElementById('visitor-company').value.trim();
+                const purpose = document.getElementById('visitor-purpose').value.trim();
+                const contactPerson = document.getElementById('visitor-contact').value;
+
+                if (!name || !phone) {
+                    window.UI.showToast('Please enter Visitor Name and Phone Number', 'warning');
+                    return;
+                }
+
+                try {
+                    await window.ApiService.reception.visitors.create({ name, phone, company, purpose, contactPerson });
+                    window.UI.showToast('Visitor logged successfully', 'success');
+                    document.querySelector('.modal-overlay').close();
+                    loadTab('visitors');
+                } catch (err) {
+                    window.UI.showToast(err.message || 'Error checking in visitor', 'error');
+                }
+            });
+        }
+
+        async function checkOutVisitor(id) {
+            try {
+                await window.ApiService.reception.visitors.checkout(id);
+                window.UI.showToast('Visitor checked out successfully', 'success');
+                loadTab('visitors');
+            } catch (err) {
+                window.UI.showToast('Error checking out visitor', 'error');
+            }
+        }
+
+        // ─── INCOMING CALLS HANDLERS ─────────────────────────────────────
+
+        function renderCalls(calls) {
+            const tbody = document.getElementById('calls-tbody');
+            tbody.innerHTML = '';
+            
+            let total = calls.length;
+            let pending = calls.filter(c => c.status === 'PENDING').length;
+            
+            document.getElementById('stats-calls-pending').textContent = pending;
+            document.getElementById('stats-calls-total').textContent = total;
+
+            if (total === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No incoming calls logged.</td></tr>';
+                return;
+            }
+
+            const badges = {
+                PENDING: '<span class="badge badge-yellow">Callback</span>',
+                RESOLVED: '<span class="badge badge-green">Resolved</span>',
+                FORWARDED: '<span class="badge badge-blue">Forwarded</span>',
+                CALLBACK: '<span class="badge badge-yellow">Callback</span>'
+            };
+
+            calls.forEach(c => {
+                const tr = document.createElement('tr');
+                const date = new Date(c.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                
+                let actions = '';
+                if (c.status === 'PENDING') {
+                    actions = `
+                        <button class="btn btn-success btn-xs" onclick="updateCallStatus('${c.id}', 'RESOLVED')"><i class="fas fa-check"></i> Resolve</button>
+                    `;
+                } else {
+                    actions = `<span style="color:#94a3b8; font-size:0.85em;">-</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td><strong>${c.callerName}</strong></td>
+                    <td>${c.phone}</td>
+                    <td>${c.company || '-'}</td>
+                    <td style="max-width:250px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${c.message}">${c.message}</td>
+                    <td>${badges[c.status] || c.status}</td>
+                    <td>${c.forwardedTo || '-'}</td>
+                    <td style="font-size:0.85em; color:#94a3b8;">${date}</td>
+                    <td class="row-actions">${actions}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openCallModal() {
+            const tpl = document.getElementById('call-modal-template');
+            const clone = tpl.content.cloneNode(true);
+            
+            const select = clone.querySelector('#call-forward');
+            employees.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.name;
+                opt.textContent = `${e.name} (${e.position || 'Staff'})`;
+                select.appendChild(opt);
+            });
+
+            window.UI.createModal({
+                title: 'Log Incoming Call',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                             <button class="btn btn-primary" id="save-call-btn">Log Call</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+
+            document.getElementById('save-call-btn').addEventListener('click', async () => {
+                const callerName = document.getElementById('call-name').value.trim();
+                const phone = document.getElementById('call-phone').value.trim();
+                const company = document.getElementById('call-company').value.trim();
+                const message = document.getElementById('call-message').value.trim();
+                const forwardedTo = document.getElementById('call-forward').value;
+
+                if (!callerName || !phone || !message) {
+                    window.UI.showToast('Please fill in Name, Phone, and Message inquiry details.', 'warning');
+                    return;
+                }
+
+                try {
+                    const status = forwardedTo ? 'FORWARDED' : 'PENDING';
+                    await window.ApiService.reception.calls.create({ callerName, phone, company, message, status, forwardedTo });
+                    window.UI.showToast('Call entry logged successfully', 'success');
+                    document.querySelector('.modal-overlay').close();
+                    loadTab('calls');
+                } catch (err) {
+                    window.UI.showToast('Error saving call log', 'error');
+                }
+            });
+        }
+
+        async function updateCallStatus(id, newStatus) {
+            try {
+                await window.ApiService.reception.calls.updateStatus(id, { status: newStatus });
+                window.UI.showToast(`Call status updated to ${newStatus}`, 'success');
+                loadTab('calls');
+            } catch (err) {
+                window.UI.showToast('Failed to update call status', 'error');
+            }
+        }
+
+        // ─── PPE STOCK & ISSUANCE HANDLERS ────────────────────────────────
+
+        function renderPpeStock(stocks) {
+            const tbody = document.getElementById('ppe-stock-tbody');
+            tbody.innerHTML = '';
+
+            stocks.forEach(s => {
+                const tr = document.createElement('tr');
+                const isLow = s.availableQuantity < 5;
+                const badge = `<span class="stock-badge ${isLow ? 'low' : 'good'}">${s.availableQuantity} / ${s.totalQuantity}</span>`;
+
+                tr.innerHTML = `
+                    <td><strong>${s.itemName}</strong></td>
+                    <td>${s.totalQuantity}</td>
+                    <td>${badge}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPpeIssuances(issuances) {
+            const tbody = document.getElementById('ppe-issuances-tbody');
+            tbody.innerHTML = '';
+
+            if (issuances.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#94a3b8;">No PPE gear checkout history.</td></tr>';
+                return;
+            }
+
+            issuances.forEach(i => {
+                const tr = document.createElement('tr');
+                const empName = i.employeeId ? i.employeeId.name : 'Unknown Crew';
+                const empPos = i.employeeId ? i.employeeId.position : '';
+                
+                const issuedDate = new Date(i.issueDate).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                const returnDate = i.returnDate ? new Date(i.returnDate).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '-';
+                
+                const badge = i.status === 'ISSUED' ? '<span class="badge badge-yellow">Issued</span>' : '<span class="badge badge-green">Returned</span>';
+                const action = i.status === 'ISSUED' ? `<button class="btn btn-secondary btn-xs" onclick="returnPpe('${i.id}')"><i class="fas fa-undo"></i> Return</button>` : '-';
+
+                tr.innerHTML = `
+                    <td><strong>${empName}</strong><br><small style="color:#94a3b8;">${empPos}</small></td>
+                    <td>${i.itemName}</td>
+                    <td>${i.quantity}</td>
+                    <td>${issuedDate}</td>
+                    <td>${badge}</td>
+                    <td>${returnDate}</td>
+                    <td class="row-actions">${action}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openPpeStockModal() {
+            const tpl = document.getElementById('ppe-stock-modal-template');
+            const clone = tpl.content.cloneNode(true);
+
+            window.UI.createModal({
+                title: 'Adjust PPE Inventory Stock',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                             <button class="btn btn-primary" id="save-ppe-stock-btn">Save Changes</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+
+            // Fetch current stock details when changing select
+            const itemSelect = document.getElementById('ppe-stock-item');
+            const totalInput = document.getElementById('ppe-stock-total');
+            const availInput = document.getElementById('ppe-stock-avail');
+
+            const updateFields = () => {
+                const matched = ppeStocks.find(s => s.itemName === itemSelect.value);
+                if (matched) {
+                    totalInput.value = matched.totalQuantity;
+                    availInput.value = matched.availableQuantity;
+                } else {
+                    totalInput.value = 50;
+                    availInput.value = 50;
+                }
+            };
+
+            itemSelect.addEventListener('change', updateFields);
+            updateFields();
+
+            document.getElementById('save-ppe-stock-btn').addEventListener('click', async () => {
+                const itemName = itemSelect.value;
+                const totalQuantity = parseInt(totalInput.value);
+                const availableQuantity = parseInt(availInput.value);
+
+                if (isNaN(totalQuantity) || isNaN(availableQuantity)) {
+                    window.UI.showToast('Please enter valid quantities', 'warning');
+                    return;
+                }
+
+                try {
+                    await window.ApiService.reception.ppe.updateStock({ itemName, totalQuantity, availableQuantity });
+                    window.UI.showToast('Stock quantities adjusted successfully', 'success');
+                    document.querySelector('.modal-overlay').close();
+                    loadTab('ppe');
+                } catch (err) {
+                    window.UI.showToast('Failed to adjust stock', 'error');
+                }
+            });
+        }
+
+        function openPpeIssueModal() {
+            const tpl = document.getElementById('ppe-issue-modal-template');
+            const clone = tpl.content.cloneNode(true);
+
+            const empSelect = clone.querySelector('#ppe-issue-emp');
+            employees.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.id;
+                opt.textContent = `${e.name} (${e.position || 'Staff'})`;
+                empSelect.appendChild(opt);
+            });
+
+            const itemSelect = clone.querySelector('#ppe-issue-item');
+            ppeStocks.forEach(s => {
+                const opt = document.createElement('option');
+                opt.value = s.itemName;
+                opt.textContent = `${s.itemName} (Available: ${s.availableQuantity})`;
+                itemSelect.appendChild(opt);
+            });
+
+            window.UI.createModal({
+                title: 'Issue PPE Safety Gear',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                             <button class="btn btn-primary" id="save-ppe-issue-btn">Check Out Gear</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+
+            document.getElementById('save-ppe-issue-btn').addEventListener('click', async () => {
+                const employeeId = document.getElementById('ppe-issue-emp').value;
+                const itemName = document.getElementById('ppe-issue-item').value;
+                const quantity = parseInt(document.getElementById('ppe-issue-qty').value);
+
+                if (!employeeId || !itemName || isNaN(quantity) || quantity <= 0) {
+                    window.UI.showToast('Please select Employee, Gear Type and positive quantity.', 'warning');
+                    return;
+                }
+
+                try {
+                    await window.ApiService.reception.ppe.issue({ employeeId, itemName, quantity });
+                    window.UI.showToast(`Issued ${quantity}x ${itemName} successfully`, 'success');
+                    document.querySelector('.modal-overlay').close();
+                    loadTab('ppe');
+                } catch (err) {
+                    window.UI.showToast(err.message || 'Failed to checkout gear.', 'error');
+                }
+            });
+        }
+
+        async function returnPpe(id) {
+            try {
+                await window.ApiService.reception.ppe.return(id);
+                window.UI.showToast('PPE Gear returned and stock restocked successfully', 'success');
+                loadTab('ppe');
+            } catch (err) {
+                window.UI.showToast('Error returning gear', 'error');
+            }
+        }
+
+        // ─── CDC & PASSPORT LOGS HANDLERS ─────────────────────────────────
+
+        function renderDocs(docs) {
+            const tbody = document.getElementById('docs-tbody');
+            tbody.innerHTML = '';
+
+            if (docs.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No documents logged in custody storage.</td></tr>';
+                return;
+            }
+
+            const badges = {
+                WITH_AGENCY: '<span class="badge badge-blue">With Agency</span>',
+                RETURNED_TO_SEAFARER: '<span class="badge badge-gray">Returned to Seafarer</span>',
+                SENT_TO_VESSEL_OWNER: '<span class="badge badge-green">Sent to Vessel Owner</span>'
+            };
+
+            docs.forEach(d => {
+                const tr = document.createElement('tr');
+                const date = new Date(d.collectedDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+
+                let actions = '';
+                if (d.status === 'WITH_AGENCY') {
+                    actions = `
+                        <button class="btn btn-secondary btn-xs" onclick="updateDocStatus('${d.id}', 'RETURNED_TO_SEAFARER')">Return</button>
+                        <button class="btn btn-primary btn-xs" onclick="updateDocStatus('${d.id}', 'SENT_TO_VESSEL_OWNER')">Send to Owner</button>
+                    `;
+                } else {
+                    actions = `<span style="font-size:0.85em; color:#94a3b8;">Completed</span>`;
+                }
+
+                tr.innerHTML = `
+                    <td><strong>${d.seafarerName}</strong></td>
+                    <td><span class="badge badge-gray">${d.documentType}</span></td>
+                    <td>${d.documentNumber || '-'}</td>
+                    <td style="font-size:0.85em; color:#94a3b8;">${date}</td>
+                    <td>${d.custodyLocation || '-'}</td>
+                    <td>${badges[d.status] || d.status}</td>
+                    <td style="font-size:0.85em; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${d.remarks}">${d.remarks || '-'}</td>
+                    <td class="row-actions">${actions}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openDocModal() {
+            const tpl = document.getElementById('doc-modal-template');
+            const clone = tpl.content.cloneNode(true);
+
+            window.UI.createModal({
+                title: 'Collect CDC / Passport Document',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                             <button class="btn btn-primary" id="save-doc-btn">Collect Document</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+
+            const selectGroup = document.getElementById('doc-assoc-select-group');
+            const assocSelect = document.getElementById('doc-assoc-select');
+            const nameInput = document.getElementById('doc-name');
+
+            // Logic to populate select based on association type
+            const radios = document.getElementsByName('seafarer-assoc');
+            const syncAssocOptions = () => {
+                const type = Array.from(radios).find(r => r.checked).value;
+                assocSelect.innerHTML = '<option value="">Search Profile...</option>';
+                
+                if (type === 'other') {
+                    selectGroup.style.display = 'none';
+                    nameInput.value = '';
+                    nameInput.readOnly = false;
+                } else {
+                    selectGroup.style.display = 'block';
+                    nameInput.readOnly = true;
+                    
+                    if (type === 'candidate') {
+                        candidates.forEach(c => {
+                            const opt = document.createElement('option');
+                            opt.value = c.id;
+                            opt.textContent = `${c.name} (${c.rank || 'Seafarer'})`;
+                            assocSelect.appendChild(opt);
+                        });
+                    } else if (type === 'employee') {
+                        employees.forEach(e => {
+                            const opt = document.createElement('option');
+                            opt.value = e.id;
+                            opt.textContent = `${e.name} (${e.position || 'Staff'})`;
+                            assocSelect.appendChild(opt);
+                        });
+                    }
+                }
+            };
+
+            radios.forEach(r => r.addEventListener('change', syncAssocOptions));
+            syncAssocOptions();
+
+            assocSelect.addEventListener('change', () => {
+                const selectedOpt = assocSelect.options[assocSelect.selectedIndex];
+                if (selectedOpt && assocSelect.value) {
+                    nameInput.value = selectedOpt.textContent.split(' (')[0];
+                } else {
+                    nameInput.value = '';
+                }
+            });
+
+            document.getElementById('save-doc-btn').addEventListener('click', async () => {
+                const assocType = Array.from(radios).find(r => r.checked).value;
+                const refId = assocSelect.value;
+                const seafarerName = nameInput.value.trim();
+                const documentType = document.getElementById('doc-type').value;
+                const documentNumber = document.getElementById('doc-number').value.trim();
+                const custodyLocation = document.getElementById('doc-location').value.trim();
+                const remarks = document.getElementById('doc-remarks').value.trim();
+
+                if (!seafarerName || !documentType) {
+                    window.UI.showToast('Please specify Seafarer Name and Document Type', 'warning');
+                    return;
+                }
+
+                const postData = { seafarerName, documentType, documentNumber, custodyLocation, remarks };
+                if (assocType === 'candidate' && refId) postData.candidateId = refId;
+                if (assocType === 'employee' && refId) postData.employeeId = refId;
+
+                try {
+                    await window.ApiService.reception.docs.create(postData);
+                    window.UI.showToast('Document custody logged successfully', 'success');
+                    document.querySelector('.modal-overlay').close();
+                    loadTab('docs');
+                } catch (err) {
+                    window.UI.showToast('Failed to log document collection', 'error');
+                }
+            });
+        }
+
+        async function updateDocStatus(id, newStatus) {
+            try {
+                await window.ApiService.reception.docs.updateStatus(id, { status: newStatus });
+                window.UI.showToast(`Document marked as ${newStatus.replace(/_/g, ' ')}`, 'success');
+                loadTab('docs');
+            } catch (err) {
+                window.UI.showToast('Failed to update document status', 'error');
+            }
+        }
+    </script>
+</body>
+
+</html>
