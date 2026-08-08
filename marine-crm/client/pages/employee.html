@@ -550,27 +550,47 @@
 
       if (emp) {
         modal.querySelector('#emp-name').value = emp.name || '';
+
         const empIdInput = modal.querySelector('#emp-id');
         empIdInput.value = emp.employeeId || '';
-        // Make Employee ID read-only during edit to prevent accidental changes
+
+        // Employee ID cannot be changed while editing
         empIdInput.readOnly = true;
         empIdInput.style.opacity = '0.6';
         empIdInput.title = 'Employee ID cannot be changed after creation';
+
         modal.querySelector('#emp-position').value = emp.position || '';
         modal.querySelector('#emp-phone').value = emp.phone || '';
         modal.querySelector('#emp-email').value = emp.email || '';
-        // Never pre-fill password — show placeholder only
+
         const pwdInput = modal.querySelector('#emp-password');
         pwdInput.placeholder = 'Leave blank to keep existing password';
+
         modal.querySelector('#emp-location').value = emp.location || '';
+
         if (emp.joinDate) {
-          modal.querySelector('#emp-joindate').value = new Date(emp.joinDate).toISOString().split('T')[0];
+          modal.querySelector('#emp-joindate').value =
+            new Date(emp.joinDate).toISOString().split('T')[0];
         }
 
         if (emp.dateOfBirth) {
           modal.querySelector('#emp-dob').value =
             new Date(emp.dateOfBirth).toISOString().split('T')[0];
         }
+
+      } else {
+
+        // NEW EMPLOYEE → AUTO-GENERATE EMPLOYEE ID
+        const empIdInput = modal.querySelector('#emp-id');
+
+        const nextNumber = employees.length + 1;
+
+        empIdInput.value =
+          `CRW-${String(nextNumber).padStart(3, '0')}`;
+
+        empIdInput.readOnly = true;
+        empIdInput.style.opacity = '0.7';
+        empIdInput.title = 'Employee ID is automatically generated';
       }
 
       modal.querySelector('#emp-cancel').onclick = () => modal.close();

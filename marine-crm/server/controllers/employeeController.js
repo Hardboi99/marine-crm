@@ -317,8 +317,21 @@ const getTasks = async (req, res, next) => {
   try {
     let filter = {};
     if (isManager(req)) {
-      if (req.query.assignedTo) filter.assignedTo = req.query.assignedTo;
-    } else {
+
+      if (req.query.assignedTo) {
+        filter.assignedTo = req.query.assignedTo;
+      }
+
+      if (req.query.status) {
+        filter.status = req.query.status;
+      }
+
+      if (req.query.priority) {
+        filter.priority = req.query.priority;
+      }
+    }
+
+    else {
       // BDM: only tasks assigned to them
       const myEmp = await getMyEmployee(req.user.id);
       if (!myEmp) return res.json({ success: true, data: [] });
