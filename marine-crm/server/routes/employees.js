@@ -8,6 +8,8 @@ const {
   submitWorksheet, getWorksheets,
   createTask, getTasks, updateTaskStatus,
   getMyProfile,
+  bulkImportEmployees,
+  getUpcomingBirthdays,
 } = require('../controllers/employeeController');
 
 // ── Own profile (BDM convenience) ────────────────────────────────────────────
@@ -30,9 +32,15 @@ router.post('/tasks',             authenticate, requireRole('ADMIN', 'HR'), crea
 router.get('/tasks',              authenticate, getTasks);
 router.patch('/tasks/:id/status', authenticate, updateTaskStatus);
 
-// ── CRUD — Admin/HR only ──────────────────────────────────────────────────────
+// ── CRUD — Admin/HR only ───────────────────────────────────────────────────────────────────────────
 router.post('/',    authenticate, requireRole('ADMIN', 'HR'), createEmployee);
 router.put('/:id',  authenticate, requireRole('ADMIN', 'HR'), updateEmployee);
 router.delete('/:id', authenticate, requireRole('ADMIN', 'HR'), deleteEmployee);
+
+// ── Bulk Import — Admin/HR only ───────────────────────────────────────────────────────────────────────
+router.post('/bulk-import', authenticate, requireRole('ADMIN', 'HR'), bulkImportEmployees);
+
+// ── Birthdays — Admin/HR only ────────────────────────────────────────────────────────────────────────
+router.get('/birthdays/upcoming', authenticate, requireRole('ADMIN', 'HR'), getUpcomingBirthdays);
 
 module.exports = router;

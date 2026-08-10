@@ -1,6 +1,7 @@
 require('dotenv').config();
 const app = require('./app');
 const connectDB = require('./config/db');
+const { scheduleBirthdayJob } = require('./services/birthdayService');
 
 const PORT = process.env.PORT || 5000;
 
@@ -72,6 +73,7 @@ const startServer = async () => {
     console.error('   Server is running but DB requests will fail until connection is restored.');
   } else {
     await migrateEmployeeIdIndex();
+    scheduleBirthdayJob();
   }
 };
 

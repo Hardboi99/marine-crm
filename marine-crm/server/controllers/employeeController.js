@@ -378,10 +378,131 @@ const getMyProfile = async (req, res, next) => {
   } catch (err) { next(err); }
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// BULK IMPORT  POST /api/employees/bulk-import  (Admin/HR only)
+// Expects: { rows: [{ name, position, phone, email, location, joinDate, dateOfBirth }] }
+// Returns: { imported, skipped, failed, details }
+// ─────────────────────────────────────────────────────────────────────────────
+const bulkImportEmployees = async (req, res, next) => {
+  try {
+    const { rows } = req.body;
+    if (!Array.isArray(rows) || rows.length === 0) {
+      return res.status(400).json({ success: false, message: 'No rows provided.' });
+    }
+
+    let imported = 0, skipped = 0, failed = 0;
+    const details = [];
+
+    for (const [i, row] of rows.entries()) {
+      const name = (row.name || row.Name || '').trim();
+      const phone = (row.phone || row.Phone || '').toString().trim();
+      const email = (row.email || row.Email || '').toString().toLowerCase().trim();
+      const position = (row.position || row.Position || '').trim();
+      const location = (row.location || row.Location || '').trim();
+      const joinDateRaw = row.joinDate || row['Joining Date'] || row.joining_date || null;
+      const dobRaw = row.dateOfBirth || row['Date of Birth'] || row.date_of_birth || null;
+
+      if (!name || !phone) {
+        failed++;
+        details.push({ row: i + 1, status: 'failed', reason: 'Name and Phone required', name: name || '(blank)' });
+        continue;
+      }
+
+      // Check duplicate: phone or email
+      const dupFilter = email
+        ? { $or: [{ phone }, { email }] }
+        : { phone };
+      const existing = await Employee.findOne(dupFilter);
+      if (existing) {
+        skipped++;
+        details.push({ row: i + 1, status: 'skipped', reason: 'Duplicate phone/email', name });
+        continue;
+      }
+
+      // Auto-generate Employee ID (reusing existing logic)
+      const count = await Employee.countDocuments();
+      let candidate = `EMP-${String(count + 1).padStart(3, '0')}`;
+      let exists = await Employee.findOne({ employeeId: candidate });
+      let attempt = count + 1;
+      while (exists) {
+        attempt++;
+        candidate = `EMP-${String(attempt).padStart(3, '0')}`;
+        exists = await Employee.findOne({ employeeId: candidate });
+      }
+
+      try {
+        await Employee.create({
+          name,
+          employeeId: candidate,
+          phone,
+          email: email || null,
+          position: position || null,
+          location: location || null,
+          joinDate: joinDateRaw ? new Date(joinDateRaw) : null,
+          dateOfBirth: dobRaw ? new Date(dobRaw) : null,
+          createdById: req.user.id,
+          createdByName: req.user.name,
+        });
+        imported++;
+        details.push({ row: i + 1, status: 'imported', name, employeeId: candidate });
+      } catch (createErr) {
+        failed++;
+        details.push({ row: i + 1, status: 'failed', reason: createErr.message, name });
+      }
+    }
+
+    res.json({ success: true, data: { imported, skipped, failed, details } });
+  } catch (err) { next(err); }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UPCOMING BIRTHDAYS  GET /api/employees/birthdays/upcoming  (Admin/HR only)
+// Returns employees whose birthday falls today or in the next 30 days
+// ─────────────────────────────────────────────────────────────────────────────
+const getUpcomingBirthdays = async (req, res, next) => {
+  try {
+    const employees = await Employee.find({ dateOfBirth: { $ne: null } }).select('name position dateOfBirth email employeeId');
+    const now = new Date();
+    const todayMD = now.getMonth() * 100 + now.getDate(); // e.g. 0810 for Aug 10
+
+    const results = [];
+    for (const emp of employees) {
+      const dob = new Date(emp.dateOfBirth);
+      const empMonth = dob.getMonth();
+      const empDay = dob.getDate();
+
+      // Days until next birthday (handles year wrap)
+      const thisYear = new Date(now.getFullYear(), empMonth, empDay);
+      let diff = Math.ceil((thisYear - now) / (1000 * 60 * 60 * 24));
+      if (diff < 0) {
+        const nextYear = new Date(now.getFullYear() + 1, empMonth, empDay);
+        diff = Math.ceil((nextYear - now) / (1000 * 60 * 60 * 24));
+      }
+
+      if (diff <= 30) {
+        results.push({
+          id: emp.id,
+          name: emp.name,
+          position: emp.position,
+          employeeId: emp.employeeId,
+          dateOfBirth: emp.dateOfBirth,
+          daysUntil: diff,
+          isToday: diff === 0,
+        });
+      }
+    }
+
+    results.sort((a, b) => a.daysUntil - b.daysUntil);
+    res.json({ success: true, data: results });
+  } catch (err) { next(err); }
+};
+
 module.exports = {
   listEmployees, createEmployee, updateEmployee, deleteEmployee,
   getTodayAttendance, checkIn, checkOut,
   submitWorksheet, getWorksheets,
   createTask, getTasks, updateTaskStatus,
   getMyProfile,
+  bulkImportEmployees,
+  getUpcomingBirthdays,
 };
