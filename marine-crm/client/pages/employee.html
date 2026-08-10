@@ -7,11 +7,504 @@
   <title>Employees & Tasks — Marine BDM CRM</title>
   <meta name="description"
     content="Manage internal employees, daily worksheets, attendance, and task assignments in Marine BDM CRM.">
-  <link rel="stylesheet" href="/public/css/styles.css">
+  <link rel="stylesheet" href="/public/css/styles1.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 
 <body>
+
+  <style>
+    /* ===== Worksheet Detail Modal ===== */
+    .wsd-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(16, 20, 4, 0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+
+    .wsd-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .wsd-modal {
+      width: 100%;
+      max-width: 640px;
+      max-height: 88vh;
+      overflow-y: auto;
+      position: relative;
+      padding: 26px 28px 20px;
+      border-radius: 16px;
+      background: linear-gradient(160deg, rgba(15, 25, 45, 0.88), rgba(10, 18, 32, 0.78));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transform: scale(0.92) translateY(10px);
+      opacity: 0;
+      transition: transform .28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .25s ease;
+    }
+
+    .wsd-overlay.active .wsd-modal {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    .wsd-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease, transform .15s ease;
+    }
+
+    .wsd-close:hover {
+      background: rgba(248, 113, 113, 0.15);
+      color: #f87171;
+      transform: rotate(90deg);
+    }
+
+    .wsd-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+      padding-right: 34px;
+    }
+
+    .wsd-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    .wsd-heading h3 {
+      margin: 0 0 6px;
+      font-size: 1.15rem;
+      color: var(--text-primary);
+    }
+
+    .wsd-subline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .wsd-empid {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .wsd-body {
+      min-height: 120px;
+    }
+
+    .wsd-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 20px;
+      animation: wsdFadeIn .3s ease;
+    }
+
+    .wsd-span2 {
+      grid-column: 1 / -1;
+    }
+
+    .wsd-field label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .wsd-value {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .wsd-longtext {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 8px;
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .wsd-skeleton {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 6px 0;
+    }
+
+    .wsd-skel-line {
+      height: 14px;
+      border-radius: 6px;
+      background: linear-gradient(90deg, rgba(255, 255, 255, 0.04) 25%, rgba(255, 255, 255, 0.09) 37%, rgba(255, 255, 255, 0.04) 63%);
+      background-size: 400% 100%;
+      animation: wsdShimmer 1.4s ease infinite;
+    }
+
+    .wsd-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    @keyframes wsdFadeIn {
+      from {
+        opacity: 0;
+        transform: translateY(6px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes wsdShimmer {
+      0% {
+        background-position: 100% 0;
+      }
+
+      100% {
+        background-position: 0 0;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .wsd-modal {
+        padding: 20px 18px 16px;
+        max-height: 92vh;
+        border-radius: 14px;
+      }
+
+      .wsd-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .wsd-footer {
+        justify-content: stretch;
+      }
+
+      .wsd-footer .btn {
+        flex: 1;
+      }
+    }
+
+    /* ===== Worksheet Employee Link (clickable name in history table) ===== */
+    .ws-employee-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: var(--text-primary);
+      font-weight: 600;
+      transition: color .15s ease;
+    }
+
+    .ws-employee-link:hover,
+    .ws-employee-link:focus-visible {
+      color: var(--accent-blue);
+    }
+
+    .ws-employee-link:hover .ws-eye-icon,
+    .ws-employee-link:focus-visible .ws-eye-icon {
+      opacity: 1;
+      transform: scale(1.08);
+    }
+
+    .ws-eye-icon {
+      font-size: 0.72rem;
+      color: var(--accent-blue);
+      opacity: 0.55;
+      transition: opacity .15s ease, transform .15s ease;
+    }
+
+    /* ===== Add/Edit Employee Modal ===== */
+    .emf-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(16, 20, 4, 0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity .25s ease;
+    }
+
+    .emf-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .emf-modal {
+      width: 100%;
+      max-width: 780px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 16px;
+      background: linear-gradient(160deg, rgba(15, 25, 45, 0.88), rgba(10, 18, 32, 0.78));
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transform: scale(0.92) translateY(10px);
+      opacity: 0;
+      transition: transform .28s cubic-bezier(0.34, 1.56, 0.64, 1), opacity .25s ease;
+      overflow: hidden;
+    }
+
+    .emf-overlay.active .emf-modal {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    .emf-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 22px 26px 16px;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
+
+    .emf-header h3 {
+      margin: 0 0 4px;
+      font-size: 1.15rem;
+      color: var(--text-primary);
+    }
+
+    .emf-header p {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    .emf-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background .15s ease, color .15s ease, transform .15s ease;
+    }
+
+    .emf-close:hover {
+      background: rgba(248, 113, 113, 0.15);
+      color: #f87171;
+      transform: rotate(90deg);
+    }
+
+    .emf-body {
+      overflow-y: auto;
+      padding: 20px 26px;
+      flex: 1;
+    }
+
+    .emf-columns {
+      display: flex;
+      gap: 20px;
+    }
+
+    .emf-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .emf-field {
+      margin-bottom: 14px;
+    }
+
+    .emf-field label {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .emf-req {
+      color: #f87171;
+      text-transform: none;
+    }
+
+    .emf-sub {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text-muted);
+    }
+
+    .emf-field .form-control {
+      height: 40px;
+      transition: box-shadow .15s ease, border-color .15s ease;
+    }
+
+    .emf-field .form-control:hover {
+      border-color: rgba(14, 165, 233, 0.4);
+    }
+
+    .emf-field .form-control:focus {
+      border-color: var(--accent-blue);
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.18);
+    }
+
+    .emf-readonly-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: rgba(14, 165, 233, 0.08);
+      border: 1px dashed rgba(14, 165, 233, 0.35);
+      color: var(--text-primary);
+    }
+
+    .emf-readonly-badge i {
+      color: var(--accent-blue);
+      font-size: 0.75rem;
+    }
+
+    .emf-readonly-badge input {
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-weight: 600;
+      font-size: 0.85rem;
+      width: 100%;
+      padding: 0;
+    }
+
+    .emf-readonly-badge input:focus {
+      outline: none;
+    }
+
+    .emf-password-wrap {
+      position: relative;
+    }
+
+    .emf-password-wrap .form-control {
+      padding-right: 40px;
+    }
+
+    .emf-password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      padding: 2px 4px;
+      line-height: 1;
+    }
+
+    .emf-password-toggle:hover {
+      color: var(--accent-blue);
+    }
+
+    .emf-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      padding: 14px 26px;
+      border-top: 1px solid var(--border-color);
+      background: rgba(10, 16, 28, 0.55);
+    }
+
+    @media (max-width: 860px) {
+      .emf-columns {
+        flex-direction: column;
+        gap: 14px;
+      }
+
+      .emf-modal {
+        max-height: 92vh;
+        border-radius: 14px;
+      }
+
+      .emf-header,
+      .emf-body,
+      .emf-footer {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .emf-footer {
+        justify-content: stretch;
+      }
+
+      .emf-footer .btn {
+        flex: 1;
+      }
+    }
+  </style>
 
   <div class="app-layout">
     <div id="sidebar-container"></div>
@@ -24,7 +517,7 @@
         <!-- PAGE HEADER -->
         <div class="page-header">
           <div>
-            <h1 class="page-title"> 👨‍✈️ Crew </h1>
+            <h1 class="page-title"> 👨‍✈️ Employee Management </h1>
             <p class="page-subtitle">Manage internal crew members, daily worksheets, attendance</p>
           </div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
@@ -115,58 +608,61 @@
 
   <!-- ADD / EDIT EMPLOYEE MODAL TEMPLATE -->
   <template id="employee-modal-tpl">
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px;">
-      <div style="grid-column:1/-1;">
-        <label class="form-label">Full Name <span style="color:#f87171">*</span></label>
-        <input id="emp-name" class="form-control" placeholder="e.g. John Doe">
-      </div>
-      <div>
-        <label class="form-label">
-          Crew Member ID
-          <span style="font-size:0.75rem;color:var(--text-muted);">
-            (Auto-generated)
-          </span>
-        </label>
+    <div class="emf-field" style="margin-bottom:16px;">
+      <label for="emp-name">Full Name <span class="emf-req">*</span></label>
+      <input id="emp-name" class="form-control" placeholder="e.g. John Doe">
+    </div>
 
-        <input id="emp-id" class="form-control" placeholder="Generating..." readonly>
-        <div>
-          <label class="form-label">Position / Role</label>
+    <div class="emf-columns">
+      <!-- LEFT COLUMN -->
+      <div class="emf-col">
+        <div class="emf-field">
+          <label for="emp-position">Position / Role</label>
           <input id="emp-position" class="form-control" placeholder="e.g. BDM Sales Executive">
         </div>
-        <div>
-          <label class="form-label">Phone <span style="color:#f87171">*</span></label>
+        <div class="emf-field">
+          <label for="emp-phone">Phone <span class="emf-req">*</span></label>
           <input id="emp-phone" class="form-control" placeholder="+91 98765 43210">
         </div>
-        <div>
-          <label class="form-label">Email (Login ID)</label>
-          <input id="emp-email" class="form-control" type="email" placeholder="john@company.com">
-        </div>
-        <div>
-
-
-          <div class="password-wrapper">
-            <input id="emp-password" class="form-control" type="password" placeholder="Set login password"
-              autocomplete="new-password" />
-
-            <button type="button" id="toggle-password" class="password-toggle" aria-label="Show Password">
-              👁️
-            </button>
-          </div>
-        </div>
-        <div>
-          <label class="form-label">Location</label>
+        <div class="emf-field">
+          <label for="emp-location">Location</label>
           <input id="emp-location" class="form-control" placeholder="e.g. Mumbai">
         </div>
-        <div>
-          <label class="form-label">Joining Date</label>
-          <input id="emp-joindate" class="form-control" type="date">
-        </div>
-        <div>
-          <label class="form-label">Date of Birth</label>
+        <div class="emf-field">
+          <label for="emp-dob">Date of Birth</label>
           <input id="emp-dob" class="form-control" type="date">
         </div>
       </div>
 
+      <!-- RIGHT COLUMN -->
+      <div class="emf-col">
+        <div class="emf-field">
+          <label for="emp-id">Crew Member ID <span class="emf-sub">(Auto-generated)</span></label>
+          <div class="emf-readonly-badge">
+            <i class="fas fa-id-badge"></i>
+            <input id="emp-id" placeholder="Generating..." readonly>
+          </div>
+        </div>
+        <div class="emf-field">
+          <label for="emp-email">Email (Login ID)</label>
+          <input id="emp-email" class="form-control" type="email" placeholder="john@company.com">
+        </div>
+        <div class="emf-field">
+          <label for="emp-password">Password</label>
+          <div class="emf-password-wrap">
+            <input id="emp-password" class="form-control" type="password" placeholder="Set login password"
+              autocomplete="new-password" />
+            <button type="button" id="toggle-password" class="emf-password-toggle" aria-label="Show Password">
+              👁️
+            </button>
+          </div>
+        </div>
+        <div class="emf-field">
+          <label for="emp-joindate">Joining Date</label>
+          <input id="emp-joindate" class="form-control" type="date">
+        </div>
+      </div>
+    </div>
   </template>
 
   <!-- CHECKOUT DAILY WORKSHEET MODAL TEMPLATE -->
@@ -249,6 +745,9 @@
     let attendances = {};
     let tasks = [];
     let editingId = null;
+    // Holds the worksheet list currently shown in the "View Worksheets" modal
+    // so the detail modal can look entries up by index without a second fetch.
+    let currentWorksheets = [];
 
     const currentUser = window.UI ? window.UI.getUser() : JSON.parse(localStorage.getItem('user') || '{}');
     const canManage = ['ADMIN', 'HR'].includes(currentUser.role);
@@ -297,7 +796,6 @@
       const pendingTasks = tasks.filter(t => t.status !== 'COMPLETED').length;
       UI.countUp(document.getElementById('stat-total'), employees.length);
       UI.countUp(document.getElementById('stat-positions'), positions.size);
-      UI.countUp(document.getElementById('stat-tasks'), pendingTasks);
     }
 
     // ─── Position Filter ─────────────────────────────────────────────────────
@@ -476,13 +974,24 @@
       try {
         const res = await window.ApiService.employees.getWorksheets();
         const list = res.data || [];
+        // Cache the list so the detail modal (opened by index) can read it
+        // without a second network call.
+        currentWorksheets = list;
 
         const tableRows = list.length === 0
           ? `<tr><td colspan="5" style="text-align:center;padding:20px;">No worksheets submitted yet.</td></tr>`
-          : list.map(w => `
+          : list.map((w, idx) => `
         <tr>
           <td style="font-size:0.85rem;">${w.date}</td>
-          <td><strong>${w.employeeId ? w.employeeId.name : 'Employee'}</strong></td>
+          <td>
+            <span class="ws-employee-link" tabindex="0" role="button"
+              aria-label="View full worksheet for ${w.employeeId ? w.employeeId.name : 'Employee'}"
+              onclick="openWorksheetDetailModal(${idx})"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openWorksheetDetailModal(${idx});}">
+              <i class="fas fa-eye ws-eye-icon"></i>
+              <strong>${w.employeeId ? w.employeeId.name : 'Employee'}</strong>
+            </span>
+          </td>
           <td style="font-size:0.85rem;">${w.callsMade} calls | ${w.vesselsContacted} vessels</td>
           <td style="font-size:0.85rem;">${w.summaryOfWork}</td>
           <td style="font-size:0.8rem;color:var(--text-muted);">${w.notes || '—'}</td>
@@ -516,6 +1025,141 @@
       }
     }
 
+    // ─── Full Worksheet Detail Modal (opened from employee name click) ──────
+    function openWorksheetDetailModal(idx) {
+      const w = currentWorksheets[idx];
+      if (!w) return;
+
+      const empName = w.employeeId ? w.employeeId.name : 'Employee';
+      const empIdLabel = (w.employeeId && (w.employeeId.employeeId || w.employeeId._id)) || '—';
+      const initials = empName.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+      const submittedTime = (w.createdAt || w.submittedAt)
+        ? new Date(w.createdAt || w.submittedAt).toLocaleString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '—';
+      const status = w.status || 'Submitted';
+      const statusClassMap = { Submitted: 'badge-blue', Approved: 'badge-green', Pending: 'badge-yellow', Rejected: 'badge-red' };
+      const statusClass = statusClassMap[status] || 'badge-blue';
+      const managerComments = w.managerComments || w.managerComment || null;
+
+      // Remove any existing detail modal before opening a new one
+      const existing = document.getElementById('wsd-overlay');
+      if (existing) existing.remove();
+
+      const overlay = document.createElement('div');
+      overlay.id = 'wsd-overlay';
+      overlay.className = 'wsd-overlay';
+      overlay.innerHTML = `
+        <div class="wsd-modal glass-card" role="dialog" aria-modal="true" aria-labelledby="wsd-title">
+          <button class="wsd-close" id="wsd-close" aria-label="Close worksheet details">
+            <i class="fas fa-times"></i>
+          </button>
+
+          <div class="wsd-header">
+            <div class="wsd-avatar">${initials}</div>
+            <div class="wsd-heading">
+              <h3 id="wsd-title">${empName}</h3>
+              <div class="wsd-subline">
+                <span class="wsd-empid"><i class="fas fa-id-badge"></i> ${empIdLabel}</span>
+                <span class="badge ${statusClass}">${status}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="wsd-body" id="wsd-body">
+            <div class="wsd-skeleton">
+              <div class="wsd-skel-line" style="width:60%"></div>
+              <div class="wsd-skel-line" style="width:92%"></div>
+              <div class="wsd-skel-line" style="width:78%"></div>
+              <div class="wsd-skel-line" style="width:85%"></div>
+            </div>
+          </div>
+
+          <div class="wsd-footer">
+            <button class="btn btn-secondary btn-sm" id="wsd-print"><i class="fas fa-print"></i> Print</button>
+            <button class="btn btn-secondary btn-sm" id="wsd-pdf"><i class="fas fa-file-pdf"></i> Download PDF</button>
+            <button class="btn btn-primary btn-sm" id="wsd-close-btn">Close</button>
+          </div>
+        </div>
+      `;
+      document.body.appendChild(overlay);
+
+      // Trigger fade + zoom entrance on next frame
+      requestAnimationFrame(() => overlay.classList.add('active'));
+
+      // Data already lives in memory (from getWorksheets()), but we still show
+      // a brief skeleton state for a consistent, premium feel — and this is
+      // exactly where a real per-row API call would slot in if one is added
+      // later, without touching any of the surrounding modal logic.
+      setTimeout(() => {
+        const body = overlay.querySelector('#wsd-body');
+        if (!body) return;
+        body.innerHTML = `
+          <div class="wsd-grid">
+            <div class="wsd-field"><label>Date</label><div class="wsd-value">${w.date || '—'}</div></div>
+            <div class="wsd-field"><label>Activity</label><div class="wsd-value">${w.callsMade ?? 0} calls · ${w.vesselsContacted ?? 0} vessels</div></div>
+            <div class="wsd-field"><label>Number of Calls</label><div class="wsd-value">${w.callsMade ?? '—'}</div></div>
+            <div class="wsd-field"><label>Number of Vessels</label><div class="wsd-value">${w.vesselsContacted ?? '—'}</div></div>
+            <div class="wsd-field"><label>Submitted Time</label><div class="wsd-value">${submittedTime}</div></div>
+            <div class="wsd-field"><label>Employee ID</label><div class="wsd-value">${empIdLabel}</div></div>
+            <div class="wsd-field wsd-span2"><label>Summary of Work</label><div class="wsd-value wsd-longtext">${w.summaryOfWork || '—'}</div></div>
+            <div class="wsd-field wsd-span2"><label>Notes</label><div class="wsd-value wsd-longtext">${w.notes || '—'}</div></div>
+            ${managerComments ? `<div class="wsd-field wsd-span2"><label>Manager Comments</label><div class="wsd-value wsd-longtext">${managerComments}</div></div>` : ''}
+          </div>
+        `;
+      }, 220);
+
+      function closeModal() {
+        overlay.classList.remove('active');
+        setTimeout(() => overlay.remove(), 260);
+        document.removeEventListener('keydown', escHandler);
+      }
+
+      function escHandler(e) {
+        if (e.key === 'Escape') closeModal();
+      }
+
+      overlay.querySelector('#wsd-close').onclick = closeModal;
+      overlay.querySelector('#wsd-close-btn').onclick = closeModal;
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+      });
+      document.addEventListener('keydown', escHandler);
+
+      // Bonus: Print Worksheet
+      overlay.querySelector('#wsd-print').onclick = () => {
+        const printWindow = window.open('', '_blank', 'width=700,height=800');
+        if (!printWindow) return UI.showToast('Please allow pop-ups to print.', 'warning');
+        printWindow.document.write(`
+          <html><head><title>Worksheet - ${empName} - ${w.date || ''}</title>
+          <style>
+            body{font-family:Arial, sans-serif;padding:24px;color:#111;}
+            h2{margin-bottom:4px;}
+            .row{margin-bottom:10px;}
+            .label{font-weight:600;color:#555;font-size:12px;text-transform:uppercase;letter-spacing:.03em;}
+            .value{font-size:14px;margin-top:2px;}
+          </style></head><body>
+          <h2>Daily Worksheet</h2>
+          <div class="row"><div class="label">Employee</div><div class="value">${empName} (${empIdLabel})</div></div>
+          <div class="row"><div class="label">Date</div><div class="value">${w.date || '—'}</div></div>
+          <div class="row"><div class="label">Calls Made</div><div class="value">${w.callsMade ?? '—'}</div></div>
+          <div class="row"><div class="label">Vessels Contacted</div><div class="value">${w.vesselsContacted ?? '—'}</div></div>
+          <div class="row"><div class="label">Summary of Work</div><div class="value">${w.summaryOfWork || '—'}</div></div>
+          <div class="row"><div class="label">Notes</div><div class="value">${w.notes || '—'}</div></div>
+          <div class="row"><div class="label">Status</div><div class="value">${status}</div></div>
+          ${managerComments ? `<div class="row"><div class="label">Manager Comments</div><div class="value">${managerComments}</div></div>` : ''}
+          </body></html>
+        `);
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 300);
+      };
+
+      // Bonus: Download PDF (UI placeholder — no backend endpoint yet)
+      overlay.querySelector('#wsd-pdf').onclick = () => {
+        UI.showToast('PDF export is coming soon — backend endpoint not connected yet.', 'warning');
+      };
+    }
+
     // ─── Open Add / Edit Employee Modal ──────────────────────────────────────
     function openEmployeeModal(id = null) {
       if (!canManage) return UI.showToast('Only Admin or HR can manage employees.', 'warning');
@@ -523,65 +1167,85 @@
       const emp = id ? employees.find(e => e.id === id) : null;
       const tpl = document.getElementById('employee-modal-tpl');
 
-      const modal = UI.createModal({
-        title: emp ? '✏️ Edit Employee' : '➕ Add Employee & Create Login',
-        bodyHtml: tpl.innerHTML,
-        footerHtml: `
-      <button class="btn btn-secondary" id="emp-cancel">Cancel</button>
-      <button class="btn btn-primary"   id="emp-save">${emp ? 'Update' : 'Save'} Employee</button>
-    `
-      });
+      // Remove any existing add/edit modal before opening a new one
+      const existing = document.getElementById('emf-overlay');
+      if (existing) existing.remove();
+
+      const overlay = document.createElement('div');
+      overlay.id = 'emf-overlay';
+      overlay.className = 'emf-overlay';
+      overlay.innerHTML = `
+        <div class="emf-modal glass-card" role="dialog" aria-modal="true" aria-labelledby="emf-title">
+          <div class="emf-header">
+            <div>
+              <h3 id="emf-title">${emp ? '✏️ Edit Crew Member' : '➕ Add Crew Member & Create Login'}</h3>
+              <p>Fields marked * are required.</p>
+            </div>
+            <button class="emf-close" id="emf-close" aria-label="Close">
+              <i class="fas fa-times"></i>
+            </button>
+          </div>
+          <div class="emf-body" id="emf-body"></div>
+          <div class="emf-footer">
+            <button class="btn btn-secondary" id="emp-cancel">Cancel</button>
+            <button class="btn btn-primary" id="emp-save">${emp ? 'Update' : 'Save'} Employee</button>
+          </div>
+        </div>
+      `;
+      overlay.querySelector('#emf-body').innerHTML = tpl.innerHTML;
+      document.body.appendChild(overlay);
+      document.body.style.overflow = 'hidden';
+
+      // Trigger fade + zoom entrance on next frame
+      requestAnimationFrame(() => overlay.classList.add('active'));
 
       // Password show/hide
-      const passwordInput = modal.querySelector("#emp-password");
-      const togglePassword = modal.querySelector("#toggle-password");
+      const passwordInput = overlay.querySelector('#emp-password');
+      const togglePassword = overlay.querySelector('#toggle-password');
 
-      togglePassword.addEventListener("click", function () {
-
-        if (passwordInput.type === "password") {
-          passwordInput.type = "text";
-          this.innerHTML = "🙈";
+      togglePassword.addEventListener('click', function () {
+        if (passwordInput.type === 'password') {
+          passwordInput.type = 'text';
+          this.innerHTML = '🙈';
         } else {
-          passwordInput.type = "password";
-          this.innerHTML = "👁️";
+          passwordInput.type = 'password';
+          this.innerHTML = '👁️';
         }
-
       });
 
       if (emp) {
-        modal.querySelector('#emp-name').value = emp.name || '';
+        overlay.querySelector('#emp-name').value = emp.name || '';
 
-        const empIdInput = modal.querySelector('#emp-id');
+        const empIdInput = overlay.querySelector('#emp-id');
         empIdInput.value = emp.employeeId || '';
 
         // Employee ID cannot be changed while editing
         empIdInput.readOnly = true;
-        empIdInput.style.opacity = '0.6';
         empIdInput.title = 'Employee ID cannot be changed after creation';
 
-        modal.querySelector('#emp-position').value = emp.position || '';
-        modal.querySelector('#emp-phone').value = emp.phone || '';
-        modal.querySelector('#emp-email').value = emp.email || '';
+        overlay.querySelector('#emp-position').value = emp.position || '';
+        overlay.querySelector('#emp-phone').value = emp.phone || '';
+        overlay.querySelector('#emp-email').value = emp.email || '';
 
-        const pwdInput = modal.querySelector('#emp-password');
+        const pwdInput = overlay.querySelector('#emp-password');
         pwdInput.placeholder = 'Leave blank to keep existing password';
 
-        modal.querySelector('#emp-location').value = emp.location || '';
+        overlay.querySelector('#emp-location').value = emp.location || '';
 
         if (emp.joinDate) {
-          modal.querySelector('#emp-joindate').value =
+          overlay.querySelector('#emp-joindate').value =
             new Date(emp.joinDate).toISOString().split('T')[0];
         }
 
         if (emp.dateOfBirth) {
-          modal.querySelector('#emp-dob').value =
+          overlay.querySelector('#emp-dob').value =
             new Date(emp.dateOfBirth).toISOString().split('T')[0];
         }
 
       } else {
 
         // NEW EMPLOYEE → AUTO-GENERATE EMPLOYEE ID
-        const empIdInput = modal.querySelector('#emp-id');
+        const empIdInput = overlay.querySelector('#emp-id');
 
         const nextNumber = employees.length + 1;
 
@@ -589,12 +1253,34 @@
           `CRW-${String(nextNumber).padStart(3, '0')}`;
 
         empIdInput.readOnly = true;
-        empIdInput.style.opacity = '0.7';
         empIdInput.title = 'Employee ID is automatically generated';
       }
 
-      modal.querySelector('#emp-cancel').onclick = () => modal.close();
-      modal.querySelector('#emp-save').onclick = () => saveEmployee(modal);
+      // ─ Close handling: Esc key, backdrop click, close/cancel buttons,
+      //   and background-scroll lock while the modal is open.
+      function closeModal() {
+        overlay.classList.remove('active');
+        document.body.style.overflow = '';
+        setTimeout(() => overlay.remove(), 260);
+        document.removeEventListener('keydown', escHandler);
+      }
+
+      function escHandler(e) {
+        if (e.key === 'Escape') closeModal();
+      }
+
+      overlay.querySelector('#emf-close').onclick = closeModal;
+      overlay.querySelector('#emp-cancel').onclick = closeModal;
+      overlay.addEventListener('click', (e) => {
+        if (e.target === overlay) closeModal();
+      });
+      document.addEventListener('keydown', escHandler);
+
+      // saveEmployee(modal) expects modal.querySelector(...) and modal.close() —
+      // overlay is a real DOM node, so we just attach .close to it directly.
+      overlay.close = closeModal;
+
+      overlay.querySelector('#emp-save').onclick = () => saveEmployee(overlay);
     }
 
     // ─── Save Employee ───────────────────────────────────────────────────────
@@ -708,7 +1394,7 @@
       loadEmployees();
     });
   </script>
-
+  <script src="/public/js/components/ocean-bg.js"></script>
 </body>
 
 </html>

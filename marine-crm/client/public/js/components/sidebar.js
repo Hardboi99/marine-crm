@@ -21,29 +21,29 @@ function renderSidebar() {
 
       <div class="sidebar-nav">
         <div class="nav-section-label">Overview</div>
-        <a href="/pages/dashboard.html" class="nav-item ${isActive('dashboard')}">
+        <a href="/pages/dashboard.html" class="nav-item ${isActive('dashboard')}" data-tooltip="Dashboard">
           <span class="nav-icon">📊</span>
           <span class="nav-label">Dashboard</span>
         </a>
 
         <div class="nav-section-label">BDM Sales Pipeline</div>
-        <a href="/pages/countries.html" class="nav-item ${isActive('countries')}">
+        <a href="/pages/countries.html" class="nav-item ${isActive('countries')}" data-tooltip="Country Management">
           <span class="nav-icon">🌐</span>
           <span class="nav-label">Country Management</span>
         </a>
-        <a href="/pages/companies.html" class="nav-item ${isActive('companies')}">
+        <a href="/pages/companies.html" class="nav-item ${isActive('companies')}" data-tooltip="Vessel Owner Directory">
           <span class="nav-icon">🏢</span>
           <span class="nav-label">Vessel Owner Directory</span>
         </a>
-        <a href="/pages/calling-report.html" class="nav-item ${isActive('calling')}">
+        <a href="/pages/calling-report.html" class="nav-item ${isActive('calling')}" data-tooltip="Daily Calling Report">
           <span class="nav-icon">📞</span>
           <span class="nav-label">Daily Calling Report</span>
         </a>
-        <a href="/pages/appointments.html" class="nav-item ${isActive('appointments')}">
+        <a href="/pages/appointments.html" class="nav-item ${isActive('appointments')}" data-tooltip="Appointments Engine">
           <span class="nav-icon">📅</span>
           <span class="nav-label">Appointments Engine</span>
         </a>
-        <a href="/pages/contracts.html" class="nav-item ${isActive('contracts')}">
+        <a href="/pages/contracts.html" class="nav-item ${isActive('contracts')}" data-tooltip="Contracts">
           <span class="nav-icon">📜</span>
           <span class="nav-label">Contracts</span>
         </a>
@@ -52,7 +52,7 @@ function renderSidebar() {
 
 <a href="/pages/employee.html" class="nav-item ${isActive('employee')}">
   <span class="nav-icon">👨‍✈️ </span>
-  <span class="nav-label"> Crew </span>
+  <span class="nav-label">Employees</span>
 </a>
 
 <a href="/pages/tasks.html" class="nav-item ${isActive('tasks')}">
@@ -61,33 +61,35 @@ function renderSidebar() {
 </a>
 
         <div class="nav-section-label">Crewing & Recruitment</div>
-        <a href="/pages/candidates.html" class="nav-item ${isActive('candidates')}">
+        <a href="/pages/candidates.html" class="nav-item ${isActive('candidates')}" data-tooltip="Seafarers Directory">
           <span class="nav-icon">👨‍✈️</span>
           <span class="nav-label">Seafarers Directory</span>
         </a>
-        <a href="/pages/requirements.html" class="nav-item ${isActive('requirements')}">
+        <a href="/pages/requirements.html" class="nav-item ${isActive('requirements')}" data-tooltip="Requirements Vacancies">
           <span class="nav-icon">📋</span>
           <span class="nav-label">Requirements Vacancies</span>
         </a>
 
         <div class="nav-section-label">Compliance & Logistics</div>
-        <a href="/pages/ops.html" class="nav-item ${isActive('ops')}">
+        <a href="/pages/ops.html" class="nav-item ${isActive('ops')}" data-tooltip="Operations Pipeline">
           <span class="nav-icon">⚙️</span>
           <span class="nav-label">Operations Pipeline</span>
         </a>
-        <a href="/pages/reception.html" class="nav-item ${isActive('reception')}">
+
+        <div class="nav-section-label">Front Desk</div>
+        <a href="/pages/reception.html" class="nav-item ${isActive('reception')}" data-tooltip="Reception Desk">
           <span class="nav-icon">🛎️</span>
           <span class="nav-label">Reception Desk</span>
         </a>
 
         <div class="nav-section-label">Updates & Analytics</div>
-        <a href="/pages/followups.html" class="nav-item ${isActive('followups')}">
+        <a href="/pages/followups.html" class="nav-item ${isActive('followups')}" data-tooltip="Follow-up Queue">
           <span class="nav-icon">🔔</span>
           <span class="nav-label">Follow-up Queue</span>
           <span class="nav-badge nav-badge-pulse" id="followup-badge" style="display:none">0</span>
         </a>
         ${['ADMIN', 'HR', 'MANAGER'].includes(JSON.parse(localStorage.getItem('user') || '{}').role) ? `
-        <a href="/pages/reports.html" class="nav-item ${isActive('reports')}">
+        <a href="/pages/reports.html" class="nav-item ${isActive('reports')}" data-tooltip="Reports & Analytics">
           <span class="nav-icon">📈</span>
           <span class="nav-label">Reports & Analytics</span>
         </a>
@@ -185,7 +187,9 @@ function renderNavbar() {
 
   navbarContainer.innerHTML = `
     <nav class="navbar">
-      <button class="navbar-toggle" id="sidebar-toggle-btn" title="Toggle Sidebar">☰</button>
+      <button class="navbar-toggle" id="sidebar-toggle-btn" title="Toggle Sidebar" aria-label="Toggle Sidebar">
+        <span class="hbg-line"></span><span class="hbg-line"></span><span class="hbg-line"></span>
+      </button>
 
       <div class="navbar-search">
         <span class="search-icon">🔍</span>
@@ -198,6 +202,11 @@ function renderNavbar() {
         <button class="btn btn-secondary btn-sm" onclick="window.location.href='/pages/organization chat.html'" title="Org Chart" style="display:flex;align-items:center;gap:5px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style="flex-shrink:0"><circle cx="12" cy="6" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="18" r="2.6" stroke="currentColor" stroke-width="1.6"/><circle cx="19" cy="18" r="2.6" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v4M9 15l-2.5 1.5M15 15l2.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
           Org Chart
+        </button>
+
+        <button class="btn btn-secondary btn-sm" onclick="window.location.href='/pages/reception.html'" title="Reception Desk" style="display:flex;align-items:center;gap:5px;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="M22 20H2M5 16h14a2 2 0 0 0 2-2V9a7 7 0 0 0-14 0v5a2 2 0 0 0 2 2zM12 2v3"/></svg>
+          Reception
         </button>
 
         <div class="user-menu" id="user-menu-btn" title="${user.name || 'User'}">
@@ -265,6 +274,12 @@ function renderNavbar() {
   }
 
   themeBtn.addEventListener('click', () => {
+    // Briefly enable the blanket transition class so every themed
+    // element (sidebar, cards, tables, charts, inputs, modals...)
+    // cross-fades together instead of the toggle only re-coloring
+    // whatever happened to have its own transition rule.
+    document.documentElement.classList.add('theme-transition');
+
     const currentTheme = document.documentElement.getAttribute('data-theme');
     const newTheme = currentTheme === 'light' ? 'dark' : 'light';
     if (newTheme === 'dark') {
@@ -274,6 +289,14 @@ function renderNavbar() {
     }
     localStorage.setItem('theme', newTheme);
     themeBtn.innerHTML = newTheme === 'light' ? '☀️ Light' : '🌙 Dark';
+
+    // Let any page-level listener (e.g. chart re-theming in
+    // dashboard.html) know the theme just changed.
+    window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
+
+    window.setTimeout(() => {
+      document.documentElement.classList.remove('theme-transition');
+    }, 400);
   });
 }
 
@@ -307,7 +330,21 @@ function renderFooter() {
 }
 
 // Apply the saved theme as early as possible (before first paint of content)
-// so there is no flash of the wrong theme.
+// so there is no flash of the wrong theme. NOTE: because this file is
+// loaded via <script src> near the bottom of <body>, it still runs after
+// the HTML has painted once. For a true zero-flash load, add this same
+// three-line check inline in the <head> of every page, before the
+// stylesheet <link> tags:
+//
+//   <script>
+//     (function () {
+//       var t = localStorage.getItem('theme') || 'dark';
+//       if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+//     })();
+//   </script>
+//
+// (dashboard.html already has this inline snippet — copy it to any other
+// page that still shows a dark/light flash on load.)
 (function applyStoredThemeEarly() {
   const savedTheme = localStorage.getItem('theme') || 'dark';
   if (savedTheme === 'light') {
@@ -324,4 +361,31 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSidebar();
   renderNavbar();
   renderFooter();
+});
+
+// Lightweight scroll-reveal for any element marked [data-reveal]
+// (used by the dashboard's stat/chart/card sections). No-op if the
+// browser lacks IntersectionObserver, or if the user prefers
+// reduced motion — those elements simply stay at full opacity via
+// the CSS fallback in dashboard-theme-and-motion.css.
+document.addEventListener('DOMContentLoaded', () => {
+  if (!('IntersectionObserver' in window)) return;
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('is-visible');
+        io.unobserve(entry.target);
+      }
+    });
+  }, { threshold: 0.12 });
+
+  // Elements are added dynamically (dashboard stats load via API), so
+  // observe on a short delay + also expose a helper other scripts can
+  // call after they inject new [data-reveal] nodes.
+  window.observeReveal = function (root = document) {
+    root.querySelectorAll('[data-reveal]:not(.is-visible)').forEach(el => io.observe(el));
+  };
+  window.setTimeout(() => window.observeReveal(), 50);
 });

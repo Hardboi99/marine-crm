@@ -515,19 +515,8 @@ body.custom-cursor-active .cursor-ring.is-down {
 
 /* ============================================================
    Marine BDM CRM — Fix Pack v1
-   Load this AFTER /public/css/styles.css on every page:
-   <link rel="stylesheet" href="/public/css/styles.css">
-   <link rel="stylesheet" href="/public/css/css-fixes.css">
    ============================================================ */
 
-/* ----------------------------------------------------------------
-   0. SIDEBAR-ONLY TEXT COLORS
-   The sidebar background (--bg-sidebar) stays dark in BOTH themes
-   by design, but nav-item text was using --text-secondary /
-   --text-primary, which flip to dark colors in light mode. That's
-   why sidebar text (and hover text) went invisible in light mode.
-   Fix: give the sidebar its own theme-independent text tokens.
-   ---------------------------------------------------------------- */
 :root {
   --sidebar-text: #8FB4B0;
   --sidebar-text-hover: #E7F6F2;
@@ -535,7 +524,6 @@ body.custom-cursor-active .cursor-ring.is-down {
   --sidebar-text-active: var(--accent-aqua);
 }
 [data-theme="light"] {
-  /* Keep the same light-on-dark tokens — sidebar bg is dark in light mode too */
   --sidebar-text: #8FB4B0;
   --sidebar-text-hover: #E7F6F2;
   --sidebar-text-muted: #6B8C89;
@@ -568,15 +556,6 @@ body.custom-cursor-active .cursor-ring.is-down {
   color: var(--sidebar-text-hover);
 }
 
-/* ----------------------------------------------------------------
-   1. SIDEBAR COLLAPSED — ICON VISIBILITY
-   Previously only .nav-label opacity was set to 0 while it kept its
-   full text width. In the 76px collapsed rail that pushed / clipped
-   the icon (overflow:hidden + justify-content:center centers the
-   icon+ghost-label pair, not just the icon). Collapse the label's
-   box, not just its opacity, so the icon is always fully visible
-   and perfectly centered.
-   ---------------------------------------------------------------- */
 .sidebar.collapsed .nav-label {
   opacity: 0;
   width: 0;
@@ -603,7 +582,6 @@ body.custom-cursor-active .cursor-ring.is-down {
 .sidebar.collapsed .sidebar-logo .logo-icon {
   margin: 0;
 }
-/* Badge stays visible + repositioned in collapsed rail */
 .sidebar.collapsed .nav-badge[style*="inline-block"] {
   position: absolute;
   right: 6px;
@@ -612,25 +590,6 @@ body.custom-cursor-active .cursor-ring.is-down {
   transform: scale(0.72);
 }
 
-/* ----------------------------------------------------------------
-   2. DARK / LIGHT MODE — CONSISTENT APPLICATION
-   Root cause of "theme doesn't apply on some pages": those pages
-   were missing the early inline script that sets [data-theme]
-   BEFORE first paint (see snippet below — add to <head> of every
-   page, before the styles.css <link>):
-
-   <script>
-     (function () {
-       var t = localStorage.getItem('theme') || 'dark';
-       if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
-     })();
-   </script>
-
-   This stylesheet also makes sure any element outside the tracked
-   selector list in styles.css still transitions and re-themes
-   cleanly (see §5 Global Transitions below), and hardens a couple
-   of surfaces that were hardcoded to dark colors.
-   ---------------------------------------------------------------- */
 [data-theme="light"] .login-page-body,
 [data-theme="light"] .login-gradient-bg {
   background: linear-gradient(180deg, #EAF7F5 0%, #F5FCFB 100%);
@@ -647,13 +606,6 @@ body.custom-cursor-active .cursor-ring.is-down {
 }
 [data-theme="light"] .login-input::placeholder { color: rgba(75, 110, 107, 0.6); }
 
-/* ----------------------------------------------------------------
-   3. CURSOR EFFECT — remove load-time flicker + tighten tracking
-   The dot/ring had no default opacity, so on every page load they
-   rendered fully opaque at (0,0) for one frame before the first
-   mousemove event — the "flicker at the corner" bug. Hide them
-   until the first real pointer position is known.
-   ---------------------------------------------------------------- */
 .cursor-dot,
 .cursor-ring {
   opacity: 0;
@@ -668,24 +620,6 @@ body.custom-cursor-active .cursor-ring.is-down {
   background: rgba(13, 148, 136, 0.08);
 }
 
-/* ----------------------------------------------------------------
-   4. HAMBURGER <-> CLOSE ICON ANIMATION
-   renderNavbar() now renders 3 spans instead of a "☰" character:
-   <button class="navbar-toggle" id="sidebar-toggle-btn">
-     <span class="hbg-line"></span><span class="hbg-line"></span><span class="hbg-line"></span>
-   </button>
-   sidebar.js toggles the .is-open class on that button whenever the
-   mobile drawer / desktop collapse state changes.
-   ---------------------------------------------------------------- */
-.navbar-toggle {
-  width: 36px;
-  height: 36px;
-  display: inline-flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
-}
 .navbar-toggle .hbg-line {
   display: block;
   width: 18px;
@@ -698,23 +632,6 @@ body.custom-cursor-active .cursor-ring.is-down {
 }
 .navbar-toggle:hover .hbg-line { background: var(--accent-primary); }
 
-.navbar-toggle.is-open .hbg-line:nth-child(1) {
-  transform: translateY(7px) rotate(45deg);
-}
-.navbar-toggle.is-open .hbg-line:nth-child(2) {
-  opacity: 0;
-  transform: scaleX(0);
-}
-.navbar-toggle.is-open .hbg-line:nth-child(3) {
-  transform: translateY(-7px) rotate(-45deg);
-}
-
-/* ----------------------------------------------------------------
-   5. GLOBAL TRANSITIONS
-   Extends the transitioned-element list in styles.css to every
-   common interactive surface, so theme swaps and state changes
-   (hover/focus/open) never feel like a hard cut.
-   ---------------------------------------------------------------- */
 button, .btn, a.nav-item, .navbar-btn, .theme-toggle, .user-menu,
 .dropdown, .dropdown-menu, select.form-control, input.form-control,
 textarea.form-control, .page-btn, .badge, .chart-card, .stat-card,
@@ -726,12 +643,6 @@ textarea.form-control, .page-btn, .badge, .chart-card, .stat-card,
     opacity 0.25s ease;
 }
 
-/* ----------------------------------------------------------------
-   6. FOOTER
-   Injected automatically into every authenticated page's
-   .main-content by sidebar.js. Standalone pages (login, org chart)
-   include the same markup manually.
-   ---------------------------------------------------------------- */
 .app-footer {
   display: flex;
   flex-wrap: wrap;
@@ -763,23 +674,15 @@ textarea.form-control, .page-btn, .badge, .chart-card, .stat-card,
   .app-footer .footer-sep { display: none; }
 }
 
-/* Make sure the app fills the viewport height so the footer sits at
-   the bottom instead of riding up under short pages. */
 .main-content {
   min-height: 100vh;
 }
 .page-content {
   display: flex;
   flex-direction: column;
-  min-height: calc(100vh - 70px - 54px); /* navbar + footer */
+  min-height: calc(100vh - 70px - 54px);
 }
 
-/* ----------------------------------------------------------------
-   7. ORG CHART — ocean theme, dark/light support, animation
-   The org-chart page now uses the same CSS variables as the rest of
-   the app (imported via styles.css) instead of hardcoded dark-only
-   colors, so it follows the theme toggle correctly.
-   ---------------------------------------------------------------- */
 .orgchart-shell {
   min-height: 100vh;
   display: flex;
@@ -954,13 +857,29 @@ textarea.form-control, .page-btn, .badge, .chart-card, .stat-card,
   .oc-tree { padding-top: 4px; }
 }
 
-.sidebar.collapsed .nav-label {
-  opacity: 0;
+.nav-badge {
+  margin-left: auto;
+  background: linear-gradient(135deg, var(--red), #EF4444);
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 20px;
+  min-width: 20px;
+  text-align: center;
+  transition: opacity var(--transition);
 }
 
-.sidebar.collapsed .nav-item {
-  justify-content: center;
-  padding-left: 10px !important;
+.sidebar.collapsed .nav-badge {
+  opacity: 0;
+  position: absolute;
+  right: 6px;
+  top: 6px;
+}
+
+.sidebar.collapsed .nav-badge[style*="inline-block"] {
+  opacity: 1;
+  transform: scale(0.75);
 }
 
 /* Collapsed-mode tooltip on hover */
@@ -987,31 +906,6 @@ textarea.form-control, .page-btn, .badge, .chart-card, .stat-card,
   animation: fadeIn 0.15s ease forwards;
 }
 
-.nav-badge {
-  margin-left: auto;
-  background: linear-gradient(135deg, var(--red), #EF4444);
-  color: #fff;
-  font-size: 0.65rem;
-  font-weight: 700;
-  padding: 2px 7px;
-  border-radius: 20px;
-  min-width: 20px;
-  text-align: center;
-  transition: opacity var(--transition);
-}
-
-.sidebar.collapsed .nav-badge {
-  opacity: 0;
-  position: absolute;
-  right: 6px;
-  top: 6px;
-}
-
-.sidebar.collapsed .nav-badge[style*="inline-block"] {
-  opacity: 1;
-  transform: scale(0.75);
-}
-
 /* ─── Main Content ───────────────────────────────────────────── */
 .main-content {
   flex: 1;
@@ -1024,8 +918,6 @@ textarea.form-control, .page-btn, .badge, .chart-card, .stat-card,
   z-index: 1;
 }
 
-/* Reliable collapse hook: JS toggles this class directly on .main-content
-   (sibling-combinator on .sidebar doesn't reach it, since #sidebar-container wraps it) */
 .main-content.sidebar-collapsed {
   margin-left: var(--sidebar-collapsed);
 }
@@ -1561,10 +1453,8 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 
 .table-actions { display: flex; gap: 8px; }
 
-.table tbody tr .row-actions {
-    opacity: 1;
-    transition: none;
-}
+.table tbody tr .row-actions { opacity: 0; transition: opacity 0.15s ease; }
+.table tbody tr:hover .row-actions { opacity: 1; }
 
 /* ─── Badges & Status Pills ──────────────────────────────────── */
 .badge {
@@ -1736,7 +1626,6 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   text-transform: uppercase; letter-spacing: 0.05em;
 }
 
-/* Non-inline variants matching appointments.html inline classes */
 .outcome-action-btn {
   padding: 8px 15px; border-radius: 8px; border: 2px solid transparent; cursor: pointer; font-weight: 700;
   display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s ease; font-family: inherit;
@@ -2576,9 +2465,7 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 /* ─── REPORT SECTION ─────────────────────────────────────────── */
 .report-date-picker { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 
-/* ── Custom cursor: soft aqua glow, no ring/circle ───────────────────────
-   Add this to css-fixes.css, replacing any existing .cursor-dot /
-   .cursor-ring rules from the old ring-based cursor. */
+/* ── Custom cursor: soft aqua glow, no ring/circle ──────────────────── */
 
 body.custom-cursor-active,
 body.custom-cursor-active * {
@@ -2594,10 +2481,9 @@ body.custom-cursor-active * {
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
-  opacity: 0;                 /* stays hidden until the first mousemove */
+  opacity: 0;
   transition: opacity 0.25s ease, width 0.2s ease, height 0.2s ease;
 
-  /* Soft aqua/ocean light — no border, no outline, no visible edge */
   background: radial-gradient(
     circle,
     rgba(94, 234, 212, 0.55) 0%,
@@ -2608,8 +2494,6 @@ body.custom-cursor-active * {
   filter: blur(2px);
 }
 
-/* Slightly larger, slightly brighter glow over interactive elements —
-   still just light, never a hard-edged circle. */
 .cursor-glow.is-hover {
   width: 42px;
   height: 42px;
@@ -2622,15 +2506,11 @@ body.custom-cursor-active * {
   );
 }
 
-/* Gentle compression on click, no shape/border change */
 .cursor-glow.is-down {
   width: 20px;
   height: 20px;
 }
 
-/* Never show the custom cursor on touch/coarse-pointer devices, or when
-   the user prefers reduced motion — cursor.js already skips creating the
-   element in these cases, this is just a defensive fallback. */
 @media (pointer: coarse), (prefers-reduced-motion: reduce) {
   .cursor-glow {
     display: none !important;
@@ -2639,4 +2519,465 @@ body.custom-cursor-active * {
   body.custom-cursor-active * {
     cursor: auto;
   }
+}
+
+
+/* ============================================================
+   SECTION: THEME COMPLETENESS + MOTION PACK
+   (merged in — previously a separate dashboard-theme-and-motion.css)
+   ============================================================ */
+
+/* ------------------------------------------------------------
+   1. THEME COMPLETENESS FIXES
+   ------------------------------------------------------------
+   Root cause of "dark mode / light mode not working": several
+   pages (dashboard.html in particular) had a page-local <style>
+   block that redeclared .stat-card, .card, .page-title, etc.
+   with hardcoded hex colors (#112240, #fff, #94A3B8...). Because
+   that block loads AFTER styles1.css, it always won the cascade
+   — so those elements stayed dark-mode-colored even in light
+   mode. Fix applied in dashboard.html: that block was removed /
+   converted to use var(--...) tokens, same as every other page.
+   The rules below are the safety net: they re-assert the
+   variable-based colors with a touch of extra specificity so any
+   remaining page-local hardcoded style block is overridden too,
+   instead of trusting load order.
+   ------------------------------------------------------------ */
+body .page-title,
+body .stat-value,
+body .card-title,
+body .activity-text {
+  color: var(--text-primary);
+}
+
+body .page-subtitle,
+body .stat-title,
+body .activity-time,
+body .chart-subtitle {
+  color: var(--text-secondary);
+}
+
+body .stat-card,
+body .chart-card,
+body .card,
+body .quick-action-card {
+  background-color: transparent; /* let the .card / .card-glass glass rules win */
+}
+
+/* Belt-and-braces: anything still using a literal dark hex for
+   background or a literal white/gray for text, inside the themed
+   app shell, is neutralized back onto tokens. */
+.main-content [style*="background-color: #112240"],
+.main-content [style*="background-color:#112240"] {
+  background-color: var(--bg-card) !important;
+}
+
+/* Inputs, selects, dropdowns, modals inherit text color from the
+   OS in some browsers when not explicitly set — pin them. */
+.form-control,
+select.form-control,
+.dropdown-menu,
+.modal,
+.toast {
+  color: var(--text-primary);
+  background-color: var(--bg-input);
+}
+.modal,
+.toast {
+  background-color: var(--bg-card);
+}
+
+/* Badges must never fall back to browser default text color */
+.badge { color: inherit; }
+
+/* Chart.js draws to a <canvas>, which CSS variables cannot reach
+   directly — the JS in dashboard.html now reads these custom
+   properties at chart-creation time (and again on theme toggle)
+   instead of hardcoding '#94A3B8' the way the old script did. */
+:root {
+  --chart-text: var(--text-secondary);
+  --chart-grid: var(--border-color);
+  --chart-tooltip-bg: var(--bg-card);
+  --chart-tooltip-border: var(--glass-border);
+}
+
+/* Scrollbar + selection stay legible in both themes */
+::selection {
+  background: var(--accent-light);
+  color: var(--text-primary);
+}
+
+/* ------------------------------------------------------------
+   2. THEME TRANSITION (no flash, no hard cut)
+   ------------------------------------------------------------ */
+html.theme-transition,
+html.theme-transition * {
+  transition: background-color 0.35s ease, border-color 0.35s ease,
+    color 0.35s ease, box-shadow 0.35s ease !important;
+}
+
+/* ------------------------------------------------------------
+   3. PREMIUM DASHBOARD HEADER
+   ------------------------------------------------------------ */
+.dash-header {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  padding: 26px 28px;
+  margin-bottom: 28px;
+  border-radius: var(--radius-xl);
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  animation: dashHeaderIn 0.55s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.dash-header::before {
+  content: '';
+  position: absolute;
+  inset: -40% -10% auto auto;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(45, 212, 191, 0.18) 0%, transparent 70%);
+  animation: floatGlow 7s ease-in-out infinite;
+  pointer-events: none;
+}
+
+.dash-header::after {
+  content: '';
+  position: absolute;
+  inset: auto auto -50% -6%;
+  width: 260px;
+  height: 260px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.14) 0%, transparent 70%);
+  animation: floatGlow 9s ease-in-out infinite reverse;
+  pointer-events: none;
+}
+
+@keyframes floatGlow {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  50%      { transform: translate(-14px, 10px) scale(1.08); }
+}
+
+.dash-header-title-wrap { position: relative; z-index: 1; }
+
+.dash-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--accent-primary);
+  margin-bottom: 8px;
+}
+
+.dash-eyebrow .live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: livePulse 1.8s ease-in-out infinite;
+}
+
+@keyframes livePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%      { opacity: 0.4; transform: scale(1.4); }
+}
+
+.dash-header .page-title {
+  font-size: 1.9rem;
+  background: linear-gradient(90deg, var(--text-primary) 30%, var(--accent-aqua));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.dash-header-meta {
+  position: relative;
+  z-index: 1;
+  text-align: right;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.dash-header-meta .dash-date {
+  color: var(--text-secondary);
+  font-weight: 600;
+}
+
+@keyframes dashHeaderIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ------------------------------------------------------------
+   4. ANIMATED / GLOWING STAT CARDS
+   ------------------------------------------------------------ */
+.stats-grid .stat-card {
+  opacity: 0;
+  animation: statRise 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+.stats-grid .stat-card:nth-child(1) { animation-delay: 0.05s; }
+.stats-grid .stat-card:nth-child(2) { animation-delay: 0.12s; }
+.stats-grid .stat-card:nth-child(3) { animation-delay: 0.19s; }
+.stats-grid .stat-card:nth-child(4) { animation-delay: 0.26s; }
+.stats-grid .stat-card:nth-child(5) { animation-delay: 0.33s; }
+
+@keyframes statRise {
+  from { opacity: 0; transform: translateY(16px) scale(0.97); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.stat-card {
+  position: relative;
+  isolation: isolate;
+}
+
+/* thin animated top edge that lights up on hover, teal->aqua,
+   matching the existing accent gradient used elsewhere */
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-aqua));
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+}
+
+.stat-card:hover::before { transform: scaleX(1); }
+
+.stat-card:hover {
+  transform: translateY(-6px) scale(1.02);
+}
+
+.stat-value {
+  font-variant-numeric: tabular-nums;
+  transition: color 0.3s ease;
+}
+
+.stat-card:hover .stat-value {
+  color: var(--accent-aqua);
+}
+
+/* ------------------------------------------------------------
+   5. SECTION REVEAL ON SCROLL
+   ------------------------------------------------------------
+   Elements get [data-reveal] in the page JS; a tiny
+   IntersectionObserver (see theme-persistence.js /
+   dashboard.html script) adds .is-visible when they enter the
+   viewport. Falls back to always-visible if JS never runs.
+   ------------------------------------------------------------ */
+[data-reveal] {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1), transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+[data-reveal].is-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] { opacity: 1; transform: none; transition: none; }
+}
+
+/* ------------------------------------------------------------
+   6. CHART CARD — GLOW + ANIMATED TOOLTIP SHELL
+   ------------------------------------------------------------ */
+.chart-card {
+  position: relative;
+}
+.chart-card .card-title,
+.chart-card h3.card-title {
+  position: relative;
+  display: inline-block;
+}
+.chart-card .card-title::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -6px;
+  width: 28px;
+  height: 2px;
+  background: linear-gradient(90deg, var(--accent-primary), var(--accent-aqua));
+  border-radius: 2px;
+}
+
+.chart-canvas-container {
+  animation: chartFadeIn 0.7s ease 0.15s both;
+}
+@keyframes chartFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* Chart.js renders its own tooltip as a positioned DOM/canvas
+   element with inline styles by default; when using
+   `tooltip: { enabled: false }` + external HTML tooltip (wired
+   in dashboard.html), this class themes it. */
+.chartjs-tooltip-glass {
+  position: absolute;
+  pointer-events: none;
+  background: var(--chart-tooltip-bg);
+  border: 1px solid var(--chart-tooltip-border);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  box-shadow: var(--shadow-glow-teal);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  opacity: 0;
+  transform: translate(-50%, -6px) scale(0.94);
+  transition: opacity 0.15s ease, transform 0.15s ease;
+  z-index: 20;
+  white-space: nowrap;
+}
+.chartjs-tooltip-glass.visible {
+  opacity: 1;
+  transform: translate(-50%, -10px) scale(1);
+}
+
+/* ------------------------------------------------------------
+   7. PREMIUM HAMBURGER (works with the 3-span markup rendered
+   by sidebar.js — replaces the old plain "☰" character)
+   ------------------------------------------------------------ */
+.navbar-toggle {
+  position: relative;
+  background: none;
+  border: none;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  transition: background-color 0.25s ease, box-shadow 0.25s ease;
+}
+.navbar-toggle:hover {
+  background: var(--accent-light);
+  box-shadow: 0 0 0 4px var(--accent-light);
+}
+.navbar-toggle .hbg-line {
+  display: block;
+  width: 18px;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--text-secondary);
+  transition: transform 0.35s cubic-bezier(0.65, 0, 0.35, 1),
+    opacity 0.25s ease, background-color 0.25s ease, width 0.25s ease;
+}
+.navbar-toggle:hover .hbg-line { background: var(--accent-primary); }
+
+/* Idle state: top/bottom lines slightly shorter for a lighter feel */
+.navbar-toggle .hbg-line:nth-child(1) { width: 18px; }
+.navbar-toggle .hbg-line:nth-child(3) { width: 13px; align-self: flex-end; margin-right: 9px; }
+.navbar-toggle:hover .hbg-line:nth-child(3) { width: 18px; margin-right: 0; }
+
+.navbar-toggle.is-open .hbg-line {
+  background: var(--accent-aqua);
+}
+.navbar-toggle.is-open .hbg-line:nth-child(1) {
+  transform: translateY(7px) rotate(45deg);
+  width: 18px;
+}
+.navbar-toggle.is-open .hbg-line:nth-child(2) {
+  opacity: 0;
+  transform: scaleX(0);
+}
+.navbar-toggle.is-open .hbg-line:nth-child(3) {
+  transform: translateY(-7px) rotate(-45deg);
+  width: 18px;
+  margin-right: 0;
+}
+
+/* ------------------------------------------------------------
+   8. SIDEBAR MICRO-INTERACTIONS
+   ------------------------------------------------------------ */
+.sidebar { transition: width var(--transition-sidebar), box-shadow 0.3s ease; }
+
+.sidebar .nav-item {
+  position: relative;
+  transition: background-color 0.2s ease, color 0.2s ease, padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+}
+.sidebar .nav-item:hover {
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.14);
+}
+.sidebar .nav-item.active {
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.22), 0 0 18px -6px rgba(45, 212, 191, 0.4);
+}
+.sidebar .nav-icon {
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sidebar .nav-item:hover .nav-icon,
+.sidebar .nav-item.active .nav-icon {
+  transform: scale(1.14);
+}
+
+.sidebar-logo .login-logo-icon,
+.sidebar-logo .logo-icon {
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.sidebar-logo:hover .login-logo-icon,
+.sidebar-logo:hover .logo-icon {
+  transform: rotate(-6deg) scale(1.06);
+}
+
+/* Sidebar entrance (first paint) */
+.sidebar { animation: sidebarIn 0.4s ease both; }
+@keyframes sidebarIn {
+  from { opacity: 0; transform: translateX(-8px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+/* ------------------------------------------------------------
+   9. GLASS / OCEAN DEPTH — subtle parallax glow on cards
+   ------------------------------------------------------------ */
+.card,
+.chart-card,
+.stat-card {
+  will-change: transform;
+}
+
+.card::after,
+.chart-card::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(160deg, rgba(45, 212, 191, 0.05), transparent 40%);
+  opacity: 0;
+  transition: opacity 0.35s ease;
+  pointer-events: none;
+}
+.card:hover::after,
+.chart-card:hover::after {
+  opacity: 1;
+}
+
+/* ------------------------------------------------------------
+   10. REDUCED MOTION
+   ------------------------------------------------------------ */
+@media (prefers-reduced-motion: reduce) {
+  .dash-header::before,
+  .dash-header::after,
+  .dash-eyebrow .live-dot,
+  .stats-grid .stat-card,
+  .chart-canvas-container,
+  .sidebar { animation: none !important; }
 }
