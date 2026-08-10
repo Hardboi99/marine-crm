@@ -10,10 +10,12 @@ const {
   getMyProfile,
   bulkImportEmployees,
   getUpcomingBirthdays,
+  checkMyBirthdayToday,
 } = require('../controllers/employeeController');
 
 // ── Own profile (BDM convenience) ────────────────────────────────────────────
 router.get('/me', authenticate, getMyProfile);
+router.get('/me/birthday-check', authenticate, checkMyBirthdayToday);
 
 // ── Directory (filtered by role inside handler) ───────────────────────────────
 router.get('/', authenticate, listEmployees);
