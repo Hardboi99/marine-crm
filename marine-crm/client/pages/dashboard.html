@@ -9,6 +9,16 @@
     <!-- Zero-flash theme init: must run before any stylesheet paints.
          Copy this exact snippet into the <head> of every authenticated
          page, above the CSS <link> tags, for consistent behavior. -->
+
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-theme');
+            }
+        })();
+    </script>
+
     <script>
         (function () {
             var t = localStorage.getItem('theme') || 'dark';

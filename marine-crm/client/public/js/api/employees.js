@@ -12,7 +12,8 @@ const ApiEmployees = {
   getWorksheets: (params) => api.get('/employees/worksheets', { params }),
   createTask: (data) => api.post('/employees/tasks', data),
   getTasks: (params) => api.get('/employees/tasks', { params }),
-  updateTaskStatus: (id, data) => api.patch(`/employees/tasks/${id}/status`, data),
+  updateTaskStatus: (id, data) => api.patch(`/employees/tasks/${id}/status`, data), 
+  checkMyBirthday: () => api.get('/employees/me/birthday-check'),   
 };
 
 window.ApiEmployees = ApiEmployees;

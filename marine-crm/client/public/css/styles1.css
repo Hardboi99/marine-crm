@@ -322,7 +322,7 @@ body.custom-cursor-active * {
   top: 0;
   left: 0;
   pointer-events: none;
-  z-index: 9999;
+  z-index: 10050;   /* was 9999 — now above .wsd-overlay/.emf-overlay's 10000 */
   border-radius: 50%;
   will-change: transform;
   transform: translate(-50%, -50%);
@@ -343,7 +343,7 @@ body.custom-cursor-active * {
   backdrop-filter: blur(1px);
   transition: width 0.18s ease, height 0.18s ease, border-color 0.18s ease, background 0.18s ease;
 }
-
+ 
 body.custom-cursor-active .cursor-ring.is-hover {
   width: 52px;
   height: 52px;
@@ -354,6 +354,233 @@ body.custom-cursor-active .cursor-ring.is-hover {
 body.custom-cursor-active .cursor-ring.is-down {
   width: 26px;
   height: 26px;
+}
+
+/* ============================================================
+   SIDEBAR ACCORDION — Marine BDM CRM
+   Append to styles1.css. No existing color tokens are changed.
+   ============================================================ */
+
+.sidebar-nav {
+  padding: 10px 8px 16px;
+}
+
+/* ── Group wrapper ─────────────────────────────────────────── */
+.nav-group {
+  margin-bottom: 3px;
+  border-radius: var(--radius-sm);
+  position: relative;
+}
+
+.nav-group.has-active {
+  background: linear-gradient(90deg, rgba(20, 184, 166, 0.07), transparent 70%);
+}
+
+/* ── Group header (acts like a nav-item) ──────────────────────── */
+.nav-group-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 10px;
+  background: none;
+  border: none;
+  border-radius: var(--radius-sm);
+  color: var(--sidebar-text, var(--text-secondary));
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.92rem;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background-color 0.2s ease, color 0.2s ease, padding-left 0.25s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s ease;
+  position: relative;
+}
+
+.nav-group-header:hover {
+  background: rgba(45, 212, 191, 0.08);
+  color: var(--sidebar-text-hover, var(--text-primary));
+  padding-left: 14px;
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.14);
+}
+
+.nav-group.has-active > .nav-group-header {
+  color: var(--sidebar-text-active, var(--accent-aqua));
+  font-weight: 600;
+}
+
+.nav-group.open > .nav-group-header {
+  background: rgba(45, 212, 191, 0.06);
+}
+
+.nav-group-header .nav-icon {
+  font-size: 1.1rem;
+  width: 22px;
+  text-align: center;
+  flex-shrink: 0;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.nav-group-header:hover .nav-icon,
+.nav-group.open > .nav-group-header .nav-icon {
+  transform: scale(1.14);
+}
+
+.nav-group-label {
+  flex: 1;
+  text-align: left;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── Rotating chevron ──────────────────────────────────────── */
+.nav-chevron {
+  flex-shrink: 0;
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), color 0.2s ease;
+  color: var(--text-muted);
+}
+
+.nav-group.open > .nav-group-header .nav-chevron {
+  transform: rotate(90deg);
+  color: var(--accent-aqua);
+}
+
+/* ── Submenu (accordion height + opacity animation) ───────────── */
+.nav-submenu {
+  max-height: 0;
+  opacity: 0;
+  overflow: hidden;
+  transition: max-height 0.35s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.28s ease;
+}
+
+.nav-submenu-inner {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0 6px 14px;
+  position: relative;
+}
+
+/* Vertical guide line, in the accent gradient, oceanic touch */
+.nav-submenu-inner::before {
+  content: '';
+  position: absolute;
+  left: 21px;
+  top: 4px;
+  bottom: 10px;
+  width: 1.5px;
+  background: linear-gradient(180deg, rgba(45, 212, 191, 0.35), rgba(45, 212, 191, 0.03));
+}
+
+/* ── Submenu items ─────────────────────────────────────────── */
+.nav-subitem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px 8px 14px;
+  margin-left: 10px;
+  border-radius: var(--radius-sm);
+  color: var(--sidebar-text, var(--text-secondary));
+  font-size: 0.85rem;
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  position: relative;
+
+  opacity: 0;
+  transform: translateX(-8px);
+  animation: subitemSlideIn 0.32s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.25s ease, padding-left 0.2s ease;
+}
+
+.nav-group.open .nav-subitem:nth-child(1) { animation-delay: 0.03s; }
+.nav-group.open .nav-subitem:nth-child(2) { animation-delay: 0.07s; }
+.nav-group.open .nav-subitem:nth-child(3) { animation-delay: 0.11s; }
+.nav-group.open .nav-subitem:nth-child(4) { animation-delay: 0.15s; }
+.nav-group.open .nav-subitem:nth-child(5) { animation-delay: 0.19s; }
+
+@keyframes subitemSlideIn {
+  to { opacity: 1; transform: translateX(0); }
+}
+
+.nav-subitem-icon {
+  font-size: 0.95rem;
+  width: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.nav-subitem:hover {
+  background: rgba(45, 212, 191, 0.1);
+  color: var(--sidebar-text-hover, var(--text-primary));
+  padding-left: 18px;
+  box-shadow: 0 0 14px -4px rgba(45, 212, 191, 0.45);
+}
+
+/* Floating active indicator — a soft pill that glows behind the
+   active submenu item, oceanic accent, no color palette change */
+.nav-subitem.active {
+  color: var(--accent-aqua);
+  font-weight: 600;
+  background: linear-gradient(90deg, rgba(20, 184, 166, 0.16), rgba(34, 211, 238, 0.03));
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.22), 0 0 16px -4px rgba(45, 212, 191, 0.5);
+}
+
+.nav-subitem.active::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 16px;
+  background: linear-gradient(180deg, var(--accent-primary), var(--accent-aqua));
+  border-radius: 0 3px 3px 0;
+  box-shadow: 0 0 8px rgba(34, 211, 238, 0.65);
+}
+
+.nav-subitem .nav-badge {
+  margin-left: auto;
+}
+
+/* ── Collapsed sidebar rail: hide labels & submenus, keep icons ── */
+.sidebar.collapsed .nav-group-label,
+.sidebar.collapsed .nav-chevron {
+  opacity: 0;
+  width: 0;
+}
+
+.sidebar.collapsed .nav-submenu {
+  max-height: 0 !important;
+  opacity: 0 !important;
+}
+
+.sidebar.collapsed .nav-group-header {
+  justify-content: center;
+  gap: 0;
+}
+
+.sidebar.collapsed .nav-group-header:hover::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  left: calc(100% + 12px);
+  top: 50%;
+  transform: translateY(-50%);
+  background: var(--bg-card);
+  color: var(--text-primary);
+  padding: 6px 12px;
+  border-radius: var(--radius-sm);
+  font-size: 0.78rem;
+  white-space: nowrap;
+  box-shadow: var(--shadow-lg);
+  border: 1px solid var(--glass-border);
+  z-index: 200;
+  pointer-events: none;
+  animation: fadeIn 0.15s ease forwards;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-subitem { animation: none !important; opacity: 1; transform: none; }
+  .nav-submenu { transition: none !important; }
 }
 
 /* ─── Sidebar ────────────────────────────────────────────────── */
@@ -1522,7 +1749,7 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   border-radius: var(--radius-xl);
   box-shadow: var(--shadow-lg);
   width: 100%;
-  max-width: 540px;
+  max-width: 900px;
   max-height: 90vh;
   overflow-y: auto;
   animation: slideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
@@ -2467,6 +2694,11 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 
 /* ── Custom cursor: soft aqua glow, no ring/circle ──────────────────── */
 
+/* ============================================================
+   CURSOR GLOW — theme-aware, reduced size (v3)
+   Replace the existing ".cursor-glow" block in styles1.css with this.
+   ============================================================ */
+
 body.custom-cursor-active,
 body.custom-cursor-active * {
   cursor: none;
@@ -2476,50 +2708,70 @@ body.custom-cursor-active * {
   position: fixed;
   top: 0;
   left: 0;
-  width: 26px;
-  height: 26px;
+  width: 20px;
+  height: 20px;
   border-radius: 50%;
   pointer-events: none;
   z-index: 9999;
   opacity: 0;
-  transition: opacity 0.25s ease, width 0.2s ease, height 0.2s ease;
+  transition: opacity 0.25s ease, width 0.2s ease, height 0.2s ease, background 0.3s ease;
 
+  /* Dark mode (default): light aqua glow, visible on deep-sea backgrounds */
   background: radial-gradient(
     circle,
     rgba(94, 234, 212, 0.55) 0%,
-    rgba(45, 212, 191, 0.28) 35%,
-    rgba(45, 212, 191, 0.08) 65%,
+    rgba(45, 212, 191, 0.26) 35%,
+    rgba(45, 212, 191, 0.07) 65%,
     rgba(45, 212, 191, 0) 100%
   );
   filter: blur(2px);
 }
 
 .cursor-glow.is-hover {
-  width: 42px;
-  height: 42px;
+  width: 32px;
+  height: 32px;
   background: radial-gradient(
     circle,
-    rgba(94, 234, 212, 0.65) 0%,
-    rgba(45, 212, 191, 0.32) 40%,
-    rgba(45, 212, 191, 0.1) 70%,
+    rgba(94, 234, 212, 0.62) 0%,
+    rgba(45, 212, 191, 0.3) 40%,
+    rgba(45, 212, 191, 0.09) 70%,
     rgba(45, 212, 191, 0) 100%
   );
 }
 
 .cursor-glow.is-down {
-  width: 20px;
-  height: 20px;
+  width: 15px;
+  height: 15px;
+}
+
+/* Light mode: darker, higher-contrast teal/navy glow so the cursor
+   doesn't wash out against the "Sunlit Shallows" background */
+.cursor-glow.theme-light {
+  background: radial-gradient(
+    circle,
+    rgba(6, 60, 56, 0.55) 0%,
+    rgba(13, 148, 136, 0.32) 35%,
+    rgba(13, 148, 136, 0.1) 65%,
+    rgba(13, 148, 136, 0) 100%
+  );
+}
+
+.cursor-glow.theme-light.is-hover {
+  background: radial-gradient(
+    circle,
+    rgba(6, 60, 56, 0.6) 0%,
+    rgba(13, 148, 136, 0.36) 40%,
+    rgba(13, 148, 136, 0.12) 70%,
+    rgba(13, 148, 136, 0) 100%
+  );
 }
 
 @media (pointer: coarse), (prefers-reduced-motion: reduce) {
-  .cursor-glow {
-    display: none !important;
-  }
+  .cursor-glow { display: none !important; }
   body.custom-cursor-active,
-  body.custom-cursor-active * {
-    cursor: auto;
-  }
+  body.custom-cursor-active * { cursor: auto; }
 }
+
 
 
 /* ============================================================
@@ -2981,3 +3233,106 @@ html.theme-transition * {
   .chart-canvas-container,
   .sidebar { animation: none !important; }
 }
+
+
+/* ============================================================
+   POLISH PACK — page transitions, scrollbar, focus, card lift
+   Append to styles1.css.
+   ============================================================ */
+
+/* ── Page fade transition (paired with sidebar.js's page-exit class) ── */
+.page-content {
+  animation: pageEnter 0.45s cubic-bezier(0.4, 0, 0.2, 1) both;
+}
+
+.page-content.page-exit {
+  animation: pageExit 0.16s ease forwards;
+}
+
+@keyframes pageExit {
+  to { opacity: 0; transform: translateY(-6px); }
+}
+
+/* ── Card hover lift (consistent across all card-like surfaces) ── */
+.card,
+.chart-card,
+.stat-card,
+.quick-action-card,
+.oc-node,
+.orgchart-node {
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1),
+              border-color 0.25s ease, background-color 0.25s ease;
+}
+
+.card:hover,
+.chart-card:hover {
+  transform: translateY(-4px);
+}
+
+/* ── Active menu glow (shared token for sidebar + tabs) ── */
+.nav-item.active,
+.nav-subitem.active,
+.tab-btn.active {
+  box-shadow: inset 0 0 0 1px rgba(45, 212, 191, 0.22), 0 0 16px -4px rgba(45, 212, 191, 0.45);
+}
+
+/* ── Scrollbar refinement ── */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: rgba(45, 212, 191, 0.25);
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+}
+::-webkit-scrollbar-thumb:hover { background: rgba(45, 212, 191, 0.5); }
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(45, 212, 191, 0.3) transparent;
+}
+
+/* ── Focus states (accessibility + premium feel) ── */
+a:focus-visible,
+button:focus-visible,
+.btn:focus-visible,
+.nav-item:focus-visible,
+.nav-group-header:focus-visible,
+.nav-subitem:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.form-control:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(45, 212, 191, 0.4);
+  border-radius: var(--radius-sm);
+}
+
+.form-control:focus-visible {
+  border-color: var(--accent-primary);
+}
+
+/* ── Subtle content fade-in for freshly loaded lists/tables ── */
+.table tbody tr,
+.followup-item,
+.quick-action-card {
+  animation: contentFadeIn 0.3s ease both;
+}
+
+@keyframes contentFadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-content,
+  .page-content.page-exit,
+  .table tbody tr,
+  .followup-item,
+  .quick-action-card,
+  .card:hover,
+  .chart-card:hover {
+    animation: none !important;
+    transform: none !important;
+  }
+}   

@@ -239,6 +239,8 @@ const ApiService = {
     createTask:         (data) => api.post('/employees/tasks', data),
     getTasks:           (params) => api.get('/employees/tasks', { params }),
     updateTaskStatus:   (id, data) => api.patch(`/employees/tasks/${id}/status`, data),
+    bulkImport:         (data) => api.post('/employees/bulk-import', data),
+    getUpcomingBirthdays: ()   => api.get('/employees/birthdays/upcoming'),
   }
 };
 

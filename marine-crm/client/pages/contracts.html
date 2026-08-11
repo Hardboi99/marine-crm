@@ -6,9 +6,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Contract Manager - Marine CRM</title>
     <link rel="stylesheet" href="/public/css/styles1.css">
+
     <style>
         .contract-expiry-warning {
-            color: #fbbf24;
+            color: var(--yellow);
             font-size: 0.85em;
             display: flex;
             align-items: center;
@@ -16,7 +17,7 @@
         }
 
         .stat-card {
-            background: #112240;
+            background: var(--bg-card);
             border-radius: 8px;
             padding: 16px;
             display: flex;
@@ -27,7 +28,7 @@
         .stat-value {
             font-size: 24px;
             font-weight: bold;
-            color: #0EA5E9;
+            color: var(--accent-primary);
         }
     </style>
 </head>
@@ -41,8 +42,8 @@
         <div class="page-content">
             <div class="page-header">
                 <div>
-                    <h1 style="margin:0; color:#fff;">📜 Contract Manager</h1>
-                    <p class="subtitle" style="margin:5px 0 0; color:#94a3b8;">Track and manage vessel owner service
+                    <h1 style="margin:0; color:var(--text-primary);">📜 Contract Manager</h1>
+                    <p class="subtitle" style="margin:5px 0 0; color:var(--text-secondary);">Track and manage vessel owner service
                         agreements</p>
                 </div>
                 <button id="add-contract-btn" class="btn btn-primary" onclick="openContractModal()">+ New
@@ -86,13 +87,20 @@
                         <table class="table" id="contracts-table" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="border-bottom: 1px solid #1e293b; background: rgba(0,0,0,0.2);">
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Title</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Company</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Status</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Signed Date</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Expiry Date</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Days Until Expiry</th>
-                                    <th style="padding: 15px; text-align: left; color: #94a3b8;">Actions</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-secondary);">Title
+                                    </th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-secondary);">Company
+                                    </th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-secondary);">Status
+                                    </th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-secondary);">Signed
+                                        Date</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-secondary);">Expiry
+                                        Date</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-secondary);">Days
+                                        Until Expiry</th>
+                                    <th style="padding: 15px; text-align: left; color: var(--text-secondary);">Actions
+                                    </th>
                                 </tr>
                             </thead>
                             <tbody id="contracts-list">
@@ -286,20 +294,20 @@
                 const fileLink = c.fileUrl ? `<a href="${c.fileUrl}" target="_blank" style="color:#0ea5e9; font-weight:500;">📄 View Document</a>` : '';
 
                 return `
-                    <tr style="border-bottom: 1px solid #1e293b; transition: background 0.2s;" onmouseover="this.style.background='rgba(255,255,255,0.02)'" onmouseout="this.style.background='transparent'">
-                        <td style="padding: 15px; font-weight: bold; color: #fff;">${c.title || '-'}</td>
-                        <td style="padding: 15px;">${c.company?.name || '-'}</td>
-                        <td style="padding: 15px;">${statusBadge}</td>
-                        <td style="padding: 15px; color: #94a3b8;">${c.signedDate ? window.UI.formatDate(c.signedDate) : '-'}</td>
-                        <td style="padding: 15px; color: #94a3b8;">${c.expiryDate ? window.UI.formatDate(c.expiryDate) : '-'}</td>
-                        <td style="padding: 15px;">${expiryWarning}</td>
-                        <td style="padding: 15px; display:flex; gap:8px; align-items:center;">
-                            ${fileLink}
-                            <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${cid}" onclick="editContract('${cid}')">Edit</button>
-                            <button class="btn btn-danger btn-sm" data-action="delete" data-id="${cid}" onclick="deleteContract('${cid}')">Delete</button>
-                        </td>
-                    </tr>
-                `;
+        <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.2s;" onmouseover="this.style.background='var(--accent-light)'" onmouseout="this.style.background='transparent'">
+        <td style="padding: 15px; font-weight: bold; color: var(--text-primary);">${c.title || '-'}</td>
+        <td style="padding: 15px; color: var(--text-primary);">${c.company?.name || '-'}</td>
+        <td style="padding: 15px;">${statusBadge}</td>
+        <td style="padding: 15px; color: var(--text-secondary);">${c.signedDate ? window.UI.formatDate(c.signedDate) : '-'}</td>
+        <td style="padding: 15px; color: var(--text-secondary);">${c.expiryDate ? window.UI.formatDate(c.expiryDate) : '-'}</td>
+        <td style="padding: 15px;">${expiryWarning}</td>
+        <td style="padding: 15px; display:flex; gap:8px; align-items:center;">
+            ${fileLink}
+            <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${cid}" onclick="editContract('${cid}')">Edit</button>
+            <button class="btn btn-danger btn-sm" data-action="delete" data-id="${cid}" onclick="deleteContract('${cid}')">Delete</button>
+        </td>
+    </tr>
+`;
             }).join('');
         }
 

@@ -76,15 +76,20 @@
                 <div class="page-header">
                     <div>
                         <h1 class="page-title">🛎️ Reception Desk</h1>
-                        <p class="page-subtitle">Digitize front office tasks: log visitors, inquiries, PPE gear checkout, and physical documents collection</p>
+                        <p class="page-subtitle">Digitize front office tasks: log visitors, inquiries, PPE gear
+                            checkout, and physical documents collection</p>
                     </div>
                 </div>
 
                 <div class="reception-tabs">
-                    <button class="reception-tab active" data-tab="visitors"><i class="fas fa-id-card"></i> Visitors Entry</button>
-                    <button class="reception-tab" data-tab="calls"><i class="fas fa-phone-alt"></i> General Calls</button>
-                    <button class="reception-tab" data-tab="ppe"><i class="fas fa-hard-hat"></i> PPE Stock & Issuance</button>
-                    <button class="reception-tab" data-tab="docs"><i class="fas fa-passport"></i> CDC & Passport Custody</button>
+                    <button class="reception-tab active" data-tab="visitors"><i class="fas fa-id-card"></i> Visitors
+                        Entry</button>
+                    <button class="reception-tab" data-tab="calls"><i class="fas fa-phone-alt"></i> General
+                        Calls</button>
+                    <button class="reception-tab" data-tab="ppe"><i class="fas fa-hard-hat"></i> PPE Stock &
+                        Issuance</button>
+                    <button class="reception-tab" data-tab="docs"><i class="fas fa-passport"></i> CDC & Passport
+                        Custody</button>
                 </div>
 
                 <!-- 1. VISITORS TAB -->
@@ -100,9 +105,11 @@
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                        <div class="card-header"
+                            style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
                             <h2 class="card-title" style="margin:0;">Visitor Check-In Log</h2>
-                            <button class="btn btn-primary btn-sm" onclick="openVisitorModal()">+ Check In Visitor</button>
+                            <button class="btn btn-primary btn-sm" onclick="openVisitorModal()">+ Check In
+                                Visitor</button>
                         </div>
                         <div class="card-body" style="padding:0;">
                             <div class="table-container">
@@ -141,9 +148,11 @@
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                        <div class="card-header"
+                            style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
                             <h2 class="card-title" style="margin:0;">Incoming Calls Log</h2>
-                            <button class="btn btn-primary btn-sm" onclick="openCallModal()">+ Log Incoming Call</button>
+                            <button class="btn btn-primary btn-sm" onclick="openCallModal()">+ Log Incoming
+                                Call</button>
                         </div>
                         <div class="card-body" style="padding:0;">
                             <div class="table-container">
@@ -173,9 +182,11 @@
                 <div id="tab-content-ppe" class="reception-tab-content" style="display:none;">
                     <div class="split-grid">
                         <div class="card">
-                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                            <div class="card-header"
+                                style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
                                 <h2 class="card-title" style="margin:0;">PPE Stock Inventory</h2>
-                                <button class="btn btn-secondary btn-sm" onclick="openPpeStockModal()">Adjust Stock</button>
+                                <button class="btn btn-secondary btn-sm" onclick="openPpeStockModal()">Adjust
+                                    Stock</button>
                             </div>
                             <div class="card-body" style="padding:0;">
                                 <div class="table-container">
@@ -196,9 +207,11 @@
                         </div>
 
                         <div class="card">
-                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                            <div class="card-header"
+                                style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
                                 <h2 class="card-title" style="margin:0;">PPE Issuance History</h2>
-                                <button class="btn btn-primary btn-sm" onclick="openPpeIssueModal()">+ Issue Gear</button>
+                                <button class="btn btn-primary btn-sm" onclick="openPpeIssueModal()">+ Issue
+                                    Gear</button>
                             </div>
                             <div class="card-body" style="padding:0;">
                                 <div class="table-container">
@@ -227,9 +240,11 @@
                 <!-- 4. DOCS INTAKE TAB -->
                 <div id="tab-content-docs" class="reception-tab-content" style="display:none;">
                     <div class="card">
-                        <div class="card-header" style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                        <div class="card-header"
+                            style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
                             <h2 class="card-title" style="margin:0;">Physical Passport & CDC Collection Logs</h2>
-                            <button class="btn btn-primary btn-sm" onclick="openDocModal()">+ Log Document Intake</button>
+                            <button class="btn btn-primary btn-sm" onclick="openDocModal()">+ Log Document
+                                Intake</button>
                         </div>
                         <div class="card-body" style="padding:0;">
                             <div class="table-container">
@@ -265,7 +280,8 @@
         <div style="display:flex; flex-direction:column; gap:16px;">
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Visitor Name <span style="color:#ef4444;">*</span></label>
-                <input type="text" id="visitor-name" class="form-control" placeholder="e.g. Capt. Sandeep Kumar" required>
+                <input type="text" id="visitor-name" class="form-control" placeholder="e.g. Capt. Sandeep Kumar"
+                    required>
             </div>
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Phone Number <span style="color:#ef4444;">*</span></label>
@@ -277,7 +293,8 @@
             </div>
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Purpose of Visit</label>
-                <input type="text" id="visitor-purpose" class="form-control" placeholder="e.g. Interview, Document Submission">
+                <input type="text" id="visitor-purpose" class="form-control"
+                    placeholder="e.g. Interview, Document Submission">
             </div>
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Contact Person / Staff to Meet</label>
@@ -305,7 +322,8 @@
             </div>
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Message / Inquiry Details <span style="color:#ef4444;">*</span></label>
-                <textarea id="call-message" class="form-control" rows="3" placeholder="Inquiry notes..." required></textarea>
+                <textarea id="call-message" class="form-control" rows="3" placeholder="Inquiry notes..."
+                    required></textarea>
             </div>
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Forward To Staff (Optional)</label>
@@ -368,9 +386,12 @@
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Check Seafarer Association</label>
                 <div style="display:flex; gap:15px; margin-top:5px;">
-                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="candidate" checked> Candidate Seafarer</label>
-                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="employee"> Crew Staff</label>
-                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="other"> Unlisted</label>
+                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="candidate" checked>
+                        Candidate Seafarer</label>
+                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="employee"> Employee
+                    </label>
+                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="other">
+                        Unlisted</label>
                 </div>
             </div>
             <div class="form-group" id="doc-assoc-select-group" style="margin:0;">
@@ -404,7 +425,8 @@
             </div>
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Remarks / Description</label>
-                <input type="text" id="doc-remarks" class="form-control" placeholder="e.g. Submitted for Visa application">
+                <input type="text" id="doc-remarks" class="form-control"
+                    placeholder="e.g. Submitted for Visa application">
             </div>
         </div>
     </template>
@@ -413,6 +435,7 @@
     <script src="/public/js/api/api.js"></script>
     <script src="/public/js/components/ui.js"></script>
     <script src="/public/js/components/sidebar.js"></script>
+    <script src="/public/js/components/birthday.js"></script>
     <script>
         let employees = [];
         let candidates = [];
@@ -493,10 +516,10 @@
         function renderVisitors(visitors) {
             const tbody = document.getElementById('visitors-tbody');
             tbody.innerHTML = '';
-            
+
             let total = visitors.length;
             let currentIn = visitors.filter(v => !v.checkOutTime).length;
-            
+
             document.getElementById('stats-visitors-in').textContent = currentIn;
             document.getElementById('stats-visitors-total').textContent = total;
 
@@ -509,7 +532,7 @@
                 const tr = document.createElement('tr');
                 const inTime = v.checkInTime ? new Date(v.checkInTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
                 const outTime = v.checkOutTime ? new Date(v.checkOutTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-';
-                
+
                 let actionBtn = '';
                 if (!v.checkOutTime) {
                     actionBtn = `<button class="btn btn-secondary btn-sm" onclick="checkOutVisitor('${v.id}')"><i class="fas fa-sign-out-alt"></i> Checkout</button>`;
@@ -534,7 +557,7 @@
         function openVisitorModal() {
             const tpl = document.getElementById('visitor-modal-template');
             const clone = tpl.content.cloneNode(true);
-            
+
             // Populate contact person select
             const select = clone.querySelector('#visitor-contact');
             employees.forEach(e => {
@@ -549,7 +572,7 @@
                 bodyHtml: '',
                 footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
                              <button class="btn btn-primary" id="save-visitor-btn">Save & Check In</button>`,
-                onClose: () => {}
+                onClose: () => { }
             });
 
             // Replace modal-body element with cloning
@@ -593,10 +616,10 @@
         function renderCalls(calls) {
             const tbody = document.getElementById('calls-tbody');
             tbody.innerHTML = '';
-            
+
             let total = calls.length;
             let pending = calls.filter(c => c.status === 'PENDING').length;
-            
+
             document.getElementById('stats-calls-pending').textContent = pending;
             document.getElementById('stats-calls-total').textContent = total;
 
@@ -615,7 +638,7 @@
             calls.forEach(c => {
                 const tr = document.createElement('tr');
                 const date = new Date(c.createdAt).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
-                
+
                 let actions = '';
                 if (c.status === 'PENDING') {
                     actions = `
@@ -642,7 +665,7 @@
         function openCallModal() {
             const tpl = document.getElementById('call-modal-template');
             const clone = tpl.content.cloneNode(true);
-            
+
             const select = clone.querySelector('#call-forward');
             employees.forEach(e => {
                 const opt = document.createElement('option');
@@ -727,10 +750,10 @@
                 const tr = document.createElement('tr');
                 const empName = i.employeeId ? i.employeeId.name : 'Unknown Crew';
                 const empPos = i.employeeId ? i.employeeId.position : '';
-                
+
                 const issuedDate = new Date(i.issueDate).toLocaleDateString([], { month: 'short', day: 'numeric' });
                 const returnDate = i.returnDate ? new Date(i.returnDate).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '-';
-                
+
                 const badge = i.status === 'ISSUED' ? '<span class="badge badge-yellow">Issued</span>' : '<span class="badge badge-green">Returned</span>';
                 const action = i.status === 'ISSUED' ? `<button class="btn btn-secondary btn-xs" onclick="returnPpe('${i.id}')"><i class="fas fa-undo"></i> Return</button>` : '-';
 
@@ -927,7 +950,7 @@
             const syncAssocOptions = () => {
                 const type = Array.from(radios).find(r => r.checked).value;
                 assocSelect.innerHTML = '<option value="">Search Profile...</option>';
-                
+
                 if (type === 'other') {
                     selectGroup.style.display = 'none';
                     nameInput.value = '';
@@ -935,7 +958,7 @@
                 } else {
                     selectGroup.style.display = 'block';
                     nameInput.readOnly = true;
-                    
+
                     if (type === 'candidate') {
                         candidates.forEach(c => {
                             const opt = document.createElement('option');
@@ -1005,8 +1028,7 @@
             }
         }
     </script>
-        <script src="/public/js/components/ocean-bg.js"></script>
-    <script src="/public/js/components/cursor.js"></script>
+    <script src="/public/js/components/ocean-bg.js"></script>
 </body>
 
 </html>

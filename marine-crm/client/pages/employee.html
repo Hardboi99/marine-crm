@@ -527,6 +527,10 @@
             <button id="export-btn" class="btn btn-secondary">
               <i class="fas fa-file-excel"></i> Export Excel
             </button>
+            <button id="import-btn" class="btn btn-secondary" style="display:none;">
+              <i class="fas fa-file-upload"></i> Import Excel
+            </button>
+            <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display:none;">
             <button id="add-employee-btn" class="btn btn-primary">
               <i class="fas fa-plus"></i> Add Crew Member
             </button>
@@ -598,13 +602,25 @@
             </div>
           </div>
         </div>
-
-
-
+        <!-- UPCOMING BIRTHDAYS CARD (Admin/HR only) -->
+        <div id="birthdays-section" class="card" style="display:none; margin-bottom:24px;">
+          <div class="card-header"
+            style="padding:16px 20px;border-bottom:1px solid var(--border-color);display:flex;justify-content:space-between;align-items:center;">
+            <h3 style="margin:0;font-size:1.05rem;color:var(--text-primary);"><span
+                style="margin-right:8px;">🎂</span>Upcoming Birthdays <span
+                style="font-size:0.75rem;color:var(--text-muted);font-weight:400;">(next 30 days)</span></h3>
+          </div>
+          <div class="card-body" id="birthdays-list" style="padding:16px 20px;">
+            <div style="color:var(--text-muted);text-align:center;padding:20px;">Loading...</div>
+          </div>
+        </div>
 
       </main>
     </div>
   </div>
+
+  <!-- BIRTHDAY POPUP -->
+
 
   <!-- ADD / EDIT EMPLOYEE MODAL TEMPLATE -->
   <template id="employee-modal-tpl">
@@ -637,7 +653,7 @@
       <!-- RIGHT COLUMN -->
       <div class="emf-col">
         <div class="emf-field">
-          <label for="emp-id">Crew Member ID <span class="emf-sub">(Auto-generated)</span></label>
+          <label for="emp-id">Employee ID <span class="emf-sub">(Auto-generated)</span></label>
           <div class="emf-readonly-badge">
             <i class="fas fa-id-badge"></i>
             <input id="emp-id" placeholder="Generating..." readonly>
@@ -738,6 +754,8 @@
   <script src="/public/js/api/api.js"></script>
   <script src="/public/js/components/ui.js"></script>
   <script src="/public/js/components/sidebar.js"></script>
+  <script src="/public/js/components/birthday.js"></script>
+  
 
   <script>
     // ─── State ─────────────────────────────────────────────────────────────
@@ -1250,7 +1268,7 @@
         const nextNumber = employees.length + 1;
 
         empIdInput.value =
-          `CRW-${String(nextNumber).padStart(3, '0')}`;
+          `EMP-${String(nextNumber).padStart(3, '0')}`;
 
         empIdInput.readOnly = true;
         empIdInput.title = 'Employee ID is automatically generated';
@@ -1353,6 +1371,124 @@
       }
     }
 
+    // ─── Import from Excel ───────────────────────────────────────────────────
+    async function importFromExcel(file) {
+      if (!canManage) return UI.showToast('Only Admin or HR can import employees.', 'warning');
+      try {
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data, { type: 'array', cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+
+        if (!rawRows.length) return UI.showToast('No data rows found in the Excel file.', 'warning');
+
+        // Normalize column names (case-insensitive)
+        const rows = rawRows.map(r => {
+          const norm = {};
+          for (const key of Object.keys(r)) norm[key.trim()] = r[key];
+          return {
+            name: norm['Name'] || norm['name'] || '',
+            position: norm['Position'] || norm['position'] || '',
+            phone: norm['Phone'] || norm['phone'] || '',
+            email: norm['Email'] || norm['email'] || '',
+            location: norm['Location'] || norm['location'] || '',
+            'Joining Date': norm['Joining Date'] || norm['joinDate'] || norm['joining_date'] || '',
+            'Date of Birth': norm['Date of Birth'] || norm['dateOfBirth'] || norm['date_of_birth'] || '',
+          };
+        });
+
+        const btn = document.getElementById('import-btn');
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
+
+        try {
+          const res = await window.ApiService.employees.bulkImport({ rows });
+          const { imported, skipped, failed, details } = res.data;
+
+          // Build result detail list
+          const failedRows = details.filter(d => d.status === 'failed');
+          const skippedRows = details.filter(d => d.status === 'skipped');
+          const failDetail = failedRows.map(d => `<li style="color:#ef4444;">Row ${d.row}: ${d.name} — ${d.reason}</li>`).join('');
+          const skipDetail = skippedRows.map(d => `<li style="color:#fbbf24;">Row ${d.row}: ${d.name} — ${d.reason}</li>`).join('');
+
+          UI.createModal({
+            title: '📊 Import Results',
+            bodyHtml: `
+              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
+                <div style="text-align:center;padding:16px;background:rgba(16,185,129,0.1);border-radius:10px;border:1px solid rgba(16,185,129,0.2);">
+                  <div style="font-size:2rem;font-weight:800;color:#10b981;">${imported}</div>
+                  <div style="font-size:0.8rem;color:var(--text-muted);">✅ Imported</div>
+                </div>
+                <div style="text-align:center;padding:16px;background:rgba(251,191,36,0.1);border-radius:10px;border:1px solid rgba(251,191,36,0.2);">
+                  <div style="font-size:2rem;font-weight:800;color:#fbbf24;">${skipped}</div>
+                  <div style="font-size:0.8rem;color:var(--text-muted);">⏭️ Skipped</div>
+                </div>
+                <div style="text-align:center;padding:16px;background:rgba(239,68,68,0.1);border-radius:10px;border:1px solid rgba(239,68,68,0.2);">
+                  <div style="font-size:2rem;font-weight:800;color:#ef4444;">${failed}</div>
+                  <div style="font-size:0.8rem;color:var(--text-muted);">❌ Failed</div>
+                </div>
+              </div>
+              ${(failDetail || skipDetail) ? `<ul style="max-height:200px;overflow-y:auto;font-size:0.82rem;padding-left:18px;color:var(--text-secondary);">${skipDetail}${failDetail}</ul>` : ''}
+            `,
+            footerHtml: `<button class="btn btn-primary" onclick="this.closest('.modal-overlay').close()">Done</button>`
+          });
+
+          if (imported > 0) await loadEmployees();
+          if (canManage) await loadUpcomingBirthdays();
+        } catch (err) {
+          UI.showToast(err.message || 'Import failed.', 'error');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-file-upload"></i> Import Excel';
+          document.getElementById('import-file-input').value = '';
+        }
+      } catch (parseErr) {
+        UI.showToast('Failed to parse Excel file. Ensure it is a valid .xlsx file.', 'error');
+      }
+    }
+
+   
+    // ─── Upcoming Birthdays (Admin/HR panel) ─────────────────────────────────
+    async function loadUpcomingBirthdays() {
+      if (!canManage) return;
+      document.getElementById('birthdays-section').style.display = 'block';
+      try {
+        const res = await window.ApiService.employees.getUpcomingBirthdays();
+        const list = res.data || [];
+        const container = document.getElementById('birthdays-list');
+
+        if (!list.length) {
+          container.innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px;">No upcoming birthdays in the next 30 days.</div>';
+          return;
+        }
+
+        container.innerHTML = `
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;">
+            ${list.map(emp => {
+          const initials = emp.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+          const dob = new Date(emp.dateOfBirth);
+          const dobStr = dob.toLocaleDateString('en-GB', { day: '2-digit', month: 'short' });
+          const tagHtml = emp.isToday
+            ? `<span style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:20px;">🎂 Today!</span>`
+            : `<span style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.7rem;font-weight:600;padding:3px 8px;border-radius:20px;">In ${emp.daysUntil} day${emp.daysUntil === 1 ? '' : 's'}</span>`;
+          const cardBg = emp.isToday ? 'linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.08))' : 'rgba(255,255,255,0.02)';
+          const cardBorder = emp.isToday ? '1px solid rgba(245,158,11,0.3)' : '1px solid var(--border-color)';
+          return `
+                <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:${cardBg};border:${cardBorder};">
+                  <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:0.88rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${emp.name}</div>
+                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">📅 ${dobStr} ${emp.position ? '· ' + emp.position : ''}</div>
+                  </div>
+                  <div style="flex-shrink:0;">${tagHtml}</div>
+                </div>`;
+        }).join('')}
+          </div>`;
+      } catch (err) {
+        document.getElementById('birthdays-list').innerHTML = '<div style="color:var(--text-muted);text-align:center;padding:20px;">Could not load birthday data.</div>';
+      }
+    }
+
     // ─── Export to Excel ──────────────────────────────────────────────────────
     function exportToExcel() {
       if (!employees.length) return UI.showToast('No employee data to export.', 'warning');
@@ -1379,19 +1515,30 @@
 
       const addBtn = document.getElementById('add-employee-btn');
       const worksheetBtn = document.getElementById('view-worksheets-btn');
+      const importBtn = document.getElementById('import-btn');
+      const importInput = document.getElementById('import-file-input');
 
       if (addBtn) {
         if (!canManage) addBtn.style.display = 'none';
         else addBtn.addEventListener('click', () => openEmployeeModal());
       }
 
+      if (importBtn && canManage) {
+        importBtn.style.display = 'inline-flex';
+        importBtn.addEventListener('click', () => importInput.click());
+        importInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) importFromExcel(e.target.files[0]);
+        });
+      }
 
       if (worksheetBtn) {
         worksheetBtn.addEventListener('click', openWorksheetsViewModal);
       }
 
       document.getElementById('export-btn').addEventListener('click', exportToExcel);
+
       loadEmployees();
+      if (canManage) loadUpcomingBirthdays();
     });
   </script>
   <script src="/public/js/components/ocean-bg.js"></script>
