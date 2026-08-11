@@ -1,558 +1,552 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Employees & Tasks — Marine BDM CRM</title>
-    <meta
-      name="description"
-      content="Manage internal employees, daily worksheets, attendance, and task assignments in Marine BDM CRM."
-    />
-    <link rel="stylesheet" href="/public/css/styles1.css" />
-    <link
-      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-      rel="stylesheet"
-    />
-  </head>
 
-  <body>
-    <style>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Employees & Tasks — Marine BDM CRM</title>
+  <meta name="description"
+    content="Manage internal employees, daily worksheets, attendance, and task assignments in Marine BDM CRM." />
+  <link rel="stylesheet" href="/public/css/styles1.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+</head>
+
+<body>
+  <style>
     /* ===== Worksheet Detail Modal ===== */
     .wsd-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        background: rgba(16, 20, 4, 0.6);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(16, 20, 4, 0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+
+    .wsd-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .wsd-modal {
+      width: 100%;
+      max-width: 640px;
+      max-height: 88vh;
+      overflow-y: auto;
+      position: relative;
+      padding: 26px 28px 20px;
+      border-radius: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-lg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transform: scale(0.92) translateY(10px);
+      opacity: 0;
+      transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        box-shadow 0.3s ease,
+        transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.25s ease;
+    }
+
+    .wsd-overlay.active .wsd-modal {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
+
+    .wsd-close {
+      position: absolute;
+      top: 16px;
+      right: 16px;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        transform 0.15s ease,
+        border-color 0.3s ease;
+    }
+
+    .wsd-close:hover {
+      background: rgba(248, 113, 113, 0.15);
+      color: #f87171;
+      transform: rotate(90deg);
+    }
+
+    .wsd-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 14px;
+      padding-bottom: 16px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+      padding-right: 34px;
+    }
+
+    .wsd-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      background: linear-gradient(135deg, #0ea5e9, #6366f1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 1rem;
+      color: #fff;
+    }
+
+    .wsd-heading h3 {
+      margin: 0 0 6px;
+      font-size: 1.15rem;
+      color: var(--text-primary);
+    }
+
+    .wsd-subline {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+
+    .wsd-empid {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .wsd-body {
+      min-height: 120px;
+    }
+
+    .wsd-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 20px;
+      animation: wsdFadeIn 0.3s ease;
+    }
+
+    .wsd-span2 {
+      grid-column: 1 / -1;
+    }
+
+    .wsd-field label {
+      display: block;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .wsd-value {
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      line-height: 1.5;
+    }
+
+    .wsd-longtext {
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      border-radius: 8px;
+      padding: 10px 12px;
+      white-space: pre-wrap;
+      word-break: break-word;
+      color: var(--text-primary);
+    }
+
+    .wsd-skeleton {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding: 6px 0;
+    }
+
+    .wsd-skel-line {
+      height: 14px;
+      border-radius: 6px;
+      background: linear-gradient(90deg,
+          rgba(255, 255, 255, 0.04) 25%,
+          rgba(255, 255, 255, 0.09) 37%,
+          rgba(255, 255, 255, 0.04) 63%);
+      background-size: 400% 100%;
+      animation: wsdShimmer 1.4s ease infinite;
+    }
+
+    .wsd-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 22px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-color);
+    }
+
+    @keyframes wsdFadeIn {
+      from {
         opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.25s ease;
+        transform: translateY(6px);
       }
 
-      .wsd-overlay.active {
+      to {
         opacity: 1;
-        pointer-events: auto;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes wsdShimmer {
+      0% {
+        background-position: 100% 0;
       }
 
+      100% {
+        background-position: 0 0;
+      }
+    }
+
+    @media (max-width: 900px) {
       .wsd-modal {
-        width: 100%;
-        max-width: 640px;
-        max-height: 88vh;
-        overflow-y: auto;
-        position: relative;
-        padding: 26px 28px 20px;
-        border-radius: 16px;
-        background: var(--bg-card);
-        border: 1px solid var(--glass-border);
-        box-shadow: var(--shadow-lg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        transform: scale(0.92) translateY(10px);
-        opacity: 0;
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease,
-          box-shadow 0.3s ease,
-          transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-          opacity 0.25s ease;
-      }
-
-      .wsd-overlay.active .wsd-modal {
-        transform: scale(1) translateY(0);
-        opacity: 1;
-      }
-
-      .wsd-close {
-        position: absolute;
-        top: 16px;
-        right: 16px;
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        border: 1px solid var(--border-color);
-        background: var(--bg-input);
-        color: var(--text-secondary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition:
-          background 0.15s ease,
-          color 0.15s ease,
-          transform 0.15s ease,
-          border-color 0.3s ease;
-      }
-
-      .wsd-close:hover {
-        background: rgba(248, 113, 113, 0.15);
-        color: #f87171;
-        transform: rotate(90deg);
-      }
-
-      .wsd-header {
-        display: flex;
-        align-items: flex-start;
-        gap: 14px;
-        padding-bottom: 16px;
-        margin-bottom: 16px;
-        border-bottom: 1px solid var(--border-color);
-        padding-right: 34px;
-      }
-
-      .wsd-avatar {
-        width: 52px;
-        height: 52px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        background: linear-gradient(135deg, #0ea5e9, #6366f1);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-weight: 700;
-        font-size: 1rem;
-        color: #fff;
-      }
-
-      .wsd-heading h3 {
-        margin: 0 0 6px;
-        font-size: 1.15rem;
-        color: var(--text-primary);
-      }
-
-      .wsd-subline {
-        display: flex;
-        align-items: center;
-        gap: 10px;
-        flex-wrap: wrap;
-        font-size: 0.8rem;
-        color: var(--text-muted);
-      }
-
-      .wsd-empid {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-      }
-
-      .wsd-body {
-        min-height: 120px;
+        padding: 20px 18px 16px;
+        max-height: 92vh;
+        border-radius: 14px;
       }
 
       .wsd-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 16px 20px;
-        animation: wsdFadeIn 0.3s ease;
-      }
-
-      .wsd-span2 {
-        grid-column: 1 / -1;
-      }
-
-      .wsd-field label {
-        display: block;
-        font-size: 0.7rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--text-muted);
-        margin-bottom: 4px;
-      }
-
-      .wsd-value {
-        font-size: 0.9rem;
-        color: var(--text-primary);
-        line-height: 1.5;
-      }
-
-      .wsd-longtext {
-        background: var(--bg-input);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        padding: 10px 12px;
-        white-space: pre-wrap;
-        word-break: break-word;
-        color: var(--text-primary);
-      }
-
-      .wsd-skeleton {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-        padding: 6px 0;
-      }
-
-      .wsd-skel-line {
-        height: 14px;
-        border-radius: 6px;
-        background: linear-gradient(
-          90deg,
-          rgba(255, 255, 255, 0.04) 25%,
-          rgba(255, 255, 255, 0.09) 37%,
-          rgba(255, 255, 255, 0.04) 63%
-        );
-        background-size: 400% 100%;
-        animation: wsdShimmer 1.4s ease infinite;
+        grid-template-columns: 1fr;
       }
 
       .wsd-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        flex-wrap: wrap;
-        margin-top: 22px;
-        padding-top: 16px;
-        border-top: 1px solid var(--border-color);
+        justify-content: stretch;
       }
 
-      @keyframes wsdFadeIn {
-        from {
-          opacity: 0;
-          transform: translateY(6px);
-        }
-
-        to {
-          opacity: 1;
-          transform: translateY(0);
-        }
+      .wsd-footer .btn {
+        flex: 1;
       }
+    }
 
-      @keyframes wsdShimmer {
-        0% {
-          background-position: 100% 0;
-        }
+    /* ===== Worksheet Employee Link (clickable name in history table) ===== */
+    .ws-employee-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
+      color: var(--text-primary);
+      font-weight: 600;
+      transition: color 0.15s ease;
+    }
 
-        100% {
-          background-position: 0 0;
-        }
-      }
+    .ws-employee-link:hover,
+    .ws-employee-link:focus-visible {
+      color: var(--accent-primary);
+    }
 
-      @media (max-width: 900px) {
-        .wsd-modal {
-          padding: 20px 18px 16px;
-          max-height: 92vh;
-          border-radius: 14px;
-        }
+    .ws-employee-link:hover .ws-eye-icon,
+    .ws-employee-link:focus-visible .ws-eye-icon {
+      opacity: 1;
+      transform: scale(1.08);
+    }
 
-        .wsd-grid {
-          grid-template-columns: 1fr;
-        }
+    .ws-eye-icon {
+      font-size: 0.72rem;
+      color: var(--accent-primary);
+      opacity: 0.55;
+      transition:
+        opacity 0.15s ease,
+        transform 0.15s ease;
+    }
 
-        .wsd-footer {
-          justify-content: stretch;
-        }
+    /* ===== Add/Edit Employee Modal ===== */
+    .emf-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      background: rgba(16, 20, 4, 0.6);
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
 
-        .wsd-footer .btn {
-          flex: 1;
-        }
-      }
+    .emf-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
 
-      /* ===== Worksheet Employee Link (clickable name in history table) ===== */
-      .ws-employee-link {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        cursor: pointer;
-        color: var(--text-primary);
-        font-weight: 600;
-        transition: color 0.15s ease;
-      }
+    .emf-modal {
+      width: 100%;
+      max-width: 780px;
+      max-height: 88vh;
+      display: flex;
+      flex-direction: column;
+      border-radius: 16px;
+      background: var(--bg-card);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--shadow-lg);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transform: scale(0.92) translateY(10px);
+      opacity: 0;
+      transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        box-shadow 0.3s ease,
+        transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
+        opacity 0.25s ease;
+      overflow: hidden;
+    }
 
-      .ws-employee-link:hover,
-      .ws-employee-link:focus-visible {
-        color: var(--accent-primary);
-      }
+    .emf-overlay.active .emf-modal {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+    }
 
-      .ws-employee-link:hover .ws-eye-icon,
-      .ws-employee-link:focus-visible .ws-eye-icon {
-        opacity: 1;
-        transform: scale(1.08);
-      }
+    .emf-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 22px 26px 16px;
+      border-bottom: 1px solid var(--border-color);
+      flex-shrink: 0;
+    }
 
-      .ws-eye-icon {
-        font-size: 0.72rem;
-        color: var(--accent-primary);
-        opacity: 0.55;
-        transition:
-          opacity 0.15s ease,
-          transform 0.15s ease;
-      }
+    .emf-header h3 {
+      margin: 0 0 4px;
+      font-size: 1.15rem;
+      color: var(--text-primary);
+    }
 
-      /* ===== Add/Edit Employee Modal ===== */
-      .emf-overlay {
-        position: fixed;
-        inset: 0;
-        z-index: 10000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        padding: 20px;
-        background: rgba(16, 20, 4, 0.6);
-        backdrop-filter: blur(6px);
-        -webkit-backdrop-filter: blur(6px);
-        opacity: 0;
-        pointer-events: none;
-        transition: opacity 0.25s ease;
-      }
+    .emf-header p {
+      margin: 0;
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
 
-      .emf-overlay.active {
-        opacity: 1;
-        pointer-events: auto;
+    .emf-close {
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      flex-shrink: 0;
+      border: 1px solid var(--border-color);
+      background: var(--bg-input);
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition:
+        background 0.15s ease,
+        color 0.15s ease,
+        transform 0.15s ease,
+        border-color 0.3s ease;
+    }
+
+    .emf-close:hover {
+      background: rgba(248, 113, 113, 0.15);
+      color: #f87171;
+      transform: rotate(90deg);
+    }
+
+    .emf-body {
+      overflow-y: auto;
+      padding: 20px 26px;
+      flex: 1;
+    }
+
+    .emf-columns {
+      display: flex;
+      gap: 20px;
+    }
+
+    .emf-col {
+      flex: 1;
+      min-width: 0;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+    }
+
+    .emf-field {
+      margin-bottom: 14px;
+    }
+
+    .emf-field label {
+      display: block;
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--text-muted);
+      margin-bottom: 5px;
+      font-weight: 600;
+    }
+
+    .emf-req {
+      color: #f87171;
+      text-transform: none;
+    }
+
+    .emf-sub {
+      font-weight: 400;
+      text-transform: none;
+      letter-spacing: 0;
+      color: var(--text-muted);
+    }
+
+    .emf-field .form-control {
+      height: 40px;
+      background: var(--bg-input);
+      border: 1px solid var(--border-color);
+      color: var(--text-primary);
+      transition:
+        box-shadow 0.15s ease,
+        border-color 0.15s ease,
+        background-color 0.3s ease,
+        color 0.3s ease;
+    }
+
+    .emf-field .form-control::placeholder {
+      color: var(--text-muted);
+    }
+
+    .emf-field .form-control:hover {
+      border-color: rgba(14, 165, 233, 0.4);
+    }
+
+    .emf-field .form-control:focus {
+      border-color: var(--accent-primary);
+      outline: none;
+      box-shadow: 0 0 0 3px var(--accent-light);
+    }
+
+    .emf-readonly-badge {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      height: 40px;
+      padding: 0 12px;
+      border-radius: 8px;
+      background: var(--accent-light);
+      border: 1px dashed rgba(14, 165, 233, 0.35);
+      color: var(--text-primary);
+      transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease,
+        color 0.3s ease;
+    }
+
+    .emf-readonly-badge i {
+      color: var(--accent-primary);
+      font-size: 0.75rem;
+    }
+
+    .emf-readonly-badge input {
+      background: transparent;
+      border: none;
+      color: inherit;
+      font-weight: 600;
+      font-size: 0.85rem;
+      width: 100%;
+      padding: 0;
+    }
+
+    .emf-readonly-badge input:focus {
+      outline: none;
+    }
+
+    .emf-password-wrap {
+      position: relative;
+    }
+
+    .emf-password-wrap .form-control {
+      padding-right: 40px;
+    }
+
+    .emf-password-toggle {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--text-muted);
+      padding: 2px 4px;
+      line-height: 1;
+    }
+
+    .emf-password-toggle:hover {
+      color: var(--accent-primary);
+    }
+
+    .emf-footer {
+      display: flex;
+      justify-content: flex-end;
+      gap: 8px;
+      flex-wrap: wrap;
+      flex-shrink: 0;
+      padding: 14px 26px;
+      border-top: 1px solid var(--border-color);
+      background: var(--bg-secondary);
+      transition:
+        background-color 0.3s ease,
+        border-color 0.3s ease;
+    }
+
+    @media (max-width: 860px) {
+      .emf-columns {
+        flex-direction: column;
+        gap: 14px;
       }
 
       .emf-modal {
-        width: 100%;
-        max-width: 780px;
-        max-height: 88vh;
-        display: flex;
-        flex-direction: column;
-        border-radius: 16px;
-        background: var(--bg-card);
-        border: 1px solid var(--glass-border);
-        box-shadow: var(--shadow-lg);
-        backdrop-filter: blur(20px);
-        -webkit-backdrop-filter: blur(20px);
-        transform: scale(0.92) translateY(10px);
-        opacity: 0;
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease,
-          box-shadow 0.3s ease,
-          transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1),
-          opacity 0.25s ease;
-        overflow: hidden;
+        max-height: 92vh;
+        border-radius: 14px;
       }
 
-      .emf-overlay.active .emf-modal {
-        transform: scale(1) translateY(0);
-        opacity: 1;
-      }
-
-      .emf-header {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 14px;
-        padding: 22px 26px 16px;
-        border-bottom: 1px solid var(--border-color);
-        flex-shrink: 0;
-      }
-
-      .emf-header h3 {
-        margin: 0 0 4px;
-        font-size: 1.15rem;
-        color: var(--text-primary);
-      }
-
-      .emf-header p {
-        margin: 0;
-        font-size: 0.78rem;
-        color: var(--text-muted);
-      }
-
-      .emf-close {
-        width: 34px;
-        height: 34px;
-        border-radius: 50%;
-        flex-shrink: 0;
-        border: 1px solid var(--border-color);
-        background: var(--bg-input);
-        color: var(--text-secondary);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        cursor: pointer;
-        transition:
-          background 0.15s ease,
-          color 0.15s ease,
-          transform 0.15s ease,
-          border-color 0.3s ease;
-      }
-
-      .emf-close:hover {
-        background: rgba(248, 113, 113, 0.15);
-        color: #f87171;
-        transform: rotate(90deg);
-      }
-
-      .emf-body {
-        overflow-y: auto;
-        padding: 20px 26px;
-        flex: 1;
-      }
-
-      .emf-columns {
-        display: flex;
-        gap: 20px;
-      }
-
-      .emf-col {
-        flex: 1;
-        min-width: 0;
-        display: flex;
-        flex-direction: column;
-        gap: 14px;
-      }
-
-      .emf-field {
-        margin-bottom: 14px;
-      }
-
-      .emf-field label {
-        display: block;
-        font-size: 0.72rem;
-        text-transform: uppercase;
-        letter-spacing: 0.04em;
-        color: var(--text-muted);
-        margin-bottom: 5px;
-        font-weight: 600;
-      }
-
-      .emf-req {
-        color: #f87171;
-        text-transform: none;
-      }
-
-      .emf-sub {
-        font-weight: 400;
-        text-transform: none;
-        letter-spacing: 0;
-        color: var(--text-muted);
-      }
-
-      .emf-field .form-control {
-        height: 40px;
-        background: var(--bg-input);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        transition:
-          box-shadow 0.15s ease,
-          border-color 0.15s ease,
-          background-color 0.3s ease,
-          color 0.3s ease;
-      }
-
-      .emf-field .form-control::placeholder {
-        color: var(--text-muted);
-      }
-
-      .emf-field .form-control:hover {
-        border-color: rgba(14, 165, 233, 0.4);
-      }
-
-      .emf-field .form-control:focus {
-        border-color: var(--accent-primary);
-        outline: none;
-        box-shadow: 0 0 0 3px var(--accent-light);
-      }
-
-      .emf-readonly-badge {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        height: 40px;
-        padding: 0 12px;
-        border-radius: 8px;
-        background: var(--accent-light);
-        border: 1px dashed rgba(14, 165, 233, 0.35);
-        color: var(--text-primary);
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease,
-          color 0.3s ease;
-      }
-
-      .emf-readonly-badge i {
-        color: var(--accent-primary);
-        font-size: 0.75rem;
-      }
-
-      .emf-readonly-badge input {
-        background: transparent;
-        border: none;
-        color: inherit;
-        font-weight: 600;
-        font-size: 0.85rem;
-        width: 100%;
-        padding: 0;
-      }
-
-      .emf-readonly-badge input:focus {
-        outline: none;
-      }
-
-      .emf-password-wrap {
-        position: relative;
-      }
-
-      .emf-password-wrap .form-control {
-        padding-right: 40px;
-      }
-
-      .emf-password-toggle {
-        position: absolute;
-        right: 10px;
-        top: 50%;
-        transform: translateY(-50%);
-        background: none;
-        border: none;
-        cursor: pointer;
-        font-size: 0.95rem;
-        color: var(--text-muted);
-        padding: 2px 4px;
-        line-height: 1;
-      }
-
-      .emf-password-toggle:hover {
-        color: var(--accent-primary);
+      .emf-header,
+      .emf-body,
+      .emf-footer {
+        padding-left: 18px;
+        padding-right: 18px;
       }
 
       .emf-footer {
-        display: flex;
-        justify-content: flex-end;
-        gap: 8px;
-        flex-wrap: wrap;
-        flex-shrink: 0;
-        padding: 14px 26px;
-        border-top: 1px solid var(--border-color);
-        background: var(--bg-secondary);
-        transition:
-          background-color 0.3s ease,
-          border-color 0.3s ease;
+        justify-content: stretch;
       }
 
-      @media (max-width: 860px) {
-        .emf-columns {
-          flex-direction: column;
-          gap: 14px;
-        }
-
-        .emf-modal {
-          max-height: 92vh;
-          border-radius: 14px;
-        }
-
-        .emf-header,
-        .emf-body,
-        .emf-footer {
-          padding-left: 18px;
-          padding-right: 18px;
-        }
-
-        .emf-footer {
-          justify-content: stretch;
-        }
-
-        .emf-footer .btn {
-          flex: 1;
-        }
+      .emf-footer .btn {
+        flex: 1;
       }
+    }
 
-      /* ===================================================================
+    /* ===================================================================
        LIGHT MODE SAFETY NET FOR THE TWO CUSTOM MODALS (wsd-* / emf-*)
        -------------------------------------------------------------------
        Everything above already themes itself automatically via the design
@@ -570,556 +564,430 @@
        wrapper), which is what actually made the previous version fail
        silently when the toggle set the flag on <html> instead of <body>.
        =================================================================== */
-      .light-mode .wsd-overlay,
-      [data-theme="light"] .wsd-overlay,
-      .light-mode .emf-overlay,
-      [data-theme="light"] .emf-overlay {
-        background: rgba(15, 23, 42, 0.35);
-      }
+    .light-mode .wsd-overlay,
+    [data-theme="light"] .wsd-overlay,
+    .light-mode .emf-overlay,
+    [data-theme="light"] .emf-overlay {
+      background: rgba(15, 23, 42, 0.35);
+    }
 
-      .light-mode .wsd-skel-line,
-      [data-theme="light"] .wsd-skel-line {
-        background: linear-gradient(
-          90deg,
+    .light-mode .wsd-skel-line,
+    [data-theme="light"] .wsd-skel-line {
+      background: linear-gradient(90deg,
           #e5e7eb 25%,
           #f3f4f6 37%,
-          #e5e7eb 63%
-        );
-        background-size: 400% 100%;
-      }
+          #e5e7eb 63%);
+      background-size: 400% 100%;
+    }
 
-      .light-mode .wsd-avatar,
-      [data-theme="light"] .wsd-avatar {
-        box-shadow: 0 2px 10px rgba(14, 165, 233, 0.25);
-      }
-    </style>
+    .light-mode .wsd-avatar,
+    [data-theme="light"] .wsd-avatar {
+      box-shadow: 0 2px 10px rgba(14, 165, 233, 0.25);
+    }
+  </style>
 
-    <div class="app-layout">
-      <div id="sidebar-container"></div>
+  <div class="app-layout">
+    <div id="sidebar-container"></div>
 
-      <div class="main-content">
-        <div id="navbar-container"></div>
+    <div class="main-content">
+      <div id="navbar-container"></div>
 
-        <main class="page-content">
-          <!-- PAGE HEADER -->
-          <div class="page-header">
-            <div>
-              <h1 class="page-title">👨‍✈️ Employee Management</h1>
-              <p class="page-subtitle">
-                Manage internal crew members, daily worksheets, attendance
-              </p>
-            </div>
-            <div style="display: flex; gap: 8px; flex-wrap: wrap">
-              <button id="view-worksheets-btn" class="btn btn-secondary">
-                <i class="fas fa-file-alt"></i> View Worksheets
-              </button>
-              <button id="export-btn" class="btn btn-secondary">
-                <i class="fas fa-file-excel"></i> Export Excel
-              </button>
-              <button
-                id="import-btn"
-                class="btn btn-secondary"
-                style="display: none"
-              >
-                <i class="fas fa-file-upload"></i> Import Excel
-              </button>
-              <input
-                type="file"
-                id="import-file-input"
-                accept=".xlsx,.xls"
-                style="display: none"
-              />
-              <button id="add-employee-btn" class="btn btn-primary">
-                <i class="fas fa-plus"></i> Add Crew Member
-              </button>
-            </div>
+      <main class="page-content">
+        <!-- PAGE HEADER -->
+        <div class="page-header">
+          <div>
+            <h1 class="page-title">👨‍✈️ Employee Management</h1>
+            <p class="page-subtitle">
+              Manage internal crew members, daily worksheets, attendance
+            </p>
           </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
+            <button id="view-worksheets-btn" class="btn btn-secondary">
+              <i class="fas fa-file-alt"></i> View Worksheets
+            </button>
+            <button id="export-btn" class="btn btn-secondary">
+              <i class="fas fa-file-excel"></i> Export Excel
+            </button>
+            <button id="import-btn" class="btn btn-secondary" style="display: none">
+              <i class="fas fa-file-upload"></i> Import Excel
+            </button>
+            <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display: none" />
+            <button id="add-employee-btn" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Add Crew Member
+            </button>
+          </div>
+        </div>
 
-          <!-- STATS ROW -->
-          <div
-            class="stats-grid"
-            style="
+        <!-- STATS ROW -->
+        <div class="stats-grid" style="
               grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
               margin-bottom: 24px;
-            "
-          >
-            <div class="stat-card">
-              <div
-                class="stat-icon"
-                style="background: linear-gradient(135deg, #0ea5e9, #6366f1)"
-              >
-                <i class="fas fa-users"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value" id="stat-total">—</div>
-                <div class="stat-label">Total Crew Members</div>
-              </div>
+            ">
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #0ea5e9, #6366f1)">
+              <i class="fas fa-users"></i>
             </div>
-            <div class="stat-card">
-              <div
-                class="stat-icon"
-                style="background: linear-gradient(135deg, #10b981, #059669)"
-              >
-                <i class="fas fa-briefcase"></i>
-              </div>
-              <div class="stat-content">
-                <div class="stat-value" id="stat-positions">—</div>
-                <div class="stat-label">Unique Positions</div>
-              </div>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-total">—</div>
+              <div class="stat-label">Total Crew Members</div>
             </div>
           </div>
-
-          <!-- FILTER BAR -->
-          <div class="filter-bar">
-            <div class="filter-group">
-              <i class="fas fa-search filter-icon"></i>
-              <input
-                type="text"
-                id="search-input"
-                class="form-control"
-                placeholder="Search by name, position, location…"
-                oninput="renderEmployees()"
-              />
+          <div class="stat-card">
+            <div class="stat-icon" style="background: linear-gradient(135deg, #10b981, #059669)">
+              <i class="fas fa-briefcase"></i>
             </div>
-            <div class="filter-group">
-              <select
-                id="position-filter"
-                class="form-control"
-                onchange="renderEmployees()"
-              >
-                <option value="">All Positions</option>
-              </select>
+            <div class="stat-content">
+              <div class="stat-value" id="stat-positions">—</div>
+              <div class="stat-label">Unique Positions</div>
             </div>
           </div>
+        </div>
 
-          <!-- EMPLOYEES TABLE CARD -->
-          <div class="card" style="margin-bottom: 24px">
-            <div
-              class="card-header"
-              style="
+        <!-- FILTER BAR -->
+        <div class="filter-bar">
+          <div class="filter-group">
+            <i class="fas fa-search filter-icon"></i>
+            <input type="text" id="search-input" class="form-control" placeholder="Search by name, position, location…"
+              oninput="renderEmployees()" />
+          </div>
+          <div class="filter-group">
+            <select id="position-filter" class="form-control" onchange="renderEmployees()">
+              <option value="">All Positions</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- EMPLOYEES TABLE CARD -->
+        <div class="card" style="margin-bottom: 24px">
+          <div class="card-header" style="
                 padding: 16px 20px;
                 border-bottom: 1px solid var(--border-color);
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-              "
-            >
-              <h3
-                style="
+              ">
+            <h3 style="
                   margin: 0;
                   font-size: 1.05rem;
                   color: var(--text-primary);
-                "
-              >
-                <i
-                  class="fas fa-id-badge"
-                  style="margin-right: 8px; color: var(--accent-blue)"
-                ></i>
-                Employee Directory & Attendance
-              </h3>
-            </div>
-            <div class="card-body" style="padding: 0">
-              <div class="table-container">
-                <table class="table">
-                  <thead>
-                    <tr>
-                      <th>#</th>
-                      <th>Crew Member</th>
-                      <th>Position</th>
-                      <th>Phone</th>
-                      <th>Email</th>
-                      <th>Location</th>
-                      <th>Joining Date</th>
-                      <th>Attendance (Today)</th>
-                      <th>Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody id="employee-table-body"></tbody>
-                </table>
-              </div>
+                ">
+              <i class="fas fa-id-badge" style="margin-right: 8px; color: var(--accent-blue)"></i>
+              Employee Directory & Attendance
+            </h3>
+          </div>
+          <div class="card-body" style="padding: 0">
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Crew Member</th>
+                    <th>Position</th>
+                    <th>Phone</th>
+                    <th>Email</th>
+                    <th>Location</th>
+                    <th>Joining Date</th>
+                    <th>Attendance (Today)</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="employee-table-body"></tbody>
+              </table>
             </div>
           </div>
-          <!-- UPCOMING BIRTHDAYS CARD (Admin/HR only) -->
-          <div
-            id="birthdays-section"
-            class="card"
-            style="display: none; margin-bottom: 24px"
-          >
-            <div
-              class="card-header"
-              style="
+        </div>
+        <!-- UPCOMING BIRTHDAYS CARD (Visible to all employees) -->
+        <div id="birthdays-section" class="card" style="display: none; margin-bottom: 24px">
+          <div class="card-header" style="
                 padding: 16px 20px;
                 border-bottom: 1px solid var(--border-color);
                 display: flex;
                 justify-content: space-between;
                 align-items: center;
-              "
-            >
-              <h3
-                style="
+              ">
+            <h3 style="
                   margin: 0;
                   font-size: 1.05rem;
                   color: var(--text-primary);
-                "
-              >
-                <span style="margin-right: 8px">🎂</span>Upcoming Birthdays
-                <span
-                  style="
+                ">
+              <span style="margin-right: 8px">🎂</span>Upcoming Birthdays
+              <span style="
                     font-size: 0.75rem;
                     color: var(--text-muted);
                     font-weight: 400;
-                  "
-                  >(next 30 days)</span
-                >
-              </h3>
-            </div>
-            <div
-              class="card-body"
-              id="birthdays-list"
-              style="padding: 16px 20px"
-            >
-              <div
-                style="
+                  ">(next 30 days)</span>
+            </h3>
+          </div>
+          <div class="card-body" id="birthdays-list" style="padding: 16px 20px">
+            <div style="
                   color: var(--text-muted);
                   text-align: center;
                   padding: 20px;
-                "
-              >
-                Loading...
-              </div>
+                ">
+              Loading...
             </div>
           </div>
-        </main>
-      </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <!-- BIRTHDAY POPUP -->
+
+  <!-- ADD / EDIT EMPLOYEE MODAL TEMPLATE -->
+  <template id="employee-modal-tpl">
+    <div class="emf-field" style="margin-bottom: 16px">
+      <label for="emp-name">Full Name <span class="emf-req">*</span></label>
+      <input id="emp-name" class="form-control" placeholder="e.g. John Doe" />
     </div>
 
-    <!-- BIRTHDAY POPUP -->
-
-    <!-- ADD / EDIT EMPLOYEE MODAL TEMPLATE -->
-    <template id="employee-modal-tpl">
-      <div class="emf-field" style="margin-bottom: 16px">
-        <label for="emp-name">Full Name <span class="emf-req">*</span></label>
-        <input id="emp-name" class="form-control" placeholder="e.g. John Doe" />
-      </div>
-
-      <div class="emf-columns">
-        <!-- LEFT COLUMN -->
-        <div class="emf-col">
-          <div class="emf-field">
-            <label for="emp-position">Position / Role</label>
-            <input
-              id="emp-position"
-              class="form-control"
-              placeholder="e.g. BDM Sales Executive"
-            />
-          </div>
-          <div class="emf-field">
-            <label for="emp-phone">Phone <span class="emf-req">*</span></label>
-            <input
-              id="emp-phone"
-              class="form-control"
-              placeholder="+91 98765 43210"
-            />
-          </div>
-          <div class="emf-field">
-            <label for="emp-location">Location</label>
-            <input
-              id="emp-location"
-              class="form-control"
-              placeholder="e.g. Mumbai"
-            />
-          </div>
-          <div class="emf-field">
-            <label for="emp-dob">Date of Birth</label>
-            <input id="emp-dob" class="form-control" type="date" />
-          </div>
+    <div class="emf-columns">
+      <!-- LEFT COLUMN -->
+      <div class="emf-col">
+        <div class="emf-field">
+          <label for="emp-position">Position / Role</label>
+          <input id="emp-position" class="form-control" placeholder="e.g. BDM Sales Executive" />
         </div>
-
-        <!-- RIGHT COLUMN -->
-        <div class="emf-col">
-          <div class="emf-field">
-            <label for="emp-id"
-              >Employee ID <span class="emf-sub">(Auto-generated)</span></label
-            >
-            <div class="emf-readonly-badge">
-              <i class="fas fa-id-badge"></i>
-              <input id="emp-id" placeholder="Generating..." readonly />
-            </div>
-          </div>
-          <div class="emf-field">
-            <label for="emp-email">Email (Login ID)</label>
-            <input
-              id="emp-email"
-              class="form-control"
-              type="email"
-              placeholder="john@company.com"
-            />
-          </div>
-          <div class="emf-field">
-            <label for="emp-password">Password</label>
-            <div class="emf-password-wrap">
-              <input
-                id="emp-password"
-                class="form-control"
-                type="password"
-                placeholder="Set login password"
-                autocomplete="new-password"
-              />
-              <button
-                type="button"
-                id="toggle-password"
-                class="emf-password-toggle"
-                aria-label="Show Password"
-              >
-                👁️
-              </button>
-            </div>
-          </div>
-          <div class="emf-field">
-            <label for="emp-joindate">Joining Date</label>
-            <input id="emp-joindate" class="form-control" type="date" />
-          </div>
+        <div class="emf-field">
+          <label for="emp-phone">Phone <span class="emf-req">*</span></label>
+          <input id="emp-phone" class="form-control" placeholder="+91 98765 43210" />
+        </div>
+        <div class="emf-field">
+          <label for="emp-location">Location</label>
+          <input id="emp-location" class="form-control" placeholder="e.g. Mumbai" />
+        </div>
+        <div class="emf-field">
+          <label for="emp-dob">Date of Birth</label>
+          <input id="emp-dob" class="form-control" type="date" />
         </div>
       </div>
-    </template>
 
-    <!-- CHECKOUT DAILY WORKSHEET MODAL TEMPLATE -->
-    <template id="worksheet-modal-tpl">
-      <div style="display: flex; flex-direction: column; gap: 14px">
-        <div
-          style="
+      <!-- RIGHT COLUMN -->
+      <div class="emf-col">
+        <div class="emf-field">
+          <label for="emp-id">Employee ID</label>
+          <input id="emp-id" class="form-control" placeholder="e.g. EMP-022" />
+        </div>
+        <div class="emf-field">
+          <label for="emp-email">Email (Login ID)</label>
+          <input id="emp-email" class="form-control" type="email" placeholder="john@company.com" />
+        </div>
+        <div class="emf-field">
+          <label for="emp-password">Password</label>
+          <div class="emf-password-wrap">
+            <input id="emp-password" class="form-control" type="password" placeholder="Set login password"
+              autocomplete="new-password" />
+            <button type="button" id="toggle-password" class="emf-password-toggle" aria-label="Show Password">
+              👁️
+            </button>
+          </div>
+        </div>
+        <div class="emf-field">
+          <label for="emp-joindate">Joining Date</label>
+          <input id="emp-joindate" class="form-control" type="date" />
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <!-- CHECKOUT DAILY WORKSHEET MODAL TEMPLATE -->
+  <template id="worksheet-modal-tpl">
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="
             background: rgba(14, 165, 233, 0.1);
             padding: 12px;
             border-radius: 6px;
             font-size: 0.85rem;
             color: var(--text-secondary);
-          "
-        >
-          <i
-            class="fas fa-info-circle"
-            style="color: var(--accent-blue); margin-right: 6px"
-          ></i>
-          Please fill in your daily work summary before completing check-out.
+          ">
+        <i class="fas fa-info-circle" style="color: var(--accent-blue); margin-right: 6px"></i>
+        Please fill in your daily work summary before completing check-out.
+      </div>
+      <div>
+        <label class="form-label">Summary of Work Done Today
+          <span style="color: #f87171">*</span></label>
+        <textarea id="ws-summary" class="form-control" rows="3"
+          placeholder="Describe tasks, client calls, and progress completed today…"></textarea>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+        <div>
+          <label class="form-label">Calls / Contacts Made</label>
+          <input id="ws-calls" type="number" min="0" class="form-control" value="0" />
         </div>
         <div>
-          <label class="form-label"
-            >Summary of Work Done Today
-            <span style="color: #f87171">*</span></label
-          >
-          <textarea
-            id="ws-summary"
-            class="form-control"
-            rows="3"
-            placeholder="Describe tasks, client calls, and progress completed today…"
-          ></textarea>
-        </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
-          <div>
-            <label class="form-label">Calls / Contacts Made</label>
-            <input
-              id="ws-calls"
-              type="number"
-              min="0"
-              class="form-control"
-              value="0"
-            />
-          </div>
-          <div>
-            <label class="form-label">Vessel Owners Contacted</label>
-            <input
-              id="ws-vessels"
-              type="number"
-              min="0"
-              class="form-control"
-              value="0"
-            />
-          </div>
-        </div>
-        <div>
-          <label class="form-label">Additional Notes / Leads Followed</label>
-          <textarea
-            id="ws-notes"
-            class="form-control"
-            rows="2"
-            placeholder="Any follow-up details or remarks…"
-          ></textarea>
+          <label class="form-label">Vessel Owners Contacted</label>
+          <input id="ws-vessels" type="number" min="0" class="form-control" value="0" />
         </div>
       </div>
-    </template>
+      <div>
+        <label class="form-label">Additional Notes / Leads Followed</label>
+        <textarea id="ws-notes" class="form-control" rows="2"
+          placeholder="Any follow-up details or remarks…"></textarea>
+      </div>
+    </div>
+  </template>
 
-    <!-- ASSIGN TASK MODAL TEMPLATE -->
-    <template id="task-modal-tpl">
-      <div style="display: flex; flex-direction: column; gap: 14px">
+  <!-- ASSIGN TASK MODAL TEMPLATE -->
+  <template id="task-modal-tpl">
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div>
+        <label class="form-label">Task Title <span style="color: #f87171">*</span></label>
+        <input id="task-title" class="form-control" placeholder="e.g. Research Vessel Owners in Singapore Region" />
+      </div>
+      <div>
+        <label class="form-label">Assign To Employee <span style="color: #f87171">*</span></label>
+        <select id="task-assignee" class="form-control">
+          <option value="">Select Employee</option>
+        </select>
+      </div>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
         <div>
-          <label class="form-label"
-            >Task Title <span style="color: #f87171">*</span></label
-          >
-          <input
-            id="task-title"
-            class="form-control"
-            placeholder="e.g. Research Vessel Owners in Singapore Region"
-          />
-        </div>
-        <div>
-          <label class="form-label"
-            >Assign To Employee <span style="color: #f87171">*</span></label
-          >
-          <select id="task-assignee" class="form-control">
-            <option value="">Select Employee</option>
+          <label class="form-label">Priority Level</label>
+          <select id="task-priority" class="form-control">
+            <option value="LOW">Low</option>
+            <option value="MEDIUM" selected>Medium</option>
+            <option value="HIGH">High</option>
+            <option value="URGENT">Urgent 🔴</option>
           </select>
         </div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
-          <div>
-            <label class="form-label">Priority Level</label>
-            <select id="task-priority" class="form-control">
-              <option value="LOW">Low</option>
-              <option value="MEDIUM" selected>Medium</option>
-              <option value="HIGH">High</option>
-              <option value="URGENT">Urgent 🔴</option>
-            </select>
-          </div>
-          <div>
-            <label class="form-label">Due Date</label>
-            <input id="task-duedate" type="date" class="form-control" />
-          </div>
-        </div>
         <div>
-          <label class="form-label">Task Description / Instructions</label>
-          <textarea
-            id="task-desc"
-            class="form-control"
-            rows="3"
-            placeholder="Provide details, search parameters, or instructions for the executive…"
-          ></textarea>
+          <label class="form-label">Due Date</label>
+          <input id="task-duedate" type="date" class="form-control" />
         </div>
       </div>
-    </template>
+      <div>
+        <label class="form-label">Task Description / Instructions</label>
+        <textarea id="task-desc" class="form-control" rows="3"
+          placeholder="Provide details, search parameters, or instructions for the executive…"></textarea>
+      </div>
+    </div>
+  </template>
 
-    <!-- SCRIPTS -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-    <script src="/public/js/api/api.js"></script>
-    <script src="/public/js/components/ui.js"></script>
-    <script src="/public/js/components/sidebar.js"></script>
-    <script src="/public/js/components/birthday.js"></script>
+  <!-- SCRIPTS -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="/public/js/api/api.js"></script>
+  <script src="/public/js/components/ui.js"></script>
+  <script src="/public/js/components/sidebar.js"></script>
+  <script src="/public/js/components/birthday.js"></script>
 
-    <script>
-      // ─── State ─────────────────────────────────────────────────────────────
-      let employees = [];
-      let attendances = {};
-      let tasks = [];
-      let editingId = null;
-      // Holds the worksheet list currently shown in the "View Worksheets" modal
-      // so the detail modal can look entries up by index without a second fetch.
-      let currentWorksheets = [];
+  <script>
+    // ─── State ─────────────────────────────────────────────────────────────
+    let employees = [];
+    let attendances = {};
+    let tasks = [];
+    let editingId = null;
+    // Holds the worksheet list currently shown in the "View Worksheets" modal
+    // so the detail modal can look entries up by index without a second fetch.
+    let currentWorksheets = [];
 
-      const currentUser = window.UI
-        ? window.UI.getUser()
-        : JSON.parse(localStorage.getItem("user") || "{}");
-      const canManage = ["ADMIN", "HR"].includes(currentUser.role);
+    const currentUser = window.UI
+      ? window.UI.getUser()
+      : JSON.parse(localStorage.getItem("user") || "{}");
+    const canManage = ["ADMIN", "HR"].includes(currentUser.role);
 
-      const formatTime = (dateStr) =>
-        dateStr
-          ? new Date(dateStr).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })
-          : "";
+    const formatTime = (dateStr) =>
+      dateStr
+        ? new Date(dateStr).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+        : "";
 
-      // Build attendance lookup: keyed by the Employee's _id (as string)
-      function buildAttendanceMap(attendanceList) {
-        const map = {};
-        (attendanceList || []).forEach((a) => {
-          // employeeId is stored as ObjectId ref; toString gives us the _id string
-          const key = a.employeeId ? a.employeeId.toString() : null;
-          if (key) map[key] = a;
-        });
-        return map;
-      }
+    // Build attendance lookup: keyed by the Employee's _id (as string)
+    function buildAttendanceMap(attendanceList) {
+      const map = {};
+      (attendanceList || []).forEach((a) => {
+        // employeeId is stored as ObjectId ref; toString gives us the _id string
+        const key = a.employeeId ? a.employeeId.toString() : null;
+        if (key) map[key] = a;
+      });
+      return map;
+    }
 
-      // ─── Load All Data ─────────────────────────────────────────────────────
-      async function loadEmployees() {
-        UI.showTableSkeleton(
-          document.getElementById("employee-table-body"),
-          9,
-          5,
-        );
-        try {
-          const [empRes, attRes] = await Promise.all([
-            window.ApiService.employees.list(),
-            window.ApiService.employees
-              .getTodayAttendance()
-              .catch(() => ({ data: [] })),
-          ]);
-          employees = empRes.data || [];
-          attendances = buildAttendanceMap(attRes.data || []);
+    // ─── Load All Data ─────────────────────────────────────────────────────
+    async function loadEmployees() {
+      UI.showTableSkeleton(
+        document.getElementById("employee-table-body"),
+        9,
+        5,
+      );
+      try {
+        const [empRes, attRes] = await Promise.all([
+          window.ApiService.employees.list(),
+          window.ApiService.employees
+            .getTodayAttendance()
+            .catch(() => ({ data: [] })),
+        ]);
+        employees = empRes.data || [];
+        attendances = buildAttendanceMap(attRes.data || []);
 
-          updateStats();
-          populatePositionFilter();
-          renderEmployees();
-        } catch (err) {
-          console.error("Error loading employees:", err);
-          UI.showToast("Failed to load employees", "error");
-          document.getElementById("employee-table-body").innerHTML =
-            `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">
+        updateStats();
+        populatePositionFilter();
+        renderEmployees();
+      } catch (err) {
+        console.error("Error loading employees:", err);
+        UI.showToast("Failed to load employees", "error");
+        document.getElementById("employee-table-body").innerHTML =
+          `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">
          <i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
          Failed to load employees. Please refresh.
        </td></tr>`;
-        }
       }
+    }
 
-      // ─── Stats ──────────────────────────────────────────────────────────────
-      function updateStats() {
-        const positions = new Set(
-          employees.map((e) => e.position).filter(Boolean),
-        );
-        const pendingTasks = tasks.filter(
-          (t) => t.status !== "COMPLETED",
-        ).length;
-        UI.countUp(document.getElementById("stat-total"), employees.length);
-        UI.countUp(document.getElementById("stat-positions"), positions.size);
-      }
+    // ─── Stats ──────────────────────────────────────────────────────────────
+    function updateStats() {
+      const positions = new Set(
+        employees.map((e) => e.position).filter(Boolean),
+      );
+      const pendingTasks = tasks.filter(
+        (t) => t.status !== "COMPLETED",
+      ).length;
+      UI.countUp(document.getElementById("stat-total"), employees.length);
+      UI.countUp(document.getElementById("stat-positions"), positions.size);
+    }
 
-      // ─── Position Filter ─────────────────────────────────────────────────────
-      function populatePositionFilter() {
-        const sel = document.getElementById("position-filter");
-        const cur = sel.value;
-        const positions = [
-          ...new Set(employees.map((e) => e.position).filter(Boolean)),
-        ].sort();
-        sel.innerHTML =
-          '<option value="">All Positions</option>' +
-          positions
-            .map(
-              (p) =>
-                `<option value="${p}" ${p === cur ? "selected" : ""}>${p}</option>`,
-            )
-            .join("");
-      }
+    // ─── Position Filter ─────────────────────────────────────────────────────
+    function populatePositionFilter() {
+      const sel = document.getElementById("position-filter");
+      const cur = sel.value;
+      const positions = [
+        ...new Set(employees.map((e) => e.position).filter(Boolean)),
+      ].sort();
+      sel.innerHTML =
+        '<option value="">All Positions</option>' +
+        positions
+          .map(
+            (p) =>
+              `<option value="${p}" ${p === cur ? "selected" : ""}>${p}</option>`,
+          )
+          .join("");
+    }
 
-      // ─── Render Employees Table ──────────────────────────────────────────────
-      function renderEmployees() {
-        const search = (
-          document.getElementById("search-input").value || ""
-        ).toLowerCase();
-        const posFilter = document.getElementById("position-filter").value;
+    // ─── Render Employees Table ──────────────────────────────────────────────
+    function renderEmployees() {
+      const search = (
+        document.getElementById("search-input").value || ""
+      ).toLowerCase();
+      const posFilter = document.getElementById("position-filter").value;
 
-        const filtered = employees.filter((e) => {
-          const matchSearch =
-            !search ||
-            e.name.toLowerCase().includes(search) ||
-            (e.position || "").toLowerCase().includes(search) ||
-            (e.location || "").toLowerCase().includes(search) ||
-            (e.email || "").toLowerCase().includes(search) ||
-            (e.employeeId || "").toLowerCase().includes(search);
-          const matchPos = !posFilter || e.position === posFilter;
-          return matchSearch && matchPos;
-        });
+      const filtered = employees.filter((e) => {
+        const matchSearch =
+          !search ||
+          e.name.toLowerCase().includes(search) ||
+          (e.position || "").toLowerCase().includes(search) ||
+          (e.location || "").toLowerCase().includes(search) ||
+          (e.email || "").toLowerCase().includes(search) ||
+          (e.employeeId || "").toLowerCase().includes(search);
+        const matchPos = !posFilter || e.position === posFilter;
+        return matchSearch && matchPos;
+      });
 
-        const tbody = document.getElementById("employee-table-body");
+      const tbody = document.getElementById("employee-table-body");
 
-        if (filtered.length === 0) {
-          tbody.innerHTML = `
+      if (filtered.length === 0) {
+        tbody.innerHTML = `
       <tr><td colspan="9">
         ${UI.renderEmptyState(
           "👨‍💼",
@@ -1132,30 +1000,30 @@
             : "",
         )}
       </td></tr>`;
-          return;
-        }
+        return;
+      }
 
-        tbody.innerHTML = filtered
-          .map((e, idx) => {
-            const initials = e.name
-              .split(" ")
-              .map((n) => n[0])
-              .join("")
-              .slice(0, 2)
-              .toUpperCase();
-            const joinDate = e.joinDate
-              ? new Date(e.joinDate).toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                  year: "numeric",
-                })
-              : "—";
+      tbody.innerHTML = filtered
+        .map((e, idx) => {
+          const initials = e.name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+          const joinDate = e.joinDate
+            ? new Date(e.joinDate).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+            : "—";
 
-            const att = attendances[e.id] || {};
-            const checkedIn = Boolean(att.checkIn);
-            const checkedOut = Boolean(att.checkOut);
+          const att = attendances[e.id] || {};
+          const checkedIn = Boolean(att.checkIn);
+          const checkedOut = Boolean(att.checkOut);
 
-            return `
+          return `
       <tr>
         <td style="color:var(--text-muted);font-size:0.8rem;">${idx + 1}</td>
         <td>
@@ -1193,9 +1061,8 @@
         </td>
         <td>
           <div style="display:flex;gap:6px;">
-            ${
-              canManage
-                ? `
+            ${canManage
+              ? `
               <button class="btn btn-secondary btn-sm" onclick="openEmployeeModal('${e.id}')" title="Edit">
                 <i class="fas fa-edit"></i>
               </button>
@@ -1203,105 +1070,105 @@
                 <i class="fas fa-trash"></i>
               </button>
             `
-                : `<span style="color:var(--text-muted);font-size:0.8rem;">View only</span>`
+              : `<span style="color:var(--text-muted);font-size:0.8rem;">View only</span>`
             }
           </div>
         </td>
       </tr>`;
-          })
-          .join("");
+        })
+        .join("");
+    }
+
+    // ─── Attendance Check In / Out ───────────────────────────────────────────
+    async function handleCheckIn(id) {
+      try {
+        const res = await window.ApiService.employees.checkIn(id);
+        attendances[id] = res.data;
+        UI.showToast("Checked in successfully.", "success");
+        renderEmployees();
+      } catch (err) {
+        console.error("Check in error:", err);
+        UI.showToast(err.message || "Check in failed.", "error");
       }
+    }
 
-      // ─── Attendance Check In / Out ───────────────────────────────────────────
-      async function handleCheckIn(id) {
-        try {
-          const res = await window.ApiService.employees.checkIn(id);
-          attendances[id] = res.data;
-          UI.showToast("Checked in successfully.", "success");
-          renderEmployees();
-        } catch (err) {
-          console.error("Check in error:", err);
-          UI.showToast(err.message || "Check in failed.", "error");
-        }
-      }
+    // ─── Checkout with Daily Worksheet Popup ──────────────────────────────────
+    function handleCheckOutModal(employeeId, employeeName) {
+      const tpl = document.getElementById("worksheet-modal-tpl");
 
-      // ─── Checkout with Daily Worksheet Popup ──────────────────────────────────
-      function handleCheckOutModal(employeeId, employeeName) {
-        const tpl = document.getElementById("worksheet-modal-tpl");
-
-        const modal = UI.createModal({
-          title: `📋 Daily Worksheet & Checkout — ${employeeName}`,
-          bodyHtml: tpl.innerHTML,
-          footerHtml: `
+      const modal = UI.createModal({
+        title: `📋 Daily Worksheet & Checkout — ${employeeName}`,
+        bodyHtml: tpl.innerHTML,
+        footerHtml: `
       <button class="btn btn-secondary" id="ws-cancel">Cancel</button>
       <button class="btn btn-warning"   id="ws-submit"><i class="fas fa-paper-plane"></i> Submit & Check Out</button>
     `,
-        });
+      });
 
-        modal.querySelector("#ws-cancel").onclick = () => modal.close();
-        modal.querySelector("#ws-submit").onclick = async () => {
-          const summaryStr = modal.querySelector("#ws-summary").value.trim();
-          const callsVal = modal.querySelector("#ws-calls").value;
-          const vesselsVal = modal.querySelector("#ws-vessels").value;
-          const notesStr = modal.querySelector("#ws-notes").value.trim();
+      modal.querySelector("#ws-cancel").onclick = () => modal.close();
+      modal.querySelector("#ws-submit").onclick = async () => {
+        const summaryStr = modal.querySelector("#ws-summary").value.trim();
+        const callsVal = modal.querySelector("#ws-calls").value;
+        const vesselsVal = modal.querySelector("#ws-vessels").value;
+        const notesStr = modal.querySelector("#ws-notes").value.trim();
 
-          if (!summaryStr) {
-            return UI.showToast(
-              "Please provide a summary of your work done today.",
-              "error",
-            );
-          }
+        if (!summaryStr) {
+          return UI.showToast(
+            "Please provide a summary of your work done today.",
+            "error",
+          );
+        }
 
-          const submitBtn = modal.querySelector("#ws-submit");
-          submitBtn.disabled = true;
-          submitBtn.innerHTML =
-            '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+        const submitBtn = modal.querySelector("#ws-submit");
+        submitBtn.disabled = true;
+        submitBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Submitting…';
 
-          try {
-            // 1. Submit Worksheet
-            await window.ApiService.employees.submitWorksheet({
-              employeeId,
-              summaryOfWork: summaryStr,
-              callsMade: callsVal,
-              vesselsContacted: vesselsVal,
-              notes: notesStr,
-            });
-
-            // 2. Perform Check Out
-            const res = await window.ApiService.employees.checkOut(employeeId);
-            attendances[employeeId] = res.data;
-
-            UI.showToast(
-              "Worksheet submitted & Checked out successfully.",
-              "success",
-            );
-            modal.close();
-            renderEmployees();
-          } catch (err) {
-            console.error("Worksheet / Checkout error:", err);
-            UI.showToast(err.message || "Checkout failed.", "error");
-            submitBtn.disabled = false;
-            submitBtn.innerHTML =
-              '<i class="fas fa-paper-plane"></i> Submit & Check Out';
-          }
-        };
-      }
-
-      // ─── View Worksheets History Modal ──────────────────────────────────────
-      async function openWorksheetsViewModal() {
         try {
-          const res = await window.ApiService.employees.getWorksheets();
-          const list = res.data || [];
-          // Cache the list so the detail modal (opened by index) can read it
-          // without a second network call.
-          currentWorksheets = list;
+          // 1. Submit Worksheet
+          await window.ApiService.employees.submitWorksheet({
+            employeeId,
+            summaryOfWork: summaryStr,
+            callsMade: callsVal,
+            vesselsContacted: vesselsVal,
+            notes: notesStr,
+          });
 
-          const tableRows =
-            list.length === 0
-              ? `<tr><td colspan="5" style="text-align:center;padding:20px;">No worksheets submitted yet.</td></tr>`
-              : list
-                  .map(
-                    (w, idx) => `
+          // 2. Perform Check Out
+          const res = await window.ApiService.employees.checkOut(employeeId);
+          attendances[employeeId] = res.data;
+
+          UI.showToast(
+            "Worksheet submitted & Checked out successfully.",
+            "success",
+          );
+          modal.close();
+          renderEmployees();
+        } catch (err) {
+          console.error("Worksheet / Checkout error:", err);
+          UI.showToast(err.message || "Checkout failed.", "error");
+          submitBtn.disabled = false;
+          submitBtn.innerHTML =
+            '<i class="fas fa-paper-plane"></i> Submit & Check Out';
+        }
+      };
+    }
+
+    // ─── View Worksheets History Modal ──────────────────────────────────────
+    async function openWorksheetsViewModal() {
+      try {
+        const res = await window.ApiService.employees.getWorksheets();
+        const list = res.data || [];
+        // Cache the list so the detail modal (opened by index) can read it
+        // without a second network call.
+        currentWorksheets = list;
+
+        const tableRows =
+          list.length === 0
+            ? `<tr><td colspan="5" style="text-align:center;padding:20px;">No worksheets submitted yet.</td></tr>`
+            : list
+              .map(
+                (w, idx) => `
         <tr>
           <td style="font-size:0.85rem;">${w.date}</td>
           <td>
@@ -1318,10 +1185,10 @@
           <td style="font-size:0.8rem;color:var(--text-muted);">${w.notes || "—"}</td>
         </tr>
       `,
-                  )
-                  .join("");
+              )
+              .join("");
 
-          const bodyHtml = `
+        const bodyHtml = `
       <div class="table-container" style="max-height:400px;overflow-y:auto;">
         <table class="table">
           <thead>
@@ -1338,59 +1205,59 @@
       </div>
     `;
 
-          UI.createModal({
-            title: "📑 Submitted Daily Worksheets History",
-            bodyHtml,
-            footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Close</button>`,
-          });
-        } catch (err) {
-          UI.showToast("Failed to load worksheets.", "error");
-        }
+        UI.createModal({
+          title: "📑 Submitted Daily Worksheets History",
+          bodyHtml,
+          footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Close</button>`,
+        });
+      } catch (err) {
+        UI.showToast("Failed to load worksheets.", "error");
       }
+    }
 
-      // ─── Full Worksheet Detail Modal (opened from employee name click) ──────
-      function openWorksheetDetailModal(idx) {
-        const w = currentWorksheets[idx];
-        if (!w) return;
+    // ─── Full Worksheet Detail Modal (opened from employee name click) ──────
+    function openWorksheetDetailModal(idx) {
+      const w = currentWorksheets[idx];
+      if (!w) return;
 
-        const empName = w.employeeId ? w.employeeId.name : "Employee";
-        const empIdLabel =
-          (w.employeeId && (w.employeeId.employeeId || w.employeeId._id)) ||
-          "—";
-        const initials = empName
-          .split(" ")
-          .map((n) => n[0])
-          .join("")
-          .slice(0, 2)
-          .toUpperCase();
-        const submittedTime =
-          w.createdAt || w.submittedAt
-            ? new Date(w.createdAt || w.submittedAt).toLocaleString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-                hour: "2-digit",
-                minute: "2-digit",
-              })
-            : "—";
-        const status = w.status || "Submitted";
-        const statusClassMap = {
-          Submitted: "badge-blue",
-          Approved: "badge-green",
-          Pending: "badge-yellow",
-          Rejected: "badge-red",
-        };
-        const statusClass = statusClassMap[status] || "badge-blue";
-        const managerComments = w.managerComments || w.managerComment || null;
+      const empName = w.employeeId ? w.employeeId.name : "Employee";
+      const empIdLabel =
+        (w.employeeId && (w.employeeId.employeeId || w.employeeId._id)) ||
+        "—";
+      const initials = empName
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .slice(0, 2)
+        .toUpperCase();
+      const submittedTime =
+        w.createdAt || w.submittedAt
+          ? new Date(w.createdAt || w.submittedAt).toLocaleString("en-GB", {
+            day: "2-digit",
+            month: "short",
+            year: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+          })
+          : "—";
+      const status = w.status || "Submitted";
+      const statusClassMap = {
+        Submitted: "badge-blue",
+        Approved: "badge-green",
+        Pending: "badge-yellow",
+        Rejected: "badge-red",
+      };
+      const statusClass = statusClassMap[status] || "badge-blue";
+      const managerComments = w.managerComments || w.managerComment || null;
 
-        // Remove any existing detail modal before opening a new one
-        const existing = document.getElementById("wsd-overlay");
-        if (existing) existing.remove();
+      // Remove any existing detail modal before opening a new one
+      const existing = document.getElementById("wsd-overlay");
+      if (existing) existing.remove();
 
-        const overlay = document.createElement("div");
-        overlay.id = "wsd-overlay";
-        overlay.className = "wsd-overlay";
-        overlay.innerHTML = `
+      const overlay = document.createElement("div");
+      overlay.id = "wsd-overlay";
+      overlay.className = "wsd-overlay";
+      overlay.innerHTML = `
         <div class="wsd-modal glass-card" role="dialog" aria-modal="true" aria-labelledby="wsd-title">
           <button class="wsd-close" id="wsd-close" aria-label="Close worksheet details">
             <i class="fas fa-times"></i>
@@ -1423,19 +1290,19 @@
           </div>
         </div>
       `;
-        document.body.appendChild(overlay);
+      document.body.appendChild(overlay);
 
-        // Trigger fade + zoom entrance on next frame
-        requestAnimationFrame(() => overlay.classList.add("active"));
+      // Trigger fade + zoom entrance on next frame
+      requestAnimationFrame(() => overlay.classList.add("active"));
 
-        // Data already lives in memory (from getWorksheets()), but we still show
-        // a brief skeleton state for a consistent, premium feel — and this is
-        // exactly where a real per-row API call would slot in if one is added
-        // later, without touching any of the surrounding modal logic.
-        setTimeout(() => {
-          const body = overlay.querySelector("#wsd-body");
-          if (!body) return;
-          body.innerHTML = `
+      // Data already lives in memory (from getWorksheets()), but we still show
+      // a brief skeleton state for a consistent, premium feel — and this is
+      // exactly where a real per-row API call would slot in if one is added
+      // later, without touching any of the surrounding modal logic.
+      setTimeout(() => {
+        const body = overlay.querySelector("#wsd-body");
+        if (!body) return;
+        body.innerHTML = `
           <div class="wsd-grid">
             <div class="wsd-field"><label>Date</label><div class="wsd-value">${w.date || "—"}</div></div>
             <div class="wsd-field"><label>Activity</label><div class="wsd-value">${w.callsMade ?? 0} calls · ${w.vesselsContacted ?? 0} vessels</div></div>
@@ -1448,31 +1315,31 @@
             ${managerComments ? `<div class="wsd-field wsd-span2"><label>Manager Comments</label><div class="wsd-value wsd-longtext">${managerComments}</div></div>` : ""}
           </div>
         `;
-        }, 220);
+      }, 220);
 
-        function closeModal() {
-          overlay.classList.remove("active");
-          setTimeout(() => overlay.remove(), 260);
-          document.removeEventListener("keydown", escHandler);
-        }
+      function closeModal() {
+        overlay.classList.remove("active");
+        setTimeout(() => overlay.remove(), 260);
+        document.removeEventListener("keydown", escHandler);
+      }
 
-        function escHandler(e) {
-          if (e.key === "Escape") closeModal();
-        }
+      function escHandler(e) {
+        if (e.key === "Escape") closeModal();
+      }
 
-        overlay.querySelector("#wsd-close").onclick = closeModal;
-        overlay.querySelector("#wsd-close-btn").onclick = closeModal;
-        overlay.addEventListener("click", (e) => {
-          if (e.target === overlay) closeModal();
-        });
-        document.addEventListener("keydown", escHandler);
+      overlay.querySelector("#wsd-close").onclick = closeModal;
+      overlay.querySelector("#wsd-close-btn").onclick = closeModal;
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeModal();
+      });
+      document.addEventListener("keydown", escHandler);
 
-        // Bonus: Print Worksheet
-        overlay.querySelector("#wsd-print").onclick = () => {
-          const printWindow = window.open("", "_blank", "width=700,height=800");
-          if (!printWindow)
-            return UI.showToast("Please allow pop-ups to print.", "warning");
-          printWindow.document.write(`
+      // Bonus: Print Worksheet
+      overlay.querySelector("#wsd-print").onclick = () => {
+        const printWindow = window.open("", "_blank", "width=700,height=800");
+        if (!printWindow)
+          return UI.showToast("Please allow pop-ups to print.", "warning");
+        printWindow.document.write(`
           <html><head><title>Worksheet - ${empName} - ${w.date || ""}</title>
           <style>
             body{font-family:Arial, sans-serif;padding:24px;color:#111;}
@@ -1492,39 +1359,39 @@
           ${managerComments ? `<div class="row"><div class="label">Manager Comments</div><div class="value">${managerComments}</div></div>` : ""}
           </body></html>
         `);
-          printWindow.document.close();
-          printWindow.focus();
-          setTimeout(() => printWindow.print(), 300);
-        };
+        printWindow.document.close();
+        printWindow.focus();
+        setTimeout(() => printWindow.print(), 300);
+      };
 
-        // Bonus: Download PDF (UI placeholder — no backend endpoint yet)
-        overlay.querySelector("#wsd-pdf").onclick = () => {
-          UI.showToast(
-            "PDF export is coming soon — backend endpoint not connected yet.",
-            "warning",
-          );
-        };
-      }
+      // Bonus: Download PDF (UI placeholder — no backend endpoint yet)
+      overlay.querySelector("#wsd-pdf").onclick = () => {
+        UI.showToast(
+          "PDF export is coming soon — backend endpoint not connected yet.",
+          "warning",
+        );
+      };
+    }
 
-      // ─── Open Add / Edit Employee Modal ──────────────────────────────────────
-      function openEmployeeModal(id = null) {
-        if (!canManage)
-          return UI.showToast(
-            "Only Admin or HR can manage employees.",
-            "warning",
-          );
-        editingId = id;
-        const emp = id ? employees.find((e) => e.id === id) : null;
-        const tpl = document.getElementById("employee-modal-tpl");
+    // ─── Open Add / Edit Employee Modal ──────────────────────────────────────
+    function openEmployeeModal(id = null) {
+      if (!canManage)
+        return UI.showToast(
+          "Only Admin or HR can manage employees.",
+          "warning",
+        );
+      editingId = id;
+      const emp = id ? employees.find((e) => e.id === id) : null;
+      const tpl = document.getElementById("employee-modal-tpl");
 
-        // Remove any existing add/edit modal before opening a new one
-        const existing = document.getElementById("emf-overlay");
-        if (existing) existing.remove();
+      // Remove any existing add/edit modal before opening a new one
+      const existing = document.getElementById("emf-overlay");
+      if (existing) existing.remove();
 
-        const overlay = document.createElement("div");
-        overlay.id = "emf-overlay";
-        overlay.className = "emf-overlay";
-        overlay.innerHTML = `
+      const overlay = document.createElement("div");
+      overlay.id = "emf-overlay";
+      overlay.className = "emf-overlay";
+      overlay.innerHTML = `
         <div class="emf-modal glass-card" role="dialog" aria-modal="true" aria-labelledby="emf-title">
           <div class="emf-header">
             <div>
@@ -1542,248 +1409,246 @@
           </div>
         </div>
       `;
-        overlay.querySelector("#emf-body").innerHTML = tpl.innerHTML;
-        document.body.appendChild(overlay);
-        document.body.style.overflow = "hidden";
+      overlay.querySelector("#emf-body").innerHTML = tpl.innerHTML;
+      document.body.appendChild(overlay);
+      document.body.style.overflow = "hidden";
 
-        // Trigger fade + zoom entrance on next frame
-        requestAnimationFrame(() => overlay.classList.add("active"));
+      // Trigger fade + zoom entrance on next frame
+      requestAnimationFrame(() => overlay.classList.add("active"));
 
-        // Password show/hide
-        const passwordInput = overlay.querySelector("#emp-password");
-        const togglePassword = overlay.querySelector("#toggle-password");
+      // Password show/hide
+      const passwordInput = overlay.querySelector("#emp-password");
+      const togglePassword = overlay.querySelector("#toggle-password");
 
-        togglePassword.addEventListener("click", function () {
-          if (passwordInput.type === "password") {
-            passwordInput.type = "text";
-            this.innerHTML = "🙈";
-          } else {
-            passwordInput.type = "password";
-            this.innerHTML = "👁️";
-          }
-        });
-
-        if (emp) {
-          overlay.querySelector("#emp-name").value = emp.name || "";
-
-          const empIdInput = overlay.querySelector("#emp-id");
-          empIdInput.value = emp.employeeId || "";
-
-          // Employee ID cannot be changed while editing
-          empIdInput.readOnly = true;
-          empIdInput.title = "Employee ID cannot be changed after creation";
-
-          overlay.querySelector("#emp-position").value = emp.position || "";
-          overlay.querySelector("#emp-phone").value = emp.phone || "";
-          overlay.querySelector("#emp-email").value = emp.email || "";
-
-          const pwdInput = overlay.querySelector("#emp-password");
-          pwdInput.placeholder = "Leave blank to keep existing password";
-
-          overlay.querySelector("#emp-location").value = emp.location || "";
-
-          if (emp.joinDate) {
-            overlay.querySelector("#emp-joindate").value = new Date(
-              emp.joinDate,
-            )
-              .toISOString()
-              .split("T")[0];
-          }
-
-          if (emp.dateOfBirth) {
-            overlay.querySelector("#emp-dob").value = new Date(emp.dateOfBirth)
-              .toISOString()
-              .split("T")[0];
-          }
+      togglePassword.addEventListener("click", function () {
+        if (passwordInput.type === "password") {
+          passwordInput.type = "text";
+          this.innerHTML = "🙈";
         } else {
-          // NEW EMPLOYEE → AUTO-GENERATE EMPLOYEE ID
-          const empIdInput = overlay.querySelector("#emp-id");
+          passwordInput.type = "password";
+          this.innerHTML = "👁️";
+        }
+      });
 
-          const nextNumber = employees.length + 1;
+      if (emp) {
+        overlay.querySelector("#emp-name").value = emp.name || "";
 
-          empIdInput.value = `EMP-${String(nextNumber).padStart(3, "0")}`;
+        const empIdInput = overlay.querySelector("#emp-id");
+        empIdInput.value = emp.employeeId || "";
+        empIdInput.readOnly = false;
+        empIdInput.title = "Employee ID can be edited";
 
-          empIdInput.readOnly = true;
-          empIdInput.title = "Employee ID is automatically generated";
+        overlay.querySelector("#emp-position").value = emp.position || "";
+        overlay.querySelector("#emp-phone").value = emp.phone || "";
+        overlay.querySelector("#emp-email").value = emp.email || "";
+
+        const pwdInput = overlay.querySelector("#emp-password");
+        pwdInput.placeholder = "Leave blank to keep existing password";
+
+        overlay.querySelector("#emp-location").value = emp.location || "";
+
+        if (emp.joinDate) {
+          overlay.querySelector("#emp-joindate").value = new Date(
+            emp.joinDate,
+          )
+            .toISOString()
+            .split("T")[0];
         }
 
-        // ─ Close handling: Esc key, backdrop click, close/cancel buttons,
-        //   and background-scroll lock while the modal is open.
-        function closeModal() {
-          overlay.classList.remove("active");
-          document.body.style.overflow = "";
-          setTimeout(() => overlay.remove(), 260);
-          document.removeEventListener("keydown", escHandler);
+        if (emp.dateOfBirth) {
+          overlay.querySelector("#emp-dob").value = new Date(emp.dateOfBirth)
+            .toISOString()
+            .split("T")[0];
         }
+      } else {
+        // NEW EMPLOYEE → AUTO-GENERATE EMPLOYEE ID (still editable)
+        const empIdInput = overlay.querySelector("#emp-id");
 
-        function escHandler(e) {
-          if (e.key === "Escape") closeModal();
-        }
+        const nextNumber = employees.length + 1;
 
-        overlay.querySelector("#emf-close").onclick = closeModal;
-        overlay.querySelector("#emp-cancel").onclick = closeModal;
-        overlay.addEventListener("click", (e) => {
-          if (e.target === overlay) closeModal();
-        });
-        document.addEventListener("keydown", escHandler);
+        empIdInput.value = `EMP-${String(nextNumber).padStart(3, "0")}`;
 
-        // saveEmployee(modal) expects modal.querySelector(...) and modal.close() —
-        // overlay is a real DOM node, so we just attach .close to it directly.
-        overlay.close = closeModal;
-
-        overlay.querySelector("#emp-save").onclick = () =>
-          saveEmployee(overlay);
+        empIdInput.readOnly = false;
+        empIdInput.title = "You can edit the Employee ID";
       }
 
-      // ─── Save Employee ───────────────────────────────────────────────────────
-      async function saveEmployee(modal) {
-        const saveBtn = modal.querySelector("#emp-save");
-        const nameVal = modal.querySelector("#emp-name").value.trim();
-        const phoneVal = modal.querySelector("#emp-phone").value.trim();
-        const passwordVal = modal.querySelector("#emp-password").value.trim();
-
-        if (!nameVal || !phoneVal) {
-          return UI.showToast("Name and Phone are required.", "error");
-        }
-
-        const data = {
-          name: nameVal,
-          employeeId: modal.querySelector("#emp-id").value.trim() || undefined,
-          position:
-            modal.querySelector("#emp-position").value.trim() || undefined,
-          phone: phoneVal,
-          email: modal.querySelector("#emp-email").value.trim() || undefined,
-          location:
-            modal.querySelector("#emp-location").value.trim() || undefined,
-          joinDate: modal.querySelector("#emp-joindate").value || undefined,
-          dateOfBirth: modal.querySelector("#emp-dob").value || undefined,
-        };
-
-        // Only include password if user actually typed something
-        if (passwordVal) {
-          data.password = passwordVal;
-        }
-
-        saveBtn.disabled = true;
-        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
-
-        try {
-          if (editingId) {
-            await window.ApiService.employees.update(editingId, data);
-            UI.showToast("Employee updated successfully.", "success");
-          } else {
-            await window.ApiService.employees.create(data);
-            UI.showToast(
-              "Employee and Login account created successfully.",
-              "success",
-            );
-          }
-          modal.close();
-          await loadEmployees();
-        } catch (err) {
-          console.error("Save error:", err);
-          const errMsg =
-            err && err.message ? err.message : "Failed to save employee.";
-          UI.showToast(errMsg, "error");
-          saveBtn.disabled = false;
-          saveBtn.innerHTML = editingId ? "Update Employee" : "Save Employee";
-        }
+      // ─ Close handling: Esc key, backdrop click, close/cancel buttons,
+      //   and background-scroll lock while the modal is open.
+      function closeModal() {
+        overlay.classList.remove("active");
+        document.body.style.overflow = "";
+        setTimeout(() => overlay.remove(), 260);
+        document.removeEventListener("keydown", escHandler);
       }
 
-      // ─── Delete ──────────────────────────────────────────────────────────────
-      async function confirmDeleteEmployee(id, name) {
-        if (!canManage)
+      function escHandler(e) {
+        if (e.key === "Escape") closeModal();
+      }
+
+      overlay.querySelector("#emf-close").onclick = closeModal;
+      overlay.querySelector("#emp-cancel").onclick = closeModal;
+      overlay.addEventListener("click", (e) => {
+        if (e.target === overlay) closeModal();
+      });
+      document.addEventListener("keydown", escHandler);
+
+      // saveEmployee(modal) expects modal.querySelector(...) and modal.close() —
+      // overlay is a real DOM node, so we just attach .close to it directly.
+      overlay.close = closeModal;
+
+      overlay.querySelector("#emp-save").onclick = () =>
+        saveEmployee(overlay);
+    }
+
+    // ─── Save Employee ───────────────────────────────────────────────────────
+    async function saveEmployee(modal) {
+      const saveBtn = modal.querySelector("#emp-save");
+      const nameVal = modal.querySelector("#emp-name").value.trim();
+      const phoneVal = modal.querySelector("#emp-phone").value.trim();
+      const passwordVal = modal.querySelector("#emp-password").value.trim();
+
+      if (!nameVal || !phoneVal) {
+        return UI.showToast("Name and Phone are required.", "error");
+      }
+
+      const data = {
+        name: nameVal,
+        employeeId: modal.querySelector("#emp-id").value.trim() || undefined,
+        position:
+          modal.querySelector("#emp-position").value.trim() || undefined,
+        phone: phoneVal,
+        email: modal.querySelector("#emp-email").value.trim() || undefined,
+        location:
+          modal.querySelector("#emp-location").value.trim() || undefined,
+        joinDate: modal.querySelector("#emp-joindate").value || undefined,
+        dateOfBirth: modal.querySelector("#emp-dob").value || undefined,
+      };
+
+      // Only include password if user actually typed something
+      if (passwordVal) {
+        data.password = passwordVal;
+      }
+
+      saveBtn.disabled = true;
+      saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving…';
+
+      try {
+        if (editingId) {
+          await window.ApiService.employees.update(editingId, data);
+          UI.showToast("Employee updated successfully.", "success");
+        } else {
+          await window.ApiService.employees.create(data);
+          UI.showToast(
+            "Employee and Login account created successfully.",
+            "success",
+          );
+        }
+        modal.close();
+        await loadEmployees();
+      } catch (err) {
+        console.error("Save error:", err);
+        const errMsg =
+          err && err.message ? err.message : "Failed to save employee.";
+        UI.showToast(errMsg, "error");
+        saveBtn.disabled = false;
+        saveBtn.innerHTML = editingId ? "Update Employee" : "Save Employee";
+      }
+    }
+
+    // ─── Delete ──────────────────────────────────────────────────────────────
+    async function confirmDeleteEmployee(id, name) {
+      if (!canManage)
+        return UI.showToast(
+          "Only Admin or HR can delete employees.",
+          "warning",
+        );
+      const confirmed = await UI.confirm({
+        title: "Delete Employee?",
+        message: `Are you sure you want to delete <strong>${name}</strong>? This cannot be undone.`,
+        confirmText: "Delete",
+        cancelText: "Cancel",
+        danger: true,
+      });
+      if (!confirmed) return;
+      try {
+        await window.ApiService.employees.delete(id);
+        UI.showToast("Employee deleted.", "success");
+        await loadEmployees();
+      } catch (err) {
+        console.error("Delete error:", err);
+        UI.showToast(err.message || "Failed to delete employee.", "error");
+      }
+    }
+
+    // ─── Import from Excel ───────────────────────────────────────────────────
+    async function importFromExcel(file) {
+      if (!canManage)
+        return UI.showToast(
+          "Only Admin or HR can import employees.",
+          "warning",
+        );
+      try {
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data, { type: "array", cellDates: true });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+
+        if (!rawRows.length)
           return UI.showToast(
-            "Only Admin or HR can delete employees.",
+            "No data rows found in the Excel file.",
             "warning",
           );
-        const confirmed = await UI.confirm({
-          title: "Delete Employee?",
-          message: `Are you sure you want to delete <strong>${name}</strong>? This cannot be undone.`,
-          confirmText: "Delete",
-          cancelText: "Cancel",
-          danger: true,
+
+        // Normalize column names (case-insensitive)
+        const rows = rawRows.map((r) => {
+          const norm = {};
+          for (const key of Object.keys(r)) norm[key.trim()] = r[key];
+          return {
+            name: norm["Name"] || norm["name"] || "",
+            position: norm["Position"] || norm["position"] || "",
+            phone: norm["Phone"] || norm["phone"] || "",
+            email: norm["Email"] || norm["email"] || "",
+            location: norm["Location"] || norm["location"] || "",
+            "Joining Date":
+              norm["Joining Date"] ||
+              norm["joinDate"] ||
+              norm["joining_date"] ||
+              "",
+            "Date of Birth":
+              norm["Date of Birth"] ||
+              norm["dateOfBirth"] ||
+              norm["date_of_birth"] ||
+              "",
+          };
         });
-        if (!confirmed) return;
+
+        const btn = document.getElementById("import-btn");
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
+
         try {
-          await window.ApiService.employees.delete(id);
-          UI.showToast("Employee deleted.", "success");
-          await loadEmployees();
-        } catch (err) {
-          console.error("Delete error:", err);
-          UI.showToast(err.message || "Failed to delete employee.", "error");
-        }
-      }
+          const res = await window.ApiService.employees.bulkImport({ rows });
+          const { imported, skipped, failed, details } = res.data;
 
-      // ─── Import from Excel ───────────────────────────────────────────────────
-      async function importFromExcel(file) {
-        if (!canManage)
-          return UI.showToast(
-            "Only Admin or HR can import employees.",
-            "warning",
-          );
-        try {
-          const data = await file.arrayBuffer();
-          const wb = XLSX.read(data, { type: "array", cellDates: true });
-          const ws = wb.Sheets[wb.SheetNames[0]];
-          const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "" });
+          // Build result detail list
+          const failedRows = details.filter((d) => d.status === "failed");
+          const skippedRows = details.filter((d) => d.status === "skipped");
+          const failDetail = failedRows
+            .map(
+              (d) =>
+                `<li style="color:#ef4444;">Row ${d.row}: ${d.name} — ${d.reason}</li>`,
+            )
+            .join("");
+          const skipDetail = skippedRows
+            .map(
+              (d) =>
+                `<li style="color:#fbbf24;">Row ${d.row}: ${d.name} — ${d.reason}</li>`,
+            )
+            .join("");
 
-          if (!rawRows.length)
-            return UI.showToast(
-              "No data rows found in the Excel file.",
-              "warning",
-            );
-
-          // Normalize column names (case-insensitive)
-          const rows = rawRows.map((r) => {
-            const norm = {};
-            for (const key of Object.keys(r)) norm[key.trim()] = r[key];
-            return {
-              name: norm["Name"] || norm["name"] || "",
-              position: norm["Position"] || norm["position"] || "",
-              phone: norm["Phone"] || norm["phone"] || "",
-              email: norm["Email"] || norm["email"] || "",
-              location: norm["Location"] || norm["location"] || "",
-              "Joining Date":
-                norm["Joining Date"] ||
-                norm["joinDate"] ||
-                norm["joining_date"] ||
-                "",
-              "Date of Birth":
-                norm["Date of Birth"] ||
-                norm["dateOfBirth"] ||
-                norm["date_of_birth"] ||
-                "",
-            };
-          });
-
-          const btn = document.getElementById("import-btn");
-          btn.disabled = true;
-          btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
-
-          try {
-            const res = await window.ApiService.employees.bulkImport({ rows });
-            const { imported, skipped, failed, details } = res.data;
-
-            // Build result detail list
-            const failedRows = details.filter((d) => d.status === "failed");
-            const skippedRows = details.filter((d) => d.status === "skipped");
-            const failDetail = failedRows
-              .map(
-                (d) =>
-                  `<li style="color:#ef4444;">Row ${d.row}: ${d.name} — ${d.reason}</li>`,
-              )
-              .join("");
-            const skipDetail = skippedRows
-              .map(
-                (d) =>
-                  `<li style="color:#fbbf24;">Row ${d.row}: ${d.name} — ${d.reason}</li>`,
-              )
-              .join("");
-
-            UI.createModal({
-              title: "📊 Import Results",
-              bodyHtml: `
+          UI.createModal({
+            title: "📊 Import Results",
+            bodyHtml: `
               <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
                 <div style="text-align:center;padding:16px;background:rgba(16,185,129,0.1);border-radius:10px;border:1px solid rgba(16,185,129,0.2);">
                   <div style="font-size:2rem;font-weight:800;color:#10b981;">${imported}</div>
@@ -1800,66 +1665,65 @@
               </div>
               ${failDetail || skipDetail ? `<ul style="max-height:200px;overflow-y:auto;font-size:0.82rem;padding-left:18px;color:var(--text-secondary);">${skipDetail}${failDetail}</ul>` : ""}
             `,
-              footerHtml: `<button class="btn btn-primary" onclick="this.closest('.modal-overlay').close()">Done</button>`,
-            });
+            footerHtml: `<button class="btn btn-primary" onclick="this.closest('.modal-overlay').close()">Done</button>`,
+          });
 
-            if (imported > 0) await loadEmployees();
-            if (canManage) await loadUpcomingBirthdays();
-          } catch (err) {
-            UI.showToast(err.message || "Import failed.", "error");
-          } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-file-upload"></i> Import Excel';
-            document.getElementById("import-file-input").value = "";
-          }
-        } catch (parseErr) {
-          UI.showToast(
-            "Failed to parse Excel file. Ensure it is a valid .xlsx file.",
-            "error",
-          );
+          if (imported > 0) await loadEmployees();
+          await loadUpcomingBirthdays();
+        } catch (err) {
+          UI.showToast(err.message || "Import failed.", "error");
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fas fa-file-upload"></i> Import Excel';
+          document.getElementById("import-file-input").value = "";
         }
+      } catch (parseErr) {
+        UI.showToast(
+          "Failed to parse Excel file. Ensure it is a valid .xlsx file.",
+          "error",
+        );
       }
+    }
 
-      // ─── Upcoming Birthdays (Admin/HR panel) ─────────────────────────────────
-      async function loadUpcomingBirthdays() {
-        if (!canManage) return;
-        document.getElementById("birthdays-section").style.display = "block";
-        try {
-          const res = await window.ApiService.employees.getUpcomingBirthdays();
-          const list = res.data || [];
-          const container = document.getElementById("birthdays-list");
+    // ─── Upcoming Birthdays (Visible to all employees) ───────────────────────
+    async function loadUpcomingBirthdays() {
+      document.getElementById("birthdays-section").style.display = "block";
+      try {
+        const res = await window.ApiService.employees.getUpcomingBirthdays();
+        const list = res.data || [];
+        const container = document.getElementById("birthdays-list");
 
-          if (!list.length) {
-            container.innerHTML =
-              '<div style="color:var(--text-muted);text-align:center;padding:20px;">No upcoming birthdays in the next 30 days.</div>';
-            return;
-          }
+        if (!list.length) {
+          container.innerHTML =
+            '<div style="color:var(--text-muted);text-align:center;padding:20px;">No upcoming birthdays in the next 30 days.</div>';
+          return;
+        }
 
-          container.innerHTML = `
+        container.innerHTML = `
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;">
             ${list
-              .map((emp) => {
-                const initials = emp.name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .slice(0, 2)
-                  .toUpperCase();
-                const dob = new Date(emp.dateOfBirth);
-                const dobStr = dob.toLocaleDateString("en-GB", {
-                  day: "2-digit",
-                  month: "short",
-                });
-                const tagHtml = emp.isToday
-                  ? `<span style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:20px;">🎂 Today!</span>`
-                  : `<span style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.7rem;font-weight:600;padding:3px 8px;border-radius:20px;">In ${emp.daysUntil} day${emp.daysUntil === 1 ? "" : "s"}</span>`;
-                const cardBg = emp.isToday
-                  ? "linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.08))"
-                  : "rgba(255,255,255,0.02)";
-                const cardBorder = emp.isToday
-                  ? "1px solid rgba(245,158,11,0.3)"
-                  : "1px solid var(--border-color)";
-                return `
+            .map((emp) => {
+              const initials = emp.name
+                .split(" ")
+                .map((n) => n[0])
+                .join("")
+                .slice(0, 2)
+                .toUpperCase();
+              const dob = new Date(emp.dateOfBirth);
+              const dobStr = dob.toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+              });
+              const tagHtml = emp.isToday
+                ? `<span style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:20px;">🎂 Today!</span>`
+                : `<span style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.7rem;font-weight:600;padding:3px 8px;border-radius:20px;">In ${emp.daysUntil} day${emp.daysUntil === 1 ? "" : "s"}</span>`;
+              const cardBg = emp.isToday
+                ? "linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.08))"
+                : "rgba(255,255,255,0.02)";
+              const cardBorder = emp.isToday
+                ? "1px solid rgba(245,158,11,0.3)"
+                : "1px solid var(--border-color)";
+              return `
                 <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:${cardBg};border:${cardBorder};">
                   <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>
                   <div style="flex:1;min-width:0;">
@@ -1868,76 +1732,76 @@
                   </div>
                   <div style="flex-shrink:0;">${tagHtml}</div>
                 </div>`;
-              })
-              .join("")}
+            })
+            .join("")}
           </div>`;
-        } catch (err) {
-          document.getElementById("birthdays-list").innerHTML =
-            '<div style="color:var(--text-muted);text-align:center;padding:20px;">Could not load birthday data.</div>';
-        }
+      } catch (err) {
+        document.getElementById("birthdays-list").innerHTML =
+          '<div style="color:var(--text-muted);text-align:center;padding:20px;">Could not load birthday data.</div>';
+      }
+    }
+
+    // ─── Export to Excel ──────────────────────────────────────────────────────
+    function exportToExcel() {
+      if (!employees.length)
+        return UI.showToast("No employee data to export.", "warning");
+      const rows = employees.map((e) => ({
+        Name: e.name || "",
+        Position: e.position || "",
+        Phone: e.phone || "",
+        Email: e.email || "",
+        Location: e.location || "",
+        "Joining Date": e.joinDate
+          ? new Date(e.joinDate).toLocaleDateString("en-GB")
+          : "",
+        "Date of Birth": e.dateOfBirth
+          ? new Date(e.dateOfBirth).toLocaleDateString("en-GB")
+          : "",
+      }));
+      const ws = XLSX.utils.json_to_sheet(rows);
+      ws["!cols"] = [28, 22, 16, 28, 18, 16].map((w) => ({ wch: w }));
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Employees");
+      XLSX.writeFile(wb, "employees.xlsx");
+      UI.showToast("Exported employees.xlsx", "success");
+    }
+
+    // ─── Init ─────────────────────────────────────────────────────────────────
+    window.addEventListener("DOMContentLoaded", () => {
+      if (!window.UI || !window.UI.requireAuth()) return;
+
+      const addBtn = document.getElementById("add-employee-btn");
+      const worksheetBtn = document.getElementById("view-worksheets-btn");
+      const importBtn = document.getElementById("import-btn");
+      const importInput = document.getElementById("import-file-input");
+
+      if (addBtn) {
+        if (!canManage) addBtn.style.display = "none";
+        else addBtn.addEventListener("click", () => openEmployeeModal());
       }
 
-      // ─── Export to Excel ──────────────────────────────────────────────────────
-      function exportToExcel() {
-        if (!employees.length)
-          return UI.showToast("No employee data to export.", "warning");
-        const rows = employees.map((e) => ({
-          Name: e.name || "",
-          Position: e.position || "",
-          Phone: e.phone || "",
-          Email: e.email || "",
-          Location: e.location || "",
-          "Joining Date": e.joinDate
-            ? new Date(e.joinDate).toLocaleDateString("en-GB")
-            : "",
-          "Date of Birth": e.dateOfBirth
-            ? new Date(e.dateOfBirth).toLocaleDateString("en-GB")
-            : "",
-        }));
-        const ws = XLSX.utils.json_to_sheet(rows);
-        ws["!cols"] = [28, 22, 16, 28, 18, 16].map((w) => ({ wch: w }));
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Employees");
-        XLSX.writeFile(wb, "employees.xlsx");
-        UI.showToast("Exported employees.xlsx", "success");
+      if (importBtn && canManage) {
+        importBtn.style.display = "inline-flex";
+        importBtn.addEventListener("click", () => importInput.click());
+        importInput.addEventListener("change", (e) => {
+          if (e.target.files && e.target.files[0])
+            importFromExcel(e.target.files[0]);
+        });
       }
 
-      // ─── Init ─────────────────────────────────────────────────────────────────
-      window.addEventListener("DOMContentLoaded", () => {
-        if (!window.UI || !window.UI.requireAuth()) return;
+      if (worksheetBtn) {
+        worksheetBtn.addEventListener("click", openWorksheetsViewModal);
+      }
 
-        const addBtn = document.getElementById("add-employee-btn");
-        const worksheetBtn = document.getElementById("view-worksheets-btn");
-        const importBtn = document.getElementById("import-btn");
-        const importInput = document.getElementById("import-file-input");
+      document
+        .getElementById("export-btn")
+        .addEventListener("click", exportToExcel);
 
-        if (addBtn) {
-          if (!canManage) addBtn.style.display = "none";
-          else addBtn.addEventListener("click", () => openEmployeeModal());
-        }
+      loadEmployees();
+      loadUpcomingBirthdays();
+    });
+  </script>
+  <script src="/public/js/components/cursor.js"></script>
+</body>
 
-        if (importBtn && canManage) {
-          importBtn.style.display = "inline-flex";
-          importBtn.addEventListener("click", () => importInput.click());
-          importInput.addEventListener("change", (e) => {
-            if (e.target.files && e.target.files[0])
-              importFromExcel(e.target.files[0]);
-          });
-        }
-
-        if (worksheetBtn) {
-          worksheetBtn.addEventListener("click", openWorksheetsViewModal);
-        }
-
-        document
-          .getElementById("export-btn")
-          .addEventListener("click", exportToExcel);
-
-        loadEmployees();
-        if (canManage) loadUpcomingBirthdays();
-      });
-    </script>
-    <script src="/public/js/components/ocean-bg.js"></script>
-    <script src="/public/js/components/cursor.js"></script>
-  </body>
 </html>

@@ -232,13 +232,14 @@
                 const response = await window.ApiService.getContracts();
                 allContracts = response.data || [];
 
-                // Update stats
+                // Update stats using computed status for expired contracts
                 let draft = 0, active = 0, expired = 0, cancelled = 0;
                 allContracts.forEach(c => {
-                    if (c.status === 'DRAFT') draft++;
-                    if (c.status === 'ACTIVE') active++;
-                    if (c.status === 'EXPIRED') expired++;
-                    if (c.status === 'CANCELLED') cancelled++;
+                    const computedStatus = getContractComputedStatus(c);
+                    if (computedStatus === 'DRAFT') draft++;
+                    if (computedStatus === 'ACTIVE') active++;
+                    if (computedStatus === 'EXPIRED') expired++;
+                    if (computedStatus === 'CANCELLED') cancelled++;
                 });
                 document.getElementById('cnt-draft').textContent = draft;
                 document.getElementById('cnt-active').textContent = active;
@@ -247,7 +248,7 @@
 
                 // Filter
                 let filtered = allContracts;
-                if (status) filtered = filtered.filter(c => c.status === status);
+                if (status) filtered = filtered.filter(c => getContractComputedStatus(c) === status);
                 if (search) filtered = filtered.filter(c =>
                     (c.title || '').toLowerCase().includes(search) ||
                     (c.company?.name || '').toLowerCase().includes(search)
@@ -260,6 +261,18 @@
                     window.UI.showToast('Failed to load contracts', 'error');
                 }
             }
+        }
+
+        function getContractComputedStatus(contract) {
+            if (!contract) return 'UNKNOWN';
+            const status = (contract.status || '').toString().toUpperCase();
+            if (status === 'ACTIVE' && contract.expiryDate) {
+                const expiry = new Date(contract.expiryDate);
+                if (!Number.isNaN(expiry.getTime()) && expiry < new Date()) {
+                    return 'EXPIRED';
+                }
+            }
+            return status;
         }
 
         function renderTable(contracts) {
@@ -275,16 +288,19 @@
 
             tbody.innerHTML = contracts.map(c => {
                 const cid = c.id || String(c._id);
+                const computedStatus = getContractComputedStatus(c);
                 let expiryWarning = '-';
-                let statusBadge = window.UI && window.UI.renderStatusBadge ? window.UI.renderStatusBadge(c.status) : `<span class="badge badge-gray">${c.status}</span>`;
+                let statusBadge = window.UI && window.UI.renderStatusBadge ? window.UI.renderStatusBadge(computedStatus) : `<span class="badge badge-gray">${computedStatus}</span>`;
 
-                if (c.status === 'ACTIVE' && c.expiryDate) {
+                if (computedStatus === 'EXPIRED' && c.expiryDate) {
+                    const expiry = new Date(c.expiryDate);
+                    const diffDays = Math.ceil((today - expiry) / (1000 * 60 * 60 * 24));
+                    statusBadge = `<span class="badge badge-red">Expired</span>`;
+                    expiryWarning = `<span style="color:#ef4444;">Expired ${diffDays}d ago</span>`;
+                } else if (computedStatus === 'ACTIVE' && c.expiryDate) {
                     const expiry = new Date(c.expiryDate);
                     const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
-                    if (diffDays < 0) {
-                        statusBadge = `<span class="badge badge-red">Expired</span>`;
-                        expiryWarning = `<span style="color:#ef4444;">Expired ${Math.abs(diffDays)}d ago</span>`;
-                    } else if (diffDays < 30) {
+                    if (diffDays < 30) {
                         expiryWarning = `<div class="contract-expiry-warning">⚠ ${diffDays} days</div>`;
                     } else {
                         expiryWarning = `<div>${diffDays} days</div>`;

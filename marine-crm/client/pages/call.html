@@ -1,0 +1,381 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Calls - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles1.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .traffic-picker {
+            display: flex;
+            gap: 12px;
+        }
+
+        .traffic-option {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 12px;
+            border-radius: 8px;
+            border: 2px solid var(--border-color, #1e293b);
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            color: var(--text-secondary, #94a3b8);
+            transition: all var(--transition, 0.2s);
+        }
+
+        .traffic-option:hover {
+            border-color: var(--text-secondary, #94a3b8);
+        }
+
+        .traffic-option .dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .traffic-option[data-color="RED"] .dot { background: #ef4444; }
+        .traffic-option[data-color="YELLOW"] .dot { background: #fbbf24; }
+        .traffic-option[data-color="GREEN"] .dot { background: #10b981; }
+
+        .traffic-option.selected[data-color="RED"] { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.08); }
+        .traffic-option.selected[data-color="YELLOW"] { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,0.08); }
+        .traffic-option.selected[data-color="GREEN"] { border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.08); }
+
+        .badge-red {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+        }
+
+        .status-filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        .status-filter-btn {
+            border: 1px solid var(--border-color, #1e293b);
+            background: none;
+            color: var(--text-secondary, #94a3b8);
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .status-filter-btn.active {
+            border-color: var(--accent-primary, #0ea5e9);
+            color: var(--accent-primary, #0ea5e9);
+        }
+
+        .status-filter-btn .dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <div id="sidebar-container"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+            <main class="page-content pageEnter">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">📞 Job Calls</h1>
+                        <p class="page-subtitle">Log follow-up calls to companies and track relationship health with a
+                            red / yellow / green status</p>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="margin-bottom: 20px;">
+                    <div class="stat-card">
+                        <span class="stat-label">Total Calls Logged</span>
+                        <span class="stat-value" id="stats-calls-total">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Follow-ups Due / Overdue</span>
+                        <span class="stat-value" id="stats-followups-due" style="color:#fbbf24;">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Needs Attention (Red)</span>
+                        <span class="stat-value" id="stats-red-count" style="color:#ef4444;">0</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header"
+                        style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
+                        <h2 class="card-title" style="margin:0;">Call History</h2>
+                        <button class="btn btn-primary btn-sm" onclick="openCallLogModal()">+ Log Job Call</button>
+                    </div>
+                    <div class="card-body" style="padding: 20px 20px 0;">
+                        <div class="status-filters">
+                            <button class="status-filter-btn active" data-filter="ALL" onclick="setStatusFilter('ALL')">All</button>
+                            <button class="status-filter-btn" data-filter="RED" onclick="setStatusFilter('RED')"><span class="dot" style="background:#ef4444;"></span> Red</button>
+                            <button class="status-filter-btn" data-filter="YELLOW" onclick="setStatusFilter('YELLOW')"><span class="dot" style="background:#fbbf24;"></span> Yellow</button>
+                            <button class="status-filter-btn" data-filter="GREEN" onclick="setStatusFilter('GREEN')"><span class="dot" style="background:#10b981;"></span> Green</button>
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding:0;">
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Company</th>
+                                        <th>Called By</th>
+                                        <th>Call Date</th>
+                                        <th>Duration</th>
+                                        <th>Status</th>
+                                        <th>Next Follow-up</th>
+                                        <th>Notes</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="calls-tbody">
+                                    <!-- Populated via script -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Job Call Log Modal -->
+    <template id="job-call-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Company <span style="color:#ef4444;">*</span></label>
+                <select id="jc-company" class="form-control" required>
+                    <option value="">Select Company...</option>
+                </select>
+            </div>
+            <div style="display:flex; gap:12px;">
+                <div class="form-group" style="flex:1; margin:0;">
+                    <label class="form-label">Call Date <span style="color:#ef4444;">*</span></label>
+                    <input type="datetime-local" id="jc-call-date" class="form-control" required>
+                </div>
+                <div class="form-group" style="flex:1; margin:0;">
+                    <label class="form-label">Duration (minutes)</label>
+                    <input type="number" id="jc-duration" class="form-control" min="0" placeholder="e.g. 12">
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Call Status <span style="color:#ef4444;">*</span></label>
+                <div class="traffic-picker" id="jc-status-picker">
+                    <div class="traffic-option" data-color="RED"><span class="dot"></span> Red</div>
+                    <div class="traffic-option" data-color="YELLOW"><span class="dot"></span> Yellow</div>
+                    <div class="traffic-option" data-color="GREEN"><span class="dot"></span> Green</div>
+                </div>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Notes</label>
+                <textarea id="jc-notes" class="form-control" rows="3" placeholder="What was discussed..."></textarea>
+            </div>
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Next Follow-up Date</label>
+                <input type="date" id="jc-followup" class="form-control">
+            </div>
+        </div>
+    </template>
+
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script>
+        let companies = [];
+        let allCalls = [];
+        let currentFilter = 'ALL';
+        let selectedStatusColor = null;
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!localStorage.getItem('token')) {
+                window.location.href = '/pages/login.html';
+                return;
+            }
+            await loadCompanies();
+            await loadCalls();
+        });
+
+        // NOTE: adjust this to whatever endpoint your project actually uses
+        // to list companies/clients (e.g. window.ApiService.companies.list()).
+        async function loadCompanies() {
+            try {
+                const res = await window.ApiService.companies.getAll();
+                companies = res.data || [];
+            } catch (err) {
+                console.error('Error loading companies:', err);
+            }
+        }
+
+        async function loadCalls() {
+            try {
+                const res = await window.ApiService.calls.getAll();
+                allCalls = res.data || [];
+                renderCalls();
+                await loadFollowupStats();
+            } catch (err) {
+                console.error('Error loading calls:', err);
+                if (window.UI) window.UI.showToast('Failed to sync call logs', 'error');
+            }
+        }
+
+        async function loadFollowupStats() {
+            try {
+                const res = await window.ApiService.calls.getFollowupsDue();
+                document.getElementById('stats-followups-due').textContent = (res.data || []).length;
+            } catch (err) {
+                console.error('Error loading follow-up stats:', err);
+            }
+        }
+
+        function setStatusFilter(color) {
+            currentFilter = color;
+            document.querySelectorAll('.status-filter-btn').forEach(btn => {
+                btn.classList.toggle('active', btn.getAttribute('data-filter') === color);
+            });
+            renderCalls();
+        }
+
+        function renderCalls() {
+            const tbody = document.getElementById('calls-tbody');
+            tbody.innerHTML = '';
+
+            const filtered = currentFilter === 'ALL'
+                ? allCalls
+                : allCalls.filter(c => c.statusColor === currentFilter);
+
+            document.getElementById('stats-calls-total').textContent = allCalls.length;
+            document.getElementById('stats-red-count').textContent = allCalls.filter(c => c.statusColor === 'RED').length;
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No job calls logged yet.</td></tr>';
+                return;
+            }
+
+            const statusBadges = {
+                RED: '<span class="badge badge-red"><i class="fas fa-circle" style="font-size:0.6em;"></i> Red</span>',
+                YELLOW: '<span class="badge badge-yellow"><i class="fas fa-circle" style="font-size:0.6em;"></i> Yellow</span>',
+                GREEN: '<span class="badge badge-green"><i class="fas fa-circle" style="font-size:0.6em;"></i> Green</span>',
+            };
+
+            filtered.forEach(c => {
+                const tr = document.createElement('tr');
+                const companyName = c.companyId && c.companyId.name ? c.companyId.name : 'Unknown Company';
+                const staffName = c.userId && c.userId.name ? c.userId.name : 'Unknown Staff';
+                const callDate = c.callDate ? new Date(c.callDate).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '-';
+                const duration = c.durationMinutes ? `${c.durationMinutes} min` : '-';
+                const followup = c.nextFollowupDate ? new Date(c.nextFollowupDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' }) : '-';
+
+                tr.innerHTML = `
+                    <td><strong>${companyName}</strong></td>
+                    <td>${staffName}</td>
+                    <td>${callDate}</td>
+                    <td>${duration}</td>
+                    <td>${statusBadges[c.statusColor] || c.statusColor}</td>
+                    <td>${followup}</td>
+                    <td style="max-width:220px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${c.notes || ''}">${c.notes || '-'}</td>
+                    <td class="row-actions">
+                        <button class="btn btn-secondary btn-xs" onclick="deleteCall('${c.id}')"><i class="fas fa-trash"></i></button>
+                    </td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function openCallLogModal() {
+            const tpl = document.getElementById('job-call-modal-template');
+            const clone = tpl.content.cloneNode(true);
+
+            const companySelect = clone.querySelector('#jc-company');
+            companies.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.id;
+                opt.textContent = c.name;
+                companySelect.appendChild(opt);
+            });
+
+            window.UI.createModal({
+                title: 'Log Job Call',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                             <button class="btn btn-primary" id="save-call-log-btn">Save Call Log</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+            selectedStatusColor = null;
+
+            // Traffic light picker interaction
+            document.querySelectorAll('.traffic-option').forEach(opt => {
+                opt.addEventListener('click', () => {
+                    document.querySelectorAll('.traffic-option').forEach(o => o.classList.remove('selected'));
+                    opt.classList.add('selected');
+                    selectedStatusColor = opt.getAttribute('data-color');
+                });
+            });
+
+            // Default call date to now
+            const dateInput = document.getElementById('jc-call-date');
+            const now = new Date();
+            now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+            dateInput.value = now.toISOString().slice(0, 16);
+
+            document.getElementById('save-call-log-btn').addEventListener('click', async () => {
+                const companyId = document.getElementById('jc-company').value;
+                const callDate = document.getElementById('jc-call-date').value;
+                const durationMinutes = document.getElementById('jc-duration').value;
+                const notes = document.getElementById('jc-notes').value.trim();
+                const nextFollowupDate = document.getElementById('jc-followup').value;
+
+                if (!companyId || !callDate || !selectedStatusColor) {
+                    window.UI.showToast('Please select Company, Call Date and a Status color', 'warning');
+                    return;
+                }
+
+                try {
+                    await window.ApiService.calls.create({
+                        companyId,
+                        callDate,
+                        durationMinutes: durationMinutes ? parseInt(durationMinutes) : null,
+                        statusColor: selectedStatusColor,
+                        notes: notes || null,
+                        nextFollowupDate: nextFollowupDate || null,
+                    });
+                    window.UI.showToast('Job call logged successfully', 'success');
+                    document.querySelector('.modal-overlay').close();
+                    loadCalls();
+                } catch (err) {
+                    window.UI.showToast(err.message || 'Failed to save call log', 'error');
+                }
+            });
+        }
+
+        async function deleteCall(id) {
+            try {
+                await window.ApiService.calls.remove(id);
+                window.UI.showToast('Call log deleted', 'success');
+                loadCalls();
+            } catch (err) {
+                window.UI.showToast('Failed to delete call log', 'error');
+            }
+        }
+    </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+</body>
+
+</html>
