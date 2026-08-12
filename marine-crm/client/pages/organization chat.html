@@ -100,7 +100,15 @@
             font-weight: 600;
         }
 
-        .theme-btn {
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .theme-btn,
+        .back-btn {
             background: var(--node-bg);
             border: 1px solid var(--node-border);
             color: var(--text-main);
@@ -113,9 +121,16 @@
             font-size: 0.85rem;
         }
 
-        .theme-btn:hover {
+        .theme-btn:hover,
+        .back-btn:hover {
             transform: scale(1.05);
             background: var(--node-hover);
+        }
+
+        .back-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
         }
 
         /* Chart Wrapper - Desktop Default */
@@ -549,7 +564,10 @@
             <h1>Oceanic Star Shipping Pvt Ltd</h1>
             <p>Organisational Structure</p>
         </div>
-        <button class="theme-btn" id="theme-toggle">☀️ Light Mode</button>
+        <div class="header-actions">
+            <button class="back-btn" id="back-btn" type="button">← Back</button>
+            <button class="theme-btn" id="theme-toggle" type="button">🌙 Dark Mode</button>
+        </div>
     </div>
 
     <div class="chart-wrapper">
@@ -714,16 +732,33 @@
     </div>
 
     <script>
-        // --- Day / Night Theme Toggle ---
+        document.body.classList.add('light-mode');
         const themeToggle = document.getElementById('theme-toggle');
-        themeToggle.addEventListener('click', () => {
-            document.body.classList.toggle('light-mode');
+        const backBtn = document.getElementById('back-btn');
+
+        function updateThemeButton() {
             if (document.body.classList.contains('light-mode')) {
                 themeToggle.innerText = '🌙 Dark Mode';
             } else {
                 themeToggle.innerText = '☀️ Light Mode';
             }
+        }
+
+        // --- Day / Night Theme Toggle ---
+        themeToggle.addEventListener('click', () => {
+            document.body.classList.toggle('light-mode');
+            updateThemeButton();
         });
+
+        backBtn.addEventListener('click', () => {
+            if (window.history.length > 1) {
+                window.history.back();
+            } else {
+                window.location.href = '/pages/dashboard.html';
+            }
+        });
+
+        updateThemeButton();
 
         // --- Click to Zoom Node Logic ---
         const nodes = document.querySelectorAll('.node');

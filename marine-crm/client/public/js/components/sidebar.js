@@ -74,7 +74,14 @@ const NAV_GROUPS = [
 ];
 
 // ── Single source of truth for "are we in mobile-drawer mode?" ────
-const MOBILE_QUERY = window.matchMedia('(max-width: 991px)');
+// MUST match the 991.98px breakpoint in styles1.css where the sidebar
+// becomes a fixed off-canvas drawer (transform: translateX(-105%)).
+// This was previously 768px while CSS used 991.98px — the mismatch
+// froze the sidebar in the 769–991px tablet range: isMobileViewport()
+// returned false there, so the hamburger toggled '.collapsed' (which
+// only changes width) instead of '.mobile-open' (the only class that
+// affects transform in that CSS range), so nothing ever moved.
+const MOBILE_QUERY = window.matchMedia('(max-width: 991.98px)');
 function isMobileViewport() {
   return MOBILE_QUERY.matches;
 }
@@ -304,11 +311,13 @@ function renderNavbar() {
       </button>
 
       <div class="navbar-right">
-        <button class="theme-toggle" id="theme-toggle-btn">🌙 Dark</button>
+        <button class="theme-toggle" id="theme-toggle-btn" aria-label="Toggle theme">
+          <span class="navbar-icon" id="theme-toggle-icon">🌙</span><span class="navbar-label" id="theme-toggle-label">Dark</span>
+        </button>
 
-        <button class="btn btn-secondary btn-sm" onclick="window.location.href='/pages/organization chat.html'" title="Org Chart" style="display:flex;align-items:center;gap:5px;">
+        <button class="btn btn-secondary btn-sm navbar-orgchart-btn" onclick="window.location.href='/pages/organization chat.html'" title="Org Chart" aria-label="Org Chart" style="display:flex;align-items:center;gap:5px;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="6" r="3" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="18" r="2.6" stroke="currentColor" stroke-width="1.6"/><circle cx="19" cy="18" r="2.6" stroke="currentColor" stroke-width="1.6"/><path d="M12 9v4M9 15l-2.5 1.5M15 15l2.5 1.5" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
-          Org Chart
+          <span class="navbar-label">Org Chart</span>
         </button>
 
         <div class="user-menu" id="user-menu-btn" title="${user.name || 'User'}">
@@ -319,7 +328,9 @@ function renderNavbar() {
           </div>
         </div>
 
-        <button class="btn btn-secondary btn-sm" id="logout-btn" style="margin-left:4px;">↩ Logout</button>
+        <button class="btn btn-secondary btn-sm" id="logout-btn" aria-label="Logout" style="margin-left:4px;">
+          <span class="navbar-icon">↩</span><span class="navbar-label">Logout</span>
+        </button>
       </div>
     </nav>
   `;
@@ -365,10 +376,21 @@ function renderNavbar() {
   });
 
   const themeBtn = document.getElementById('theme-toggle-btn');
+  const themeIconEl = document.getElementById('theme-toggle-icon');
+  const themeLabelEl = document.getElementById('theme-toggle-label');
+
+  function setThemeButtonState(theme) {
+    // Update the icon/label spans in place — never overwrite
+    // themeBtn.innerHTML directly, or the span structure the mobile
+    // icon-only CSS depends on (.navbar-label) gets destroyed.
+    if (themeIconEl) themeIconEl.textContent = theme === 'light' ? '☀️' : '🌙';
+    if (themeLabelEl) themeLabelEl.textContent = theme === 'light' ? 'Light' : 'Dark';
+  }
+
   const savedTheme = localStorage.getItem('theme') || 'dark';
   if (savedTheme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
-    themeBtn.innerHTML = '☀️ Light';
+    setThemeButtonState('light');
   }
 
   themeBtn.addEventListener('click', () => {
@@ -382,7 +404,7 @@ function renderNavbar() {
       document.documentElement.setAttribute('data-theme', newTheme);
     }
     localStorage.setItem('theme', newTheme);
-    themeBtn.innerHTML = newTheme === 'light' ? '☀️ Light' : '🌙 Dark';
+    setThemeButtonState(newTheme);
 
     window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: newTheme } }));
 
