@@ -1,17 +1,19 @@
-// Sidebar Navigation Component — Marine BDM CRM (Accordion Edition, mobile-hardened v2)
+// Sidebar Navigation Component — Marine BDM CRM (Accordion Edition, v3 — production)
 //
-// Fix in this version: mobile/desktop detection now uses
-// window.matchMedia('(max-width: 768px)') everywhere instead of
-// window.innerWidth <= 768. innerWidth and the CSS media query can
-// disagree by a few px (scrollbar width, devicePixelRatio, viewport
-// meta timing on tablets), which was letting the DESKTOP collapsed
-// icon-rail state get applied on tablet/mobile widths — that's why
-// the drawer was showing icons-only with no labels and no dark
-// backdrop instead of the proper mobile overlay. matchMedia uses the
-// exact same evaluation as the CSS, so JS and CSS can no longer
-// disagree. Also added a listener that resets state cleanly whenever
-// the viewport crosses the breakpoint in either direction. Routes,
-// APIs, auth, IDs, and desktop behavior are otherwise unchanged.
+// v3 fixes:
+// 1. Collapsed desktop rail no longer blocks navigation — submenu now
+//    shows as a hover flyout (CSS), so HR / Crewing / Reports / etc.
+//    stay reachable even when the sidebar is collapsed.
+// 2. Added the MOBILE_QUERY.addEventListener('change', ...) resize
+//    handler that resets 'collapsed' / 'mobile-open' state whenever
+//    the viewport crosses the 768px breakpoint. This was the actual
+//    cause of the broken mobile drawer: 'collapsed' (desktop) and
+//    'mobile-open' (mobile) could both be present on the sidebar at
+//    once and fight over `transform` with equal-specificity !important
+//    rules.
+// 3. Collapsed state is now restored from localStorage on load, and
+//    is always stripped when entering mobile.
+// 4. Mobile toggle defensively strips 'collapsed' before opening.
 
 const NAV_GROUPS = [
   {
@@ -66,15 +68,13 @@ const NAV_GROUPS = [
     icon: '🔔',
     items: [
       { href: '/pages/followups.html', icon: '🔔', label: 'Follow-up Queue', match: 'followups', badge: true }
-      // 'Reports & Analytics' is appended conditionally below, role-gated
+      // 'Reports & Analytics' appended conditionally below, role-gated
     ]
   }
 ];
 
 // ── Single source of truth for "are we in mobile-drawer mode?" ────
-// Uses the exact same query the CSS uses, so JS and CSS can never
-// disagree about which layout should be active.
-const MOBILE_QUERY = window.matchMedia('(max-width: 768px)');
+const MOBILE_QUERY = window.matchMedia('(max-width: 991px)');
 function isMobileViewport() {
   return MOBILE_QUERY.matches;
 }
@@ -107,7 +107,7 @@ function buildNavGroups(currentPath, userRole) {
 
     return `
       <div class="nav-group ${groupHasActive ? 'has-active' : ''}" data-group-id="${group.id}">
-        <button type="button" class="nav-group-header" data-tooltip="${group.label}">
+        <button type="button" class="nav-group-header" data-tooltip="${group.label}" aria-expanded="false">
           <span class="nav-icon">${group.icon}</span>
           <span class="nav-label nav-group-label">${group.label}</span>
           <svg class="nav-chevron" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
@@ -165,8 +165,6 @@ function renderSidebar() {
     </div>
   `;
 
-  
-
   // ── User info ────────────────────────────────────────────────
   try {
     if (user.name) {
@@ -190,8 +188,32 @@ function renderSidebar() {
     }).catch(() => { });
   }
 
+  // ── Restore collapsed state (desktop only) ──────────────────
+  applyStoredCollapsedState();
+
   // ── Accordion logic ──────────────────────────────────────────
   initSidebarAccordion(activeGroupId);
+}
+
+// Applies the persisted "collapsed" preference, but only when we are
+// actually on desktop. Never leaves 'collapsed' set on a mobile view.
+function applyStoredCollapsedState() {
+  const sidebar = document.getElementById('app-sidebar');
+  const mainContent = document.querySelector('.main-content');
+  if (!sidebar) return;
+
+  if (isMobileViewport()) {
+    sidebar.classList.remove('collapsed');
+    mainContent?.classList.remove('sidebar-collapsed');
+    return;
+  }
+
+  const storedCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+  sidebar.classList.toggle('collapsed', storedCollapsed);
+  mainContent?.classList.toggle('sidebar-collapsed', storedCollapsed);
+
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  toggleBtn?.classList.toggle('is-open', storedCollapsed);
 }
 
 function initSidebarAccordion(activeGroupId) {
@@ -241,17 +263,27 @@ function initSidebarAccordion(activeGroupId) {
 
   groups.forEach(groupEl => {
     const header = groupEl.querySelector('.nav-group-header');
+
     header.addEventListener('click', () => {
-      const isOpen = groupEl.classList.contains('open');
       const sidebarEl = document.getElementById('app-sidebar');
+
+      // Mobile drawer closed → header click does nothing
       if (isMobileViewport() && sidebarEl && !sidebarEl.classList.contains('mobile-open')) {
-        return; // ignore stray clicks while drawer closed
+        return;
       }
+
+      // Desktop collapsed rail → don't run the accordion; navigation
+      // in this state happens via the CSS hover-flyout instead.
+      if (!isMobileViewport() && sidebarEl && sidebarEl.classList.contains('collapsed')) {
+        return;
+      }
+
+      const isOpen = groupEl.classList.contains('open');
       openOnly(isOpen ? null : groupEl.dataset.groupId);
     });
   });
 
-  // Keep open submenu height correct on window resize (font wraps etc.)
+  // Keep open submenu height correct on window resize
   window.addEventListener('resize', () => {
     const openGroup = groups.find(g => g.classList.contains('open'));
     if (openGroup) setOpen(openGroup, true, false);
@@ -271,11 +303,6 @@ function renderNavbar() {
         <span class="hbg-line"></span><span class="hbg-line"></span><span class="hbg-line"></span>
       </button>
 
-      <div class="navbar-search">
-        <span class="search-icon">🔍</span>
-        <input type="text" id="global-search" placeholder="Search vessel owners, companies..." />
-      </div>
-
       <div class="navbar-right">
         <button class="theme-toggle" id="theme-toggle-btn">🌙 Dark</button>
 
@@ -284,7 +311,6 @@ function renderNavbar() {
           Org Chart
         </button>
 
-       
         <div class="user-menu" id="user-menu-btn" title="${user.name || 'User'}">
           <div class="user-avatar">${initials}</div>
           <div class="user-info">
@@ -306,11 +332,16 @@ function renderNavbar() {
     if (!sidebar) return;
 
     if (isMobileViewport()) {
+      // Defensive: never let 'collapsed' fight 'mobile-open'
+      sidebar.classList.remove('collapsed');
+      mainContent?.classList.remove('sidebar-collapsed');
+
       const isOpen = sidebar.classList.toggle('mobile-open');
       if (overlay) overlay.classList.toggle('active', isOpen);
       toggleBtn.classList.toggle('is-open', isOpen);
       document.body.classList.toggle('no-scroll', isOpen);
     } else {
+      sidebar.classList.remove('mobile-open');
       const collapsed = sidebar.classList.toggle('collapsed');
       if (mainContent) mainContent.classList.toggle('sidebar-collapsed', collapsed);
       toggleBtn.classList.toggle('is-open', collapsed);
@@ -359,6 +390,17 @@ function renderNavbar() {
       document.documentElement.classList.remove('theme-transition');
     }, 400);
   });
+
+  const overlay = document.getElementById('sidebar-overlay');
+  if (overlay) {
+    overlay.addEventListener('click', () => {
+      const sidebar = document.getElementById('app-sidebar');
+      sidebar?.classList.remove('mobile-open');
+      overlay.classList.remove('active');
+      toggleBtn.classList.remove('is-open');
+      document.body.classList.remove('no-scroll');
+    });
+  }
 }
 
 function renderFooter() {
@@ -386,6 +428,39 @@ function renderFooter() {
     document.documentElement.removeAttribute('data-theme');
   }
 })();
+
+// ── Breakpoint-crossing reset ────────────────────────────────────
+// This is the critical fix: without it, 'collapsed' (desktop rail)
+// and 'mobile-open' (mobile drawer) can end up on the sidebar at the
+// same time, and their conflicting `transform` !important rules
+// leave the mobile drawer permanently hidden — OR, as seen in the
+// bug video, leave the desktop rail permanently visible and pushing
+// content even at mobile widths. Whenever the viewport crosses
+// 768px in either direction, force a clean state.
+MOBILE_QUERY.addEventListener('change', (e) => {
+  const sidebar = document.getElementById('app-sidebar');
+  const mainContent = document.querySelector('.main-content');
+  const overlay = document.getElementById('sidebar-overlay');
+  const toggleBtn = document.getElementById('sidebar-toggle-btn');
+  if (!sidebar) return;
+
+  if (e.matches) {
+    // Entered mobile: strip desktop-only state
+    sidebar.classList.remove('collapsed');
+    mainContent?.classList.remove('sidebar-collapsed');
+  } else {
+    // Entered desktop: strip mobile-only state, restore collapsed pref
+    sidebar.classList.remove('mobile-open');
+    overlay?.classList.remove('active');
+    document.body.classList.remove('no-scroll');
+    toggleBtn?.classList.remove('is-open');
+
+    const storedCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
+    sidebar.classList.toggle('collapsed', storedCollapsed);
+    mainContent?.classList.toggle('sidebar-collapsed', storedCollapsed);
+    toggleBtn?.classList.toggle('is-open', storedCollapsed);
+  }
+});
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!UI.requireAuth()) return;
@@ -415,9 +490,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Lightweight SPA-style page-out transition on nav clicks ─────
-// Fades the page content out just before navigating so the next
-// page's fade-in (pageEnter animation, already in CSS) reads as
-// one continuous transition instead of a hard cut.
 document.addEventListener('DOMContentLoaded', () => {
   const page = document.querySelector('.page-content');
   if (!page) return;

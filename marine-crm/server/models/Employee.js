@@ -24,6 +24,17 @@ const employeeSchema = new mongoose.Schema(
     joinDate: { type: Date, default: null },
     dateOfBirth: { type: Date, default: null },
 
+    // ── Offboarding / Exit ────────────────────────────────────────────────
+    status: {
+      type: String,
+      enum: ['ACTIVE', 'EXITED'],
+      default: 'ACTIVE',
+    },
+    exitDate: { type: Date, default: null },
+    exitReason: { type: String, trim: true, default: null },
+    exitedById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    exitedByName: { type: String, trim: true, default: null },
+
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
     createdByName: { type: String, trim: true, required: true },
@@ -33,6 +44,7 @@ const employeeSchema = new mongoose.Schema(
 
 // 🔥 Index
 employeeSchema.index({ employeeId: 1 });
+employeeSchema.index({ status: 1 });
 
 employeeSchema.set('toJSON', {
   virtuals: true,

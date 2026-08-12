@@ -14,13 +14,24 @@ const isManager = (req) => ["ADMIN", "HR"].includes(req.user.role);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LIST  GET /api/employees
-//   Admin/HR → all employees
-//   BDM      → only their own record
+//   Admin/HR → all employees (optionally filtered by ?status=ACTIVE|EXITED|ALL)
+//              defaults to ACTIVE only (exited employees are hidden unless asked)
+//   BDM      → only their own record, regardless of status
 // ─────────────────────────────────────────────────────────────────────────────
 const listEmployees = async (req, res, next) => {
   try {
     if (isManager(req)) {
-      const employees = await Employee.find().sort({ createdAt: -1 });
+      const statusParam = (req.query.status || "").toUpperCase();
+      let filter = {};
+      if (statusParam === "EXITED") {
+        filter.status = "EXITED";
+      } else if (statusParam === "ALL") {
+        // no filter — everyone
+      } else {
+        // default: active only (docs with no status field yet are treated as active)
+        filter.status = { $ne: "EXITED" };
+      }
+      const employees = await Employee.find(filter).sort({ createdAt: -1 });
       return res.json({ success: true, data: employees });
     }
     // BDM: return only own record
@@ -215,6 +226,8 @@ const updateEmployee = async (req, res, next) => {
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE  DELETE /api/employees/:id  (Admin/HR only)
+//   Hard delete — permanently removes the record. Prefer exitEmployee() below
+//   for normal offboarding; this stays for genuine data-cleanup cases.
 // ─────────────────────────────────────────────────────────────────────────────
 const deleteEmployee = async (req, res, next) => {
   try {
@@ -232,6 +245,116 @@ const deleteEmployee = async (req, res, next) => {
       details: { deletedByRole: req.user.role },
     });
     res.json({ success: true, message: "Employee deleted successfully." });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// EXIT EMPLOYEE  PATCH /api/employees/:id/exit  (Admin/HR only)
+//   Marks the employee as EXITED with a date + reason. Keeps the record (and
+//   all its worksheet/attendance/task history) intact, just moves it out of
+//   the active directory. Also disables their login if they had one.
+// ─────────────────────────────────────────────────────────────────────────────
+const exitEmployee = async (req, res, next) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee)
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found." });
+
+    if (employee.status === "EXITED") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Employee has already exited." });
+    }
+
+    const { exitDate, exitReason } = req.body;
+    if (!exitDate) {
+      return res
+        .status(400)
+        .json({ success: false, message: "Exit date is required." });
+    }
+
+    employee.status = "EXITED";
+    employee.exitDate = new Date(exitDate);
+    employee.exitReason = exitReason ? exitReason.trim() : null;
+    employee.exitedById = req.user.id;
+    employee.exitedByName = req.user.name;
+    await employee.save();
+
+    // Disable login access for the exited employee, if they have one
+    if (employee.userId) {
+      await User.findByIdAndUpdate(employee.userId, { isActive: false });
+    }
+
+    await logActivity({
+      userId: req.user.id,
+      entityType: "EMPLOYEE",
+      entityId: employee._id.toString(),
+      action: "EXITED",
+      details: {
+        name: employee.name,
+        exitDate: employee.exitDate,
+        exitReason: employee.exitReason,
+        exitedByRole: req.user.role,
+      },
+    });
+
+    res.json({
+      success: true,
+      data: employee,
+      message: "Employee marked as exited.",
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// REACTIVATE EMPLOYEE  PATCH /api/employees/:id/reactivate  (Admin/HR only)
+//   Reverses an exit — moves the employee back into the active directory and
+//   re-enables their login, if they had one.
+// ─────────────────────────────────────────────────────────────────────────────
+const reactivateEmployee = async (req, res, next) => {
+  try {
+    const employee = await Employee.findById(req.params.id);
+    if (!employee)
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found." });
+
+    if (employee.status !== "EXITED") {
+      return res
+        .status(400)
+        .json({ success: false, message: "Employee is not currently exited." });
+    }
+
+    employee.status = "ACTIVE";
+    employee.exitDate = null;
+    employee.exitReason = null;
+    employee.exitedById = null;
+    employee.exitedByName = null;
+    await employee.save();
+
+    if (employee.userId) {
+      await User.findByIdAndUpdate(employee.userId, { isActive: true });
+    }
+
+    await logActivity({
+      userId: req.user.id,
+      entityType: "EMPLOYEE",
+      entityId: employee._id.toString(),
+      action: "REACTIVATED",
+      details: { name: employee.name, reactivatedByRole: req.user.role },
+    });
+
+    res.json({
+      success: true,
+      data: employee,
+      message: "Employee reactivated successfully.",
+    });
   } catch (err) {
     next(err);
   }
@@ -278,6 +401,19 @@ const checkIn = async (req, res, next) => {
           message: "You can only check in for yourself.",
         });
       }
+    }
+
+    const empDoc = await Employee.findById(employeeId);
+    if (!empDoc) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Employee not found." });
+    }
+    if (empDoc.status === "EXITED") {
+      return res.status(400).json({
+        success: false,
+        message: "This employee has exited and cannot check in.",
+      });
     }
 
     const today = getTodayDateStr();
@@ -649,13 +785,15 @@ const bulkImportEmployees = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// UPCOMING BIRTHDAYS  GET /api/employees/birthdays/upcoming  (Admin/HR only)
-// Returns employees whose birthday falls today or in the next 30 days
+// UPCOMING BIRTHDAYS  GET /api/employees/birthdays/upcoming
+// Returns employees whose birthday falls today or in the next 30 days.
+// Only considers active employees.
 // ─────────────────────────────────────────────────────────────────────────────
 const getUpcomingBirthdays = async (req, res, next) => {
   try {
     const employees = await Employee.find({
       dateOfBirth: { $ne: null },
+      status: { $ne: "EXITED" },
     }).select("name position dateOfBirth email employeeId");
     const now = new Date();
     const todayMD = now.getMonth() * 100 + now.getDate(); // e.g. 0810 for Aug 10
@@ -699,6 +837,8 @@ module.exports = {
   createEmployee,
   updateEmployee,
   deleteEmployee,
+  exitEmployee,
+  reactivateEmployee,
   getTodayAttendance,
   checkIn,
   checkOut,

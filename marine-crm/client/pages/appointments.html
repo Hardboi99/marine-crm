@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,81 +13,132 @@
         })();
     </script>
     <link rel="stylesheet" href="/public/css/styles1.css">
-    
 
-    <link rel="stylesheet" href="/public/css/css-fixes.css">
     <style>
         .outcome-action-btn {
-            padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold;
-            display: inline-flex; align-items: center; gap: 5px; transition: all 0.2s;
+            padding: 8px 15px;
+            border-radius: 6px;
+            border: none;
+            cursor: pointer;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.2s;
         }
-        .yes-btn     { background: rgba(16,185,129,0.1); color: #10b981; border: 1px solid #10b981; }
-        .yes-btn:hover { background: #10b981; color: #fff; }
-        .no-btn      { background: rgba(239,68,68,0.1);  color: #ef4444; border: 1px solid #ef4444; }
-        .no-btn:hover  { background: #ef4444;  color: #fff; }
-        .pending-btn { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid #f59e0b; }
-        .pending-btn:hover { background: #f59e0b; color: #fff; }
-        .outcome-actions-container { display: flex; gap: 10px; }
-        .reason-panel, .details-panel {
-            display: none; margin-top: 10px; padding: 15px;
-            background: var(--bg-subtle, rgba(0,0,0,0.2));
+
+        .yes-btn {
+            background: rgba(16, 185, 129, 0.1);
+            color: #10b981;
+            border: 1px solid #10b981;
+        }
+
+        .yes-btn:hover {
+            background: #10b981;
+            color: #fff;
+        }
+
+        .no-btn {
+            background: rgba(239, 68, 68, 0.1);
+            color: #ef4444;
+            border: 1px solid #ef4444;
+        }
+
+        .no-btn:hover {
+            background: #ef4444;
+            color: #fff;
+        }
+
+        .pending-btn {
+            background: rgba(245, 158, 11, 0.1);
+            color: #f59e0b;
+            border: 1px solid #f59e0b;
+        }
+
+        .pending-btn:hover {
+            background: #f59e0b;
+            color: #fff;
+        }
+
+        .outcome-actions-container {
+            display: flex;
+            gap: 10px;
+        }
+
+        .reason-panel,
+        .details-panel {
+            display: none;
+            margin-top: 10px;
+            padding: 15px;
+            background: var(--bg-subtle, rgba(0, 0, 0, 0.2));
             border-radius: 6px;
             border: 1px solid var(--border-color, #1e293b);
         }
     </style>
 </head>
+
 <body>
     <div id="ocean-bg"></div>
     <div id="sidebar-container"></div>
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
     <main class="main-content">
         <div id="navbar-container"></div>
-        <div class="page-content pageEnter">
-            <div class="page-header">
-                <div>
-                    <h1 class="page-title" style="margin: 0;">📅 Appointment Decision Engine</h1>
-                    <p class="page-subtitle" style="margin: 5px 0 0;">YES / NO / PENDING outcome tracker for vessel owner meetings</p>
-                </div>
-                <button class="btn btn-primary" onclick="openBookModal()">+ Book Appointment</button>
-            </div>
 
-            <div class="filter-bar">
-                <div class="form-group" style="margin: 0;">
-                    <label class="form-label">Outcome Filter</label>
-                    <select id="filter-outcome" class="form-control" onchange="filterTable()">
-                        <option value="">All Outcomes</option>
-                        <option value="YES">✅ YES</option>
-                        <option value="NO">❌ NO</option>
-                        <option value="PENDING">⏳ PENDING</option>
-                        <option value="UNSET">Not Set</option>
-                    </select>
-                </div>
-                <div class="form-group" style="margin: 0;">
-                    <label class="form-label">Company Search</label>
-                    <input type="text" id="filter-company" class="form-control" placeholder="Search company..." oninput="filterTable()">
-                </div>
+        <div class="page-header">
+            <div>
+                <h1 class="page-title" style="margin: 0;">📅 Appointment Decision Engine</h1>
+                <p class="page-subtitle" style="margin: 5px 0 0;">YES / NO / PENDING outcome tracker for vessel owner
+                    meetings</p>
             </div>
+            <button class="btn btn-primary" onclick="openBookModal()">+ Book Appointment</button>
+        </div>
 
-            <div class="card">
-                <div class="card-body" style="padding: 0;">
-                    <div class="table-container">
-                        <table class="table" style="width: 100%; border-collapse: collapse;">
-                            <thead>
-                                <tr style="border-bottom: 1px solid var(--border-color, #1e293b); background: var(--bg-subtle, rgba(0,0,0,0.2));">
-                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Company</th>
-                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Scheduled At</th>
-                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Booked By</th>
-                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Outcome</th>
-                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Notes</th>
-                                    <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody id="appointments-table">
-                                <!-- Populated by JS -->
-                            </tbody>
-                        </table>
-                    </div>
+        <div class="filter-bar">
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Outcome Filter</label>
+                <select id="filter-outcome" class="form-control" onchange="filterTable()">
+                    <option value="">All Outcomes</option>
+                    <option value="YES">✅ YES</option>
+                    <option value="NO">❌ NO</option>
+                    <option value="PENDING">⏳ PENDING</option>
+                    <option value="UNSET">Not Set</option>
+                </select>
+            </div>
+            <div class="form-group" style="margin: 0;">
+                <label class="form-label">Company Search</label>
+                <input type="text" id="filter-company" class="form-control" placeholder="Search company..."
+                    oninput="filterTable()">
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="card-body" style="padding: 0;">
+                <div class="table-container">
+                    <table class="table" style="width: 100%; border-collapse: collapse;">
+                        <thead>
+                            <tr
+                                style="border-bottom: 1px solid var(--border-color, #1e293b); background: var(--bg-subtle, rgba(0,0,0,0.2));">
+                                <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Company
+                                </th>
+                                <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">
+                                    Scheduled At</th>
+                                <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Booked
+                                    By</th>
+                                <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Outcome
+                                </th>
+                                <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Notes
+                                </th>
+                                <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Actions
+                                </th>
+                            </tr>
+                        </thead>
+                        <tbody id="appointments-table">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
                 </div>
             </div>
+        </div>
         </div>
     </main>
 
@@ -109,7 +161,8 @@
             </div>
             <div class="form-group" style="margin:0;">
                 <label class="form-label">Meeting Notes</label>
-                <textarea id="appt-notes" class="form-control" rows="3" placeholder="Agenda, topics to discuss..."></textarea>
+                <textarea id="appt-notes" class="form-control" rows="3"
+                    placeholder="Agenda, topics to discuss..."></textarea>
             </div>
         </div>
     </template>
@@ -119,9 +172,12 @@
         <div id="outcome-decision-panel">
             <input type="hidden" id="outcome-appt-id">
             <div class="outcome-actions-container" style="justify-content:center;margin-bottom:20px;">
-                <button type="button" class="outcome-action-btn yes-btn"     onclick="selectOutcome('YES')"     style="padding:15px 30px;font-size:16px;">✅ YES</button>
-                <button type="button" class="outcome-action-btn no-btn"      onclick="selectOutcome('NO')"      style="padding:15px 30px;font-size:16px;">❌ NO</button>
-                <button type="button" class="outcome-action-btn pending-btn" onclick="selectOutcome('PENDING')" style="padding:15px 30px;font-size:16px;">⏳ PENDING</button>
+                <button type="button" class="outcome-action-btn yes-btn" onclick="selectOutcome('YES')"
+                    style="padding:15px 30px;font-size:16px;">✅ YES</button>
+                <button type="button" class="outcome-action-btn no-btn" onclick="selectOutcome('NO')"
+                    style="padding:15px 30px;font-size:16px;">❌ NO</button>
+                <button type="button" class="outcome-action-btn pending-btn" onclick="selectOutcome('PENDING')"
+                    style="padding:15px 30px;font-size:16px;">⏳ PENDING</button>
             </div>
             <input type="hidden" id="selected-outcome-val">
 
@@ -136,7 +192,8 @@
 
             <div class="details-panel" id="yes-details-panel">
                 <p style="color:#10b981;font-weight:bold;margin:0 0 10px 0;">🎉 Great! Contract details to follow.</p>
-                <p style="color:var(--text-muted, #94a3b8);font-size:14px;margin:0;">You can proceed to create a contract from the company page.</p>
+                <p style="color:var(--text-muted, #94a3b8);font-size:14px;margin:0;">You can proceed to create a
+                    contract from the company page.</p>
             </div>
 
             <div class="form-group" style="margin-top:15px;">
@@ -154,11 +211,11 @@
     <script>
         // ─── State ────────────────────────────────────────────────────────────
         let allAppointments = [];
-        let companies       = [];
-        let reasons         = [];
-        let _bookModal      = null;
-        let _outcomeModal   = null;
-        let _detailsModal   = null;
+        let companies = [];
+        let reasons = [];
+        let _bookModal = null;
+        let _outcomeModal = null;
+        let _detailsModal = null;
 
         // ─── Boot ─────────────────────────────────────────────────────────────
         document.addEventListener('DOMContentLoaded', async () => {
@@ -205,21 +262,21 @@
         function filterTable() { renderTable(); }
 
         function getOutcomeBadge(outcome) {
-            if (outcome === 'YES')     return '<span class="badge badge-green">✅ YES</span>';
-            if (outcome === 'NO')      return '<span class="badge badge-red">❌ NO</span>';
+            if (outcome === 'YES') return '<span class="badge badge-green">✅ YES</span>';
+            if (outcome === 'NO') return '<span class="badge badge-red">❌ NO</span>';
             if (outcome === 'PENDING') return '<span class="badge badge-yellow">⏳ PENDING</span>';
             return '<span class="badge badge-gray">Not Set</span>';
         }
 
         function renderTable() {
-            const outcomeFilter = document.getElementById('filter-outcome')?.value  || '';
+            const outcomeFilter = document.getElementById('filter-outcome')?.value || '';
             const companySearch = (document.getElementById('filter-company')?.value || '').toLowerCase();
 
             const filtered = allAppointments.filter(a => {
-                const matchOut = outcomeFilter === ''       ? true
-                            : outcomeFilter === 'UNSET' ? !a.outcome
-                            : a.outcome === outcomeFilter;
-                const matchCo  = !companySearch || (a.company?.name || '').toLowerCase().includes(companySearch);
+                const matchOut = outcomeFilter === '' ? true
+                    : outcomeFilter === 'UNSET' ? !a.outcome
+                        : a.outcome === outcomeFilter;
+                const matchCo = !companySearch || (a.company?.name || '').toLowerCase().includes(companySearch);
                 return matchOut && matchCo;
             });
 
@@ -238,11 +295,11 @@
                     <td style="padding:15px;color:var(--text-muted, #94a3b8);">${a.createdBy ? a.createdBy.name : 'Unknown'}</td>
                     <td style="padding:15px;">
                         ${a.outcome
-                            ? `<div style="display:flex;align-items:center;gap:10px;">
+                    ? `<div style="display:flex;align-items:center;gap:10px;">
                                 ${getOutcomeBadge(a.outcome)}
                                 <button class="btn btn-secondary" style="padding:2px 8px;font-size:11px;" onclick="openOutcomeModal('${a.id}')">Change</button>
                             </div>`
-                            : `<div class="outcome-actions-container">
+                    : `<div class="outcome-actions-container">
                                 <button type="button" class="outcome-action-btn yes-btn"     onclick="openOutcomeModal('${a.id}','YES')">✅</button>
                                 <button type="button" class="outcome-action-btn no-btn"      onclick="openOutcomeModal('${a.id}','NO')">❌</button>
                                 <button type="button" class="outcome-action-btn pending-btn" onclick="openOutcomeModal('${a.id}','PENDING')">⏳</button>
@@ -287,7 +344,7 @@
                         const id = c.id || (c._id ? String(c._id) : null);
                         if (!id) return;
                         const opt = document.createElement('option');
-                        opt.value       = id;
+                        opt.value = id;
                         opt.textContent = c.name;
                         select.appendChild(opt);
                     });
@@ -308,14 +365,14 @@
         async function submitAppt() {
             if (!_bookModal) return;
 
-            const companySelect  = _bookModal.querySelector('#appt-company');
+            const companySelect = _bookModal.querySelector('#appt-company');
             const scheduledInput = _bookModal.querySelector('#appt-scheduled');
-            const reminderInput  = _bookModal.querySelector('#appt-reminder');
-            const notesInput     = _bookModal.querySelector('#appt-notes');
+            const reminderInput = _bookModal.querySelector('#appt-reminder');
+            const notesInput = _bookModal.querySelector('#appt-notes');
 
-            const companyId    = companySelect  ? companySelect.value.trim()  : '';
-            const scheduledAt  = scheduledInput ? scheduledInput.value.trim() : '';
-            const reminderAt   = (reminderInput && reminderInput.value.trim()) ? reminderInput.value.trim() : null;
+            const companyId = companySelect ? companySelect.value.trim() : '';
+            const scheduledAt = scheduledInput ? scheduledInput.value.trim() : '';
+            const reminderAt = (reminderInput && reminderInput.value.trim()) ? reminderInput.value.trim() : null;
             const meetingNotes = (notesInput && notesInput.value) ? notesInput.value.trim() : '';
 
             if (!companyId) {
@@ -378,7 +435,7 @@
                         const id = r.id || (r._id ? String(r._id) : null);
                         if (!id) return;
                         const opt = document.createElement('option');
-                        opt.value       = id;
+                        opt.value = id;
                         opt.textContent = r.label || r.reasonText || '';
                         reasonSelect.appendChild(opt);
                     });
@@ -401,18 +458,18 @@
             const active = _outcomeModal.querySelector(`.${val.toLowerCase()}-btn`);
             if (active) { active.style.opacity = '1'; active.style.transform = 'scale(1.05)'; }
 
-            const noPanel  = _outcomeModal.querySelector('#no-reason-panel');
+            const noPanel = _outcomeModal.querySelector('#no-reason-panel');
             const yesPanel = _outcomeModal.querySelector('#yes-details-panel');
-            if (noPanel)  noPanel.style.display  = val === 'NO'  ? 'block' : 'none';
+            if (noPanel) noPanel.style.display = val === 'NO' ? 'block' : 'none';
             if (yesPanel) yesPanel.style.display = val === 'YES' ? 'block' : 'none';
         }
 
         async function submitOutcome() {
             if (!_outcomeModal) return;
-            const apptId       = _outcomeModal.querySelector('#outcome-appt-id')?.value || '';
-            const outcome      = (_outcomeModal.querySelector('#selected-outcome-val')?.value || '').trim();
+            const apptId = _outcomeModal.querySelector('#outcome-appt-id')?.value || '';
+            const outcome = (_outcomeModal.querySelector('#selected-outcome-val')?.value || '').trim();
             const outcomeNotes = (_outcomeModal.querySelector('#outcome-notes')?.value || '').trim();
-            const reasonId     = (_outcomeModal.querySelector('#outcome-reason')?.value || '').trim();
+            const reasonId = (_outcomeModal.querySelector('#outcome-reason')?.value || '').trim();
 
             if (!outcome) {
                 window.UI.showToast('Please select an outcome (YES, NO, or PENDING)', 'error');
@@ -507,15 +564,16 @@
         }
 
         // ─── Global exposure (required for inline onclick= attrs in HTML) ─────
-        window.openBookModal          = openBookModal;
-        window.submitAppt             = submitAppt;
-        window.openOutcomeModal       = openOutcomeModal;
-        window.selectOutcome          = selectOutcome;
-        window.submitOutcome          = submitOutcome;
+        window.openBookModal = openBookModal;
+        window.submitAppt = submitAppt;
+        window.openOutcomeModal = openOutcomeModal;
+        window.selectOutcome = selectOutcome;
+        window.submitOutcome = submitOutcome;
         window.viewAppointmentDetails = viewAppointmentDetails;
-        window.filterTable            = filterTable;
+        window.filterTable = filterTable;
     </script>
     <script src="/public/js/components/ocean-bg.js"></script>
     <script src="/public/js/components/cursor.js"></script>
 </body>
+
 </html>

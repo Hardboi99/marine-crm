@@ -4,6 +4,7 @@ const { authenticate } = require('../middlewares/auth');
 const { requireRole } = require('../middlewares/roleCheck');
 const {
   listEmployees, createEmployee, updateEmployee, deleteEmployee,
+  exitEmployee, reactivateEmployee,
   getTodayAttendance, checkIn, checkOut,
   submitWorksheet, getWorksheets,
   createTask, getTasks, updateTaskStatus,
@@ -17,7 +18,7 @@ const {
 router.get('/me', authenticate, getMyProfile);
 router.get('/me/birthday-check', authenticate, checkMyBirthdayToday);
 
-// ── Directory (filtered by role inside handler) ───────────────────────────────
+// ── Directory (filtered by role + ?status= inside handler) ────────────────────
 router.get('/', authenticate, listEmployees);
 
 // ── Attendance (filtered by role inside handler) ──────────────────────────────
@@ -34,6 +35,17 @@ router.post('/tasks',             authenticate, requireRole('ADMIN', 'HR'), crea
 router.get('/tasks',              authenticate, getTasks);
 router.patch('/tasks/:id/status', authenticate, updateTaskStatus);
 
+// ── Exit / Reactivate (offboarding) — Admin/HR only ────────────────────────────────────────────────
+router.route('/:id/exit')
+  .patch(authenticate, requireRole('ADMIN', 'HR'), exitEmployee)
+  .post(authenticate, requireRole('ADMIN', 'HR'), exitEmployee)
+  .put(authenticate, requireRole('ADMIN', 'HR'), exitEmployee);
+
+router.route('/:id/reactivate')
+  .patch(authenticate, requireRole('ADMIN', 'HR'), reactivateEmployee)
+  .post(authenticate, requireRole('ADMIN', 'HR'), reactivateEmployee)
+  .put(authenticate, requireRole('ADMIN', 'HR'), reactivateEmployee);
+
 // ── CRUD — Admin/HR only ───────────────────────────────────────────────────────────────────────────
 router.post('/',    authenticate, requireRole('ADMIN', 'HR'), createEmployee);
 router.put('/:id',  authenticate, requireRole('ADMIN', 'HR'), updateEmployee);
@@ -42,7 +54,7 @@ router.delete('/:id', authenticate, requireRole('ADMIN', 'HR'), deleteEmployee);
 // ── Bulk Import — Admin/HR only ───────────────────────────────────────────────────────────────────────
 router.post('/bulk-import', authenticate, requireRole('ADMIN', 'HR'), bulkImportEmployees);
 
-// ── Birthdays — Admin/HR only ────────────────────────────────────────────────────────────────────────
-router.get('/birthdays/upcoming', authenticate, requireRole('ADMIN', 'HR'), getUpcomingBirthdays);
+// ── Birthdays — visible to all authenticated employees ─────────────────────────────────────────────────
+router.get('/birthdays/upcoming', authenticate, getUpcomingBirthdays);
 
 module.exports = router;

@@ -40,13 +40,35 @@
             display: inline-block;
         }
 
-        .traffic-option[data-color="RED"] .dot { background: #ef4444; }
-        .traffic-option[data-color="YELLOW"] .dot { background: #fbbf24; }
-        .traffic-option[data-color="GREEN"] .dot { background: #10b981; }
+        .traffic-option[data-color="RED"] .dot {
+            background: #ef4444;
+        }
 
-        .traffic-option.selected[data-color="RED"] { border-color: #ef4444; color: #ef4444; background: rgba(239,68,68,0.08); }
-        .traffic-option.selected[data-color="YELLOW"] { border-color: #fbbf24; color: #fbbf24; background: rgba(251,191,36,0.08); }
-        .traffic-option.selected[data-color="GREEN"] { border-color: #10b981; color: #10b981; background: rgba(16,185,129,0.08); }
+        .traffic-option[data-color="YELLOW"] .dot {
+            background: #fbbf24;
+        }
+
+        .traffic-option[data-color="GREEN"] .dot {
+            background: #10b981;
+        }
+
+        .traffic-option.selected[data-color="RED"] {
+            border-color: #ef4444;
+            color: #ef4444;
+            background: rgba(239, 68, 68, 0.08);
+        }
+
+        .traffic-option.selected[data-color="YELLOW"] {
+            border-color: #fbbf24;
+            color: #fbbf24;
+            background: rgba(251, 191, 36, 0.08);
+        }
+
+        .traffic-option.selected[data-color="GREEN"] {
+            border-color: #10b981;
+            color: #10b981;
+            background: rgba(16, 185, 129, 0.08);
+        }
 
         .badge-red {
             background-color: rgba(239, 68, 68, 0.15);
@@ -89,6 +111,7 @@
 <body>
     <div class="app-wrapper">
         <div id="sidebar-container"></div>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
         <div class="main-content">
             <div id="navbar-container"></div>
             <main class="page-content pageEnter">
@@ -123,10 +146,16 @@
                     </div>
                     <div class="card-body" style="padding: 20px 20px 0;">
                         <div class="status-filters">
-                            <button class="status-filter-btn active" data-filter="ALL" onclick="setStatusFilter('ALL')">All</button>
-                            <button class="status-filter-btn" data-filter="RED" onclick="setStatusFilter('RED')"><span class="dot" style="background:#ef4444;"></span> Red</button>
-                            <button class="status-filter-btn" data-filter="YELLOW" onclick="setStatusFilter('YELLOW')"><span class="dot" style="background:#fbbf24;"></span> Yellow</button>
-                            <button class="status-filter-btn" data-filter="GREEN" onclick="setStatusFilter('GREEN')"><span class="dot" style="background:#10b981;"></span> Green</button>
+                            <button class="status-filter-btn active" data-filter="ALL"
+                                onclick="setStatusFilter('ALL')">All</button>
+                            <button class="status-filter-btn" data-filter="RED" onclick="setStatusFilter('RED')"><span
+                                    class="dot" style="background:#ef4444;"></span> Red</button>
+                            <button class="status-filter-btn" data-filter="YELLOW"
+                                onclick="setStatusFilter('YELLOW')"><span class="dot"
+                                    style="background:#fbbf24;"></span> Yellow</button>
+                            <button class="status-filter-btn" data-filter="GREEN"
+                                onclick="setStatusFilter('GREEN')"><span class="dot" style="background:#10b981;"></span>
+                                Green</button>
                         </div>
                     </div>
                     <div class="card-body" style="padding:0;">

@@ -6,90 +6,91 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Follow-Ups - Marine CRM</title>
     <link rel="stylesheet" href="/public/css/styles1.css">
-   <style>
-    .followup-item {
-        background: var(--bg-card);
-        border-radius: 8px;
-        padding: 16px;
-        margin-bottom: 12px;
-        display: flex;
-        align-items: flex-start;
-        gap: 16px;
-        border: 1px solid transparent;
-        transition: all 0.2s ease;
-    }
+    <style>
+        .followup-item {
+            background: var(--bg-card);
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+            border: 1px solid transparent;
+            transition: all 0.2s ease;
+        }
 
-    .followup-item:hover {
-        border-color: var(--border-color);
-        background: var(--bg-card-hover);
-    }
+        .followup-item:hover {
+            border-color: var(--border-color);
+            background: var(--bg-card-hover);
+        }
 
-    .followup-item.overdue {
-        border-color: var(--red);
-    }
+        .followup-item.overdue {
+            border-color: var(--red);
+        }
 
-    .followup-item.completed {
-        opacity: 0.65;
-    }
+        .followup-item.completed {
+            opacity: 0.65;
+        }
 
-    .followup-checkbox {
-        width: 22px;
-        height: 22px;
-        cursor: pointer;
-        margin-top: 4px;
-        accent-color: var(--green);
-    }
+        .followup-checkbox {
+            width: 22px;
+            height: 22px;
+            cursor: pointer;
+            margin-top: 4px;
+            accent-color: var(--green);
+        }
 
-    .followup-content {
-        flex: 1;
-    }
+        .followup-content {
+            flex: 1;
+        }
 
-    .followup-title {
-        font-size: 1.1em;
-        font-weight: bold;
-        margin-bottom: 4px;
-        color: var(--text-primary);
-    }
+        .followup-title {
+            font-size: 1.1em;
+            font-weight: bold;
+            margin-bottom: 4px;
+            color: var(--text-primary);
+        }
 
-    .followup-desc {
-        color: var(--text-secondary);
-        font-size: 0.9em;
-        margin-bottom: 8px;
-        white-space: pre-wrap;
-    }
+        .followup-desc {
+            color: var(--text-secondary);
+            font-size: 0.9em;
+            margin-bottom: 8px;
+            white-space: pre-wrap;
+        }
 
-    .followup-meta {
-        display: flex;
-        gap: 12px;
-        font-size: 0.85em;
-        color: var(--text-secondary);
-    }
+        .followup-meta {
+            display: flex;
+            gap: 12px;
+            font-size: 0.85em;
+            color: var(--text-secondary);
+        }
 
-    .followup-right {
-        display: flex;
-        flex-direction: column;
-        align-items: flex-end;
-        gap: 8px;
-    }
+        .followup-right {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 8px;
+        }
 
-    .empty-state {
-        text-align: center;
-        padding: 48px;
-        background: var(--bg-card);
-        border-radius: 8px;
-        color: var(--text-secondary);
-    }
+        .empty-state {
+            text-align: center;
+            padding: 48px;
+            background: var(--bg-card);
+            border-radius: 8px;
+            color: var(--text-secondary);
+        }
 
-    .header-badges {
-        display: flex;
-        gap: 12px;
-        align-items: center;
-    }
-</style>
+        .header-badges {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+    </style>
 </head>
 
 <body>
     <div id="sidebar-container"></div>
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
     <div class="main-content">
         <div id="navbar-container"></div>
@@ -98,7 +99,8 @@
             <div class="page-header">
                 <div>
                     <h1 style="margin:0; color:var(--text-primary);">🔔 Follow-Up Queue</h1>
-                    <p class="subtitle" style="margin:5px 0 0; color:var(--text-secondary);">Pending updates and follow-up tasks from
+                    <p class="subtitle" style="margin:5px 0 0; color:var(--text-secondary);">Pending updates and
+                        follow-up tasks from
                         appointments</p>
                 </div>
                 <div class="header-badges">

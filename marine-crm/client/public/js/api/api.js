@@ -241,6 +241,9 @@ const ApiService = {
     updateTaskStatus:   (id, data) => api.patch(`/employees/tasks/${id}/status`, data),
     bulkImport:         (data) => api.post('/employees/bulk-import', data),
     getUpcomingBirthdays: ()   => api.get('/employees/birthdays/upcoming'),
+    listExited:          ()   => api.get('/employees', { params: { status: 'EXITED' } }),
+    exit:               (id, data) => api.patch(`/employees/${id}/exit`, data),
+    reactivate:         (id) => api.patch(`/employees/${id}/reactivate`),
   }
 };
 

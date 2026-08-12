@@ -584,10 +584,72 @@
     [data-theme="light"] .wsd-avatar {
       box-shadow: 0 2px 10px rgba(14, 165, 233, 0.25);
     }
+
+    /* ===== Employee View Tabs (Active / Ex-Employees) ===== */
+    .emp-tabs {
+      display: flex;
+      gap: 6px;
+      margin-bottom: 16px;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    .emp-tab-btn {
+      appearance: none;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 0.88rem;
+      font-weight: 600;
+      padding: 10px 6px;
+      margin-bottom: -1px;
+      border-bottom: 2px solid transparent;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition:
+        color 0.15s ease,
+        border-color 0.15s ease;
+    }
+
+    .emp-tab-btn:hover {
+      color: var(--text-primary);
+    }
+
+    .emp-tab-btn.active {
+      color: var(--accent-primary);
+      border-bottom-color: var(--accent-primary);
+    }
+
+    .emp-tab-count {
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 1px 7px;
+      border-radius: 20px;
+      background: var(--bg-input);
+      color: var(--text-muted);
+    }
+
+    .emp-tab-btn.active .emp-tab-count {
+      background: var(--accent-light);
+      color: var(--accent-primary);
+    }
+
+    .exit-reason-text {
+      max-width: 240px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      display: inline-block;
+    }
+
+
+    
   </style>
 
-  <div class="app-layout">
+  <div class="app-wrapper">
     <div id="sidebar-container"></div>
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
     <div class="main-content">
       <div id="navbar-container"></div>
@@ -646,7 +708,7 @@
         <!-- FILTER BAR -->
         <div class="filter-bar">
           <div class="filter-group">
-            <i class="fas fa-search filter-icon"></i>
+
             <input type="text" id="search-input" class="form-control" placeholder="Search by name, position, location…"
               oninput="renderEmployees()" />
           </div>
@@ -657,8 +719,20 @@
           </div>
         </div>
 
-        <!-- EMPLOYEES TABLE CARD -->
-        <div class="card" style="margin-bottom: 24px">
+        <!-- VIEW TABS -->
+        <div class="emp-tabs" id="emp-tabs">
+          <button class="emp-tab-btn active" id="tab-active-btn" type="button">
+            <i class="fas fa-users"></i> Active Crew
+            <span class="emp-tab-count" id="tab-active-count">0</span>
+          </button>
+          <button class="emp-tab-btn" id="tab-exited-btn" type="button">
+            <i class="fas fa-user-slash"></i> Ex-Employees
+            <span class="emp-tab-count" id="tab-exited-count">0</span>
+          </button>
+        </div>
+
+        <!-- EMPLOYEES TABLE CARD (ACTIVE) -->
+        <div class="card" id="active-employees-card" style="margin-bottom: 24px">
           <div class="card-header" style="
                 padding: 16px 20px;
                 border-bottom: 1px solid var(--border-color);
@@ -692,6 +766,45 @@
                   </tr>
                 </thead>
                 <tbody id="employee-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <!-- EX-EMPLOYEES TABLE CARD -->
+        <div class="card" id="exited-employees-card" style="margin-bottom: 24px; display: none">
+          <div class="card-header" style="
+                padding: 16px 20px;
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              ">
+            <h3 style="
+                  margin: 0;
+                  font-size: 1.05rem;
+                  color: var(--text-primary);
+                ">
+              <i class="fas fa-user-slash" style="margin-right: 8px; color: var(--text-muted)"></i>
+              Ex-Employees
+            </h3>
+          </div>
+          <div class="card-body" style="padding: 0">
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th>Crew Member</th>
+                    <th>Position</th>
+                    <th>Phone</th>
+                    <th>Exit Date</th>
+                    <th>Reason</th>
+                    <th>Exited By</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="exited-employee-table-body"></tbody>
               </table>
             </div>
           </div>
@@ -790,6 +903,33 @@
     </div>
   </template>
 
+  <!-- EXIT EMPLOYEE MODAL TEMPLATE -->
+  <template id="exit-modal-tpl">
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="
+            background: rgba(239, 68, 68, 0.1);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+          ">
+        <i class="fas fa-triangle-exclamation" style="color: #f87171; margin-right: 6px"></i>
+        This moves the employee to Ex-Employees and disables their login (if
+        they have one). Their history is kept and they can be reactivated
+        later.
+      </div>
+      <div>
+        <label class="form-label">Exit Date <span style="color: #f87171">*</span></label>
+        <input id="exit-date" type="date" class="form-control" />
+      </div>
+      <div>
+        <label class="form-label">Reason for Exit</label>
+        <textarea id="exit-reason" class="form-control" rows="3"
+          placeholder="e.g. Resigned, End of contract, Terminated…"></textarea>
+      </div>
+    </div>
+  </template>
+
   <!-- CHECKOUT DAILY WORKSHEET MODAL TEMPLATE -->
   <template id="worksheet-modal-tpl">
     <div style="display: flex; flex-direction: column; gap: 14px">
@@ -874,6 +1014,8 @@
   <script>
     // ─── State ─────────────────────────────────────────────────────────────
     let employees = [];
+    let exEmployees = [];
+    let employeeView = "ACTIVE"; // "ACTIVE" | "EXITED"
     let attendances = {};
     let tasks = [];
     let editingId = null;
@@ -905,7 +1047,7 @@
       return map;
     }
 
-    // ─── Load All Data ─────────────────────────────────────────────────────
+    // ─── Load Active Employees + Attendance ──────────────────────────────────
     async function loadEmployees() {
       UI.showTableSkeleton(
         document.getElementById("employee-table-body"),
@@ -914,7 +1056,7 @@
       );
       try {
         const [empRes, attRes] = await Promise.all([
-          window.ApiService.employees.list(),
+          window.ApiService.employees.list(), // backend defaults to ACTIVE only
           window.ApiService.employees
             .getTodayAttendance()
             .catch(() => ({ data: [] })),
@@ -932,6 +1074,28 @@
           `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">
          <i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
          Failed to load employees. Please refresh.
+       </td></tr>`;
+      } finally {
+        document.getElementById("tab-active-count").textContent =
+          employees.length;
+      }
+    }
+
+    // ─── Load Ex-Employees (only fetched when that tab is opened) ───────────
+    async function loadExEmployees() {
+      const tbody = document.getElementById("exited-employee-table-body");
+      UI.showTableSkeleton(tbody, 8, 4);
+      try {
+        const res = await window.ApiService.employees.listExited();
+        exEmployees = res.data || [];
+        document.getElementById("tab-exited-count").textContent =
+          exEmployees.length;
+        renderExEmployees();
+      } catch (err) {
+        console.error("Error loading ex-employees:", err);
+        UI.showToast("Failed to load ex-employees", "error");
+        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">
+         Failed to load ex-employees. Please refresh.
        </td></tr>`;
       }
     }
@@ -1066,6 +1230,9 @@
               <button class="btn btn-secondary btn-sm" onclick="openEmployeeModal('${e.id}')" title="Edit">
                 <i class="fas fa-edit"></i>
               </button>
+              <button class="btn btn-warning btn-sm" onclick="openExitModal('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Exit Employee">
+                <i class="fas fa-right-from-bracket"></i>
+              </button>
               <button class="btn btn-danger btn-sm" onclick="confirmDeleteEmployee('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Delete">
                 <i class="fas fa-trash"></i>
               </button>
@@ -1077,6 +1244,180 @@
       </tr>`;
         })
         .join("");
+    }
+
+    // ─── Render Ex-Employees Table ─────────────────────────────────────────
+    function renderExEmployees() {
+      const tbody = document.getElementById("exited-employee-table-body");
+
+      if (exEmployees.length === 0) {
+        tbody.innerHTML = `
+      <tr><td colspan="8">
+        ${UI.renderEmptyState(
+          "🎉",
+          "No Ex-Employees",
+          "Everyone on the team is currently active.",
+          "",
+        )}
+      </td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = exEmployees
+        .map((e, idx) => {
+          const initials = e.name
+            .split(" ")
+            .map((n) => n[0])
+            .join("")
+            .slice(0, 2)
+            .toUpperCase();
+          const exitDateStr = e.exitDate
+            ? new Date(e.exitDate).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+            : "—";
+          const reason = e.exitReason
+            ? e.exitReason.replace(/</g, "&lt;")
+            : "—";
+
+          return `
+      <tr>
+        <td style="color:var(--text-muted);font-size:0.8rem;">${idx + 1}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <div style="width:34px;height:34px;border-radius:50%;
+                        background:linear-gradient(135deg,#94a3b8,#64748b);
+                        display:flex;align-items:center;justify-content:center;
+                        font-size:0.7rem;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>
+            <div>
+              <div style="font-weight:600;color:var(--text-primary);">${e.name}</div>
+              ${e.employeeId ? `<div style="font-size:0.75rem;color:var(--text-muted);">${e.employeeId}</div>` : ""}
+            </div>
+          </div>
+        </td>
+        <td>${e.position ? `<span class="badge badge-gray">${e.position}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
+        <td>${e.phone || "—"}</td>
+        <td style="font-size:0.85rem;">${exitDateStr}</td>
+        <td style="font-size:0.82rem;" title="${reason}"><span class="exit-reason-text">${reason}</span></td>
+        <td style="font-size:0.8rem;color:var(--text-muted);">${e.exitedByName || "—"}</td>
+        <td>
+          ${canManage
+              ? `<button class="btn btn-secondary btn-sm" onclick="reactivateEmployeeUI('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Reactivate">
+                <i class="fas fa-rotate-left"></i> Reactivate
+              </button>`
+              : `<span style="color:var(--text-muted);font-size:0.8rem;">View only</span>`
+            }
+        </td>
+      </tr>`;
+        })
+        .join("");
+    }
+
+    // ─── Exit Employee Modal ──────────────────────────────────────────────────
+    function openExitModal(id, name) {
+      if (!canManage)
+        return UI.showToast(
+          "Only Admin or HR can exit employees.",
+          "warning",
+        );
+      const tpl = document.getElementById("exit-modal-tpl");
+
+      const modal = UI.createModal({
+        title: `🚪 Exit Employee — ${name}`,
+        bodyHtml: tpl.innerHTML,
+        footerHtml: `
+      <button class="btn btn-secondary" id="exit-cancel">Cancel</button>
+      <button class="btn btn-warning"   id="exit-submit"><i class="fas fa-right-from-bracket"></i> Confirm Exit</button>
+    `,
+      });
+
+      // Default exit date to today
+      modal.querySelector("#exit-date").value = new Date()
+        .toISOString()
+        .split("T")[0];
+
+      modal.querySelector("#exit-cancel").onclick = () => modal.close();
+      modal.querySelector("#exit-submit").onclick = async () => {
+        const exitDateVal = modal.querySelector("#exit-date").value;
+        const exitReasonVal = modal
+          .querySelector("#exit-reason")
+          .value.trim();
+
+        if (!exitDateVal) {
+          return UI.showToast("Please select an exit date.", "error");
+        }
+
+        const submitBtn = modal.querySelector("#exit-submit");
+        submitBtn.disabled = true;
+        submitBtn.innerHTML =
+          '<i class="fas fa-spinner fa-spin"></i> Processing…';
+
+        try {
+          await window.ApiService.employees.exit(id, {
+            exitDate: exitDateVal,
+            exitReason: exitReasonVal,
+          });
+          UI.showToast(`${name} has been marked as exited.`, "success");
+          modal.close();
+          await loadEmployees();
+          await loadExEmployees(); // keeps the Ex-Employees tab/count in sync
+        } catch (err) {
+          console.error("Exit error:", err);
+          UI.showToast(err.message || "Failed to exit employee.", "error");
+          submitBtn.disabled = false;
+          submitBtn.innerHTML =
+            '<i class="fas fa-right-from-bracket"></i> Confirm Exit';
+        }
+      };
+    }
+
+    // ─── Reactivate Employee ──────────────────────────────────────────────────
+    async function reactivateEmployeeUI(id, name) {
+      if (!canManage)
+        return UI.showToast(
+          "Only Admin or HR can reactivate employees.",
+          "warning",
+        );
+      const confirmed = await UI.confirm({
+        title: "Reactivate Employee?",
+        message: `<strong>${name}</strong> will move back into the active crew directory and their login (if any) will be re-enabled.`,
+        confirmText: "Reactivate",
+        cancelText: "Cancel",
+      });
+      if (!confirmed) return;
+      try {
+        await window.ApiService.employees.reactivate(id);
+        UI.showToast(`${name} has been reactivated.`, "success");
+        await loadExEmployees();
+        await loadEmployees();
+      } catch (err) {
+        console.error("Reactivate error:", err);
+        UI.showToast(err.message || "Failed to reactivate employee.", "error");
+      }
+    }
+
+    // ─── Tab Switching (Active / Ex-Employees) ────────────────────────────────
+    function switchEmployeeView(view) {
+      employeeView = view;
+      const activeBtn = document.getElementById("tab-active-btn");
+      const exitedBtn = document.getElementById("tab-exited-btn");
+      const activeCard = document.getElementById("active-employees-card");
+      const exitedCard = document.getElementById("exited-employees-card");
+
+      if (view === "EXITED") {
+        activeBtn.classList.remove("active");
+        exitedBtn.classList.add("active");
+        activeCard.style.display = "none";
+        exitedCard.style.display = "block";
+        loadExEmployees();
+      } else {
+        exitedBtn.classList.remove("active");
+        activeBtn.classList.add("active");
+        exitedCard.style.display = "none";
+        activeCard.style.display = "block";
+      }
     }
 
     // ─── Attendance Check In / Out ───────────────────────────────────────────
@@ -1797,8 +2138,24 @@
         .getElementById("export-btn")
         .addEventListener("click", exportToExcel);
 
+      document
+        .getElementById("tab-active-btn")
+        .addEventListener("click", () => switchEmployeeView("ACTIVE"));
+      document
+        .getElementById("tab-exited-btn")
+        .addEventListener("click", () => switchEmployeeView("EXITED"));
+
       loadEmployees();
       loadUpcomingBirthdays();
+      // Fetch ex-employee count up front so the tab badge isn't blank
+      window.ApiService.employees
+        .listExited()
+        .then((res) => {
+          exEmployees = res.data || [];
+          document.getElementById("tab-exited-count").textContent =
+            exEmployees.length;
+        })
+        .catch(() => { });
     });
   </script>
   <script src="/public/js/components/cursor.js"></script>
