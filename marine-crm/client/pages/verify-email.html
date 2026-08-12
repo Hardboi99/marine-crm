@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Verify Email - Marine BDM CRM</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --deep-navy: #060b13; --panel-navy: #0c1723; --line: rgba(255,255,255,0.08);
+      --teal: #22d3ee; --teal-deep: #0891b2; --text-main: #eaf2f6;
+      --text-muted: #7f94a4; --danger: #f87171; --success: #34d399; --warning: #fbbf24;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{background:var(--deep-navy);font-family:'Inter',sans-serif;color:var(--text-main);
+         min-height:100vh;display:flex;align-items:center;justify-content:center;
+         padding:24px; position:relative; overflow:hidden;}
+    h1,h2{font-family:'Sora',sans-serif;}
+    .ocean-bg{position:fixed;inset:0;z-index:0;
+      background:radial-gradient(ellipse 900px 600px at 15% 12%,rgba(34,211,238,.12),transparent 60%),
+                 radial-gradient(ellipse 900px 700px at 85% 88%,rgba(8,145,178,.14),transparent 60%),
+                 linear-gradient(180deg,#050b14 0%,#071522 45%,#04202b 100%);}
+    .card{position:relative;z-index:10;width:100%;max-width:480px;
+          background:var(--panel-navy);border:1px solid var(--line);border-radius:20px;
+          padding:44px 40px;box-shadow:0 40px 80px -30px rgba(0,0,0,.7);
+          animation:fadeIn .6s cubic-bezier(.2,.8,.2,1);}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    .logo{text-align:center;margin-bottom:32px;}
+    .logo-ring{width:72px;height:72px;border-radius:50%;margin:0 auto 14px;
+               background:linear-gradient(135deg,#0e7490,#0891b2);
+               display:flex;align-items:center;justify-content:center;font-size:2rem;
+               box-shadow:0 0 28px rgba(34,211,238,.3);}
+    .logo h1{font-size:1.4rem;letter-spacing:.01em;}
+    .logo p{font-size:.82rem;color:var(--text-muted);margin-top:4px;}
+    .status-icon{font-size:3.5rem;text-align:center;margin-bottom:16px;display:block;}
+    .title{font-size:1.3rem;font-weight:700;text-align:center;margin-bottom:8px;font-family:'Sora',sans-serif;}
+    .subtitle{font-size:.88rem;color:var(--text-muted);text-align:center;margin-bottom:28px;line-height:1.6;}
+    .btn{display:block;width:100%;padding:13px;border:none;border-radius:10px;
+         font-size:.95rem;font-family:'Inter',sans-serif;font-weight:700;cursor:pointer;
+         text-align:center;text-decoration:none;transition:all .2s ease;margin-top:14px;}
+    .btn-primary{background:linear-gradient(120deg,var(--teal),var(--teal-deep));color:#06222b;
+                 box-shadow:0 8px 24px rgba(34,211,238,.25);}
+    .btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(34,211,238,.35);}
+    .btn-secondary{background:rgba(255,255,255,.05);color:var(--text-main);
+                   border:1px solid var(--line);}
+    .btn-secondary:hover{background:rgba(255,255,255,.08);}
+    .resend-form{margin-top:20px;padding-top:20px;border-top:1px solid var(--line);}
+    .resend-form p{font-size:.83rem;color:var(--text-muted);margin-bottom:12px;text-align:center;}
+    .form-input{width:100%;padding:11px 14px;background:rgba(255,255,255,.04);
+                border:1px solid var(--line);border-radius:10px;color:var(--text-main);
+                font-size:.9rem;font-family:'Inter',sans-serif;outline:none;transition:border-color .2s;}
+    .form-input:focus{border-color:var(--teal);background:rgba(34,211,238,.05);}
+    .msg{padding:10px 14px;border-radius:8px;font-size:.83rem;font-weight:600;
+         margin-top:12px;display:none;}
+    .msg.error{color:var(--danger);background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.28);}
+    .msg.success{color:var(--success);background:rgba(52,211,153,.1);border:1px solid rgba(52,211,153,.28);}
+    .spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(6,34,43,.4);
+             border-top-color:#06222b;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    #state-loading,#state-success,#state-error,#state-already{display:none;}
+  </style>
+</head>
+<body>
+  <div class="ocean-bg"></div>
+  <div class="card">
+    <div class="logo">
+      <div class="logo-ring">⚓</div>
+      <h1>Marine BDM CRM</h1>
+      <p>Email Verification</p>
+    </div>
+
+    <!-- Loading -->
+    <div id="state-loading">
+      <span class="status-icon">⏳</span>
+      <div class="title">Verifying your email…</div>
+      <div class="subtitle">Please wait a moment.</div>
+    </div>
+
+    <!-- Success -->
+    <div id="state-success">
+      <span class="status-icon">✅</span>
+      <div class="title">Email Verified!</div>
+      <div class="subtitle">Your account is now active. You can log in to Marine BDM CRM.</div>
+      <a href="/pages/login.html" class="btn btn-primary">Sign In to Portal</a>
+    </div>
+
+    <!-- Already verified -->
+    <div id="state-already">
+      <span class="status-icon">ℹ️</span>
+      <div class="title">Already Verified</div>
+      <div class="subtitle">This email is already verified. You can log in directly.</div>
+      <a href="/pages/login.html" class="btn btn-primary">Sign In to Portal</a>
+    </div>
+
+    <!-- Error (invalid/expired) -->
+    <div id="state-error">
+      <span class="status-icon">❌</span>
+      <div class="title" id="error-title">Link Invalid or Expired</div>
+      <div class="subtitle" id="error-subtitle">This verification link is invalid or has expired. Request a new one below.</div>
+
+      <div class="resend-form">
+        <p>Enter your email address to receive a new verification link:</p>
+        <input type="email" id="resend-email" class="form-input" placeholder="your.email@company.com" autocomplete="email">
+        <button id="resend-btn" class="btn btn-primary" style="margin-top:10px">Send New Verification Link</button>
+        <div id="resend-msg" class="msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script>
+    (function () {
+      const BASE = (window.location.port && window.location.port !== '5000')
+        ? 'http://localhost:5000/api'
+        : window.location.origin + '/api';
+
+      function show(id) {
+        ['state-loading','state-success','state-already','state-error'].forEach(function(s){
+          document.getElementById(s).style.display = s === id ? 'block' : 'none';
+        });
+      }
+
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('token');
+
+      if (!token) {
+        show('state-error');
+        document.getElementById('error-title').textContent = 'No Token Provided';
+        document.getElementById('error-subtitle').textContent = 'This page requires a verification token. Check your email for the correct link.';
+      } else {
+        show('state-loading');
+        axios.get(BASE + '/auth/verify-email', { params: { token: token } })
+          .then(function (res) {
+            var data = res.data;
+            if (data.alreadyVerified) { show('state-already'); }
+            else { show('state-success'); }
+          })
+          .catch(function (err) {
+            show('state-error');
+            var msg = (err.response && err.response.data && err.response.data.message) || 'Verification failed.';
+            var expired = (err.response && err.response.data && err.response.data.expired);
+            document.getElementById('error-title').textContent = expired ? 'Link Expired' : 'Invalid Link';
+            document.getElementById('error-subtitle').textContent = msg;
+          });
+      }
+
+      // Resend flow
+      document.getElementById('resend-btn').addEventListener('click', function () {
+        var email = document.getElementById('resend-email').value.trim();
+        var msgEl = document.getElementById('resend-msg');
+        var btn = document.getElementById('resend-btn');
+        msgEl.style.display = 'none';
+        if (!email) { msgEl.textContent = 'Please enter your email.'; msgEl.className = 'msg error'; msgEl.style.display = 'block'; return; }
+
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner"></span>Sending…';
+
+        axios.post(BASE + '/auth/resend-verification', { email: email })
+          .then(function (res) {
+            msgEl.textContent = res.data.message || 'A new verification link has been sent. Check your inbox.';
+            msgEl.className = 'msg success';
+            msgEl.style.display = 'block';
+            btn.textContent = 'Sent!';
+          })
+          .catch(function (err) {
+            var msg2 = (err.response && err.response.data && err.response.data.message) || 'Failed to resend. Please try again.';
+            msgEl.textContent = msg2;
+            msgEl.className = 'msg error';
+            msgEl.style.display = 'block';
+            btn.disabled = false;
+            btn.textContent = 'Send New Verification Link';
+          });
+      });
+    })();
+  </script>
+</body>
+</html>

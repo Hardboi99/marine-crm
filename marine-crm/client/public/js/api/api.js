@@ -47,10 +47,12 @@ api.interceptors.response.use(
 
 const ApiService = {
   // ── Auth ──────────────────────────────────────────────────────────────────
-  login:    (credentials) => api.post('/auth/login', credentials),
-  register: (data)        => api.post('/auth/register', data),
-  logout:   ()            => api.post('/auth/logout'),
-  getMe:    ()            => api.get('/auth/me'),
+  login:              (credentials) => api.post('/auth/login', credentials),
+  register:           (data)        => api.post('/auth/register', data),
+  logout:             ()            => api.post('/auth/logout'),
+  getMe:              ()            => api.get('/auth/me'),
+  verifyEmail:        (token)       => api.get('/auth/verify-email', { params: { token } }),
+  resendVerification: (email)       => api.post('/auth/resend-verification', { email }),
 
   // ── Countries (flat + namespaced) ─────────────────────────────────────────
   getCountries:  (params)   => api.get('/countries', { params }),
@@ -241,6 +243,7 @@ const ApiService = {
     updateTaskStatus:   (id, data) => api.patch(`/employees/tasks/${id}/status`, data),
     bulkImport:         (data) => api.post('/employees/bulk-import', data),
     getUpcomingBirthdays: ()   => api.get('/employees/birthdays/upcoming'),
+    checkMyBirthday: () => api.get('/employees/me/birthday-check'),
     listExited:          ()   => api.get('/employees', { params: { status: 'EXITED' } }),
     exit:               (id, data) => api.patch(`/employees/${id}/exit`, data),
     reactivate:         (id) => api.patch(`/employees/${id}/reactivate`),

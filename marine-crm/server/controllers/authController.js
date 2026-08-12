@@ -2,9 +2,15 @@ const bcrypt = require('bcryptjs');
 const { User } = require('../models');
 const { signToken } = require('../config/jwt');
 const { logActivity } = require('../utils/activityLogger');
+const { generateVerificationToken, hashToken, sendVerificationEmail } = require('../services/emailService');
+
+// ─── Helpers ────────────────────────────────────────────────────────────────
+const getBaseUrl = (req) => `${req.protocol}://${req.get('host')}`;
 
 /**
- * Login: validate credentials, update lastLoginAt in MongoDB, return JWT & user profile
+ * Login: validate credentials, enforce email-verification gate, return JWT.
+ * Migration guard: users with emailVerified === undefined are legacy accounts
+ * that pre-date this feature and are treated as verified (never blocked).
  * POST /api/auth/login
  */
 const login = async (req, res, next) => {
@@ -29,9 +35,18 @@ const login = async (req, res, next) => {
       return res.status(401).json({ success: false, message: 'Invalid credentials.' });
     }
 
-    // Update lastLoginAt in MongoDB
-    const now = new Date();
-    user.lastLoginAt = now;
+    // ── Email-verification gate ──────────────────────────────────────────────
+    // Only block when emailVerified is explicitly false (newly-created accounts).
+    // undefined = legacy/seeded user → let them through unchanged.
+    if (user.emailVerified === false) {
+      return res.status(403).json({
+        success: false,
+        message: 'Please verify your email before logging in.',
+        requiresVerification: true,
+      });
+    }
+
+    user.lastLoginAt = new Date();
     await user.save();
 
     const token = signToken({ id: user._id.toString(), email: user.email, role: user.role, name: user.name });
@@ -41,27 +56,25 @@ const login = async (req, res, next) => {
       entityType: 'USER',
       entityId: user._id.toString(),
       action: 'LOGGED_IN',
-      details: { email: user.email, role: user.role, loginTime: now },
+      details: { email: user.email, role: user.role, loginTime: user.lastLoginAt },
     });
-
-    const userProfile = {
-      id: user._id.toString(),
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      phone: user.phone,
-      department: user.department,
-      avatarUrl: user.avatarUrl,
-      lastLoginAt: now,
-      createdAt: user.createdAt,
-    };
 
     res.json({
       success: true,
       message: 'Login successful.',
       data: {
         token,
-        user: userProfile,
+        user: {
+          id: user._id.toString(),
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          phone: user.phone,
+          department: user.department,
+          avatarUrl: user.avatarUrl,
+          lastLoginAt: user.lastLoginAt,
+          createdAt: user.createdAt,
+        },
       },
     });
   } catch (err) {
@@ -70,7 +83,7 @@ const login = async (req, res, next) => {
 };
 
 /**
- * Logout: stateless JWT — client discards token
+ * Logout: stateless JWT — client discards token.
  * POST /api/auth/logout
  */
 const logout = (req, res) => {
@@ -78,7 +91,7 @@ const logout = (req, res) => {
 };
 
 /**
- * Get current logged-in user profile from MongoDB
+ * Get current logged-in user profile from MongoDB.
  * GET /api/auth/me
  */
 const getMe = async (req, res, next) => {
@@ -92,65 +105,118 @@ const getMe = async (req, res, next) => {
 };
 
 /**
- * Register (Sign Up): Save full user profile in MongoDB and return JWT
+ * Register: DISABLED — accounts are created only by Admin/HR via the employee portal.
  * POST /api/auth/register
  */
-const register = async (req, res, next) => {
+const register = async (req, res) => {
+  return res.status(403).json({
+    success: false,
+    message: 'Public account creation is disabled. Please contact your Admin or HR team to get access.',
+  });
+};
+
+/**
+ * Verify email address via signed token link.
+ * GET /api/auth/verify-email?token=<RAW_TOKEN>
+ */
+const verifyEmail = async (req, res, next) => {
   try {
-    const { name, email, password, role, phone, department } = req.body;
+    const { token: rawToken } = req.query;
 
-    if (!name || !email || !password) {
-      return res.status(400).json({ success: false, message: 'Name, email, and password are required.' });
+    if (!rawToken) {
+      return res.status(400).json({ success: false, message: 'Verification token is required.' });
     }
 
-    const cleanEmail = email.toLowerCase().trim();
+    const hashed = hashToken(rawToken);
 
-    // Check if user already exists in MongoDB
-    const existing = await User.findOne({ email: cleanEmail });
-
-    if (existing) {
-      return res.status(400).json({ success: false, message: 'An account with this email already exists.' });
+    // Check for expired token first (better error message)
+    const anyMatch = await User.findOne({ verificationToken: hashed });
+    if (anyMatch) {
+      if (anyMatch.emailVerified === true) {
+        return res.json({ success: true, message: 'Email is already verified. You can log in.', alreadyVerified: true });
+      }
+      if (anyMatch.verificationTokenExpires < new Date()) {
+        return res.status(400).json({
+          success: false,
+          message: 'Verification link has expired. Please request a new one.',
+          expired: true,
+        });
+      }
     }
 
-    // Hash password securely with bcrypt
-    const passwordHash = await bcrypt.hash(password, 12);
-    const now = new Date();
-
-    // Save user record to MongoDB
-    const user = await User.create({
-      name: name.trim(),
-      email: cleanEmail,
-      passwordHash,
-      role: role && ['ADMIN', 'BDM', 'MANAGER', 'HR'].includes(role) ? role : 'BDM',
-      phone: phone ? phone.trim() : null,
-      department: department ? department.trim() : null,
-      isActive: true,
-      lastLoginAt: now,
+    const user = await User.findOne({
+      verificationToken: hashed,
+      verificationTokenExpires: { $gt: new Date() },
     });
 
-    const token = signToken({ id: user._id.toString(), email: user.email, role: user.role, name: user.name });
+    if (!user) {
+      return res.status(400).json({ success: false, message: 'Invalid verification link.' });
+    }
+
+    user.emailVerified = true;
+    user.verificationToken = null;
+    user.verificationTokenExpires = null;
+    user.verificationSentAt = null;
+    await user.save();
 
     await logActivity({
       userId: user._id,
       entityType: 'USER',
       entityId: user._id.toString(),
-      action: 'REGISTERED_USER',
-      details: { name: user.name, email: user.email, role: user.role },
+      action: 'EMAIL_VERIFIED',
+      details: { email: user.email },
     });
 
-    const userObj = user.toJSON();
-
-    res.status(201).json({
-      success: true,
-      message: 'Account created successfully!',
-      data: {
-        token,
-        user: userObj,
-      },
-    });
+    res.json({ success: true, message: 'Email verified successfully! You can now log in.' });
   } catch (err) {
     next(err);
   }
 };
 
-module.exports = { login, register, logout, getMe };
+/**
+ * Resend verification email.
+ * POST /api/auth/resend-verification  body: { email }
+ * Rate-limited to 1 send per 60 seconds. Always returns 200 to prevent user enumeration.
+ */
+const resendVerification = async (req, res, next) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ success: false, message: 'Email is required.' });
+    }
+
+    // Generic OK prevents user enumeration
+    const genericOk = () =>
+      res.json({ success: true, message: 'If this email exists and is unverified, a new link has been sent.' });
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    if (!user || user.emailVerified !== false) return genericOk();
+
+    // 60-second resend rate limit
+    if (user.verificationSentAt) {
+      const elapsedSec = (Date.now() - new Date(user.verificationSentAt).getTime()) / 1000;
+      if (elapsedSec < 60) {
+        return res.status(429).json({
+          success: false,
+          message: `Please wait ${Math.ceil(60 - elapsedSec)} seconds before requesting another link.`,
+        });
+      }
+    }
+
+    const { rawToken, hashedToken } = generateVerificationToken();
+    user.verificationToken = hashedToken;
+    user.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+    user.verificationSentAt = new Date();
+    await user.save();
+
+    await sendVerificationEmail(user, rawToken, getBaseUrl(req));
+
+    return genericOk();
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { login, register, logout, getMe, verifyEmail, resendVerification };
+
+

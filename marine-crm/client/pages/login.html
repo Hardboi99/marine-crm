@@ -672,39 +672,50 @@
         @media (max-width: 768px) {
             .auth-shell {
                 width: 100%;
+                padding: 0 16px;
             }
 
             .auth-card {
                 flex-direction: column;
                 border-radius: 18px;
+                min-height: 0;
+                overflow: hidden;
             }
 
             .side-panel {
-                position: relative;
-                width: 100%;
-                height: auto;
-                min-height: 150px;
-                right: auto;
-                left: auto;
-                clip-path: none;
-                padding: 22px 20px;
-            }
-
-            .auth-card.mode-register .side-panel {
-                clip-path: none;
-            }
-
-            .side-panel-content p {
                 display: none;
             }
 
-            .side-panel-content .tick {
-                margin-top: 6px;
+            .auth-card:not(.mode-register) .form-panel,
+            .auth-card.mode-register .form-panel {
+                padding: 28px 22px;
             }
 
-            .side-panel-content h3 {
-                font-size: 1.3em;
-                margin-bottom: 0;
+            .tabs {
+                flex-wrap: wrap;
+                width: 100%;
+            }
+
+            .tab-btn {
+                flex: 1 1 48%;
+                min-width: 120px;
+                text-align: center;
+            }
+
+            .form-panel h2 {
+                font-size: 1.55rem;
+            }
+
+            .form-panel > form > p {
+                font-size: 0.95rem;
+            }
+
+            .login-input {
+                font-size: 0.95rem;
+            }
+
+            .login-input-label {
+                font-size: 0.8rem;
             }
 
             .panel-logo-ring {
@@ -712,10 +723,55 @@
                 height: 58px;
                 margin: 0 auto 10px;
             }
+        }
+
+        @media (max-width: 576px) {
+            .auth-shell {
+                padding: 0 12px;
+            }
+
+            .auth-card {
+                border-radius: 16px;
+            }
 
             .auth-card:not(.mode-register) .form-panel,
             .auth-card.mode-register .form-panel {
-                padding: 34px 26px;
+                padding: 24px 18px;
+            }
+
+            .tabs {
+                gap: 8px;
+            }
+
+            .tab-btn {
+                flex: 1 1 100%;
+                padding: 10px 14px;
+                font-size: 0.9rem;
+            }
+
+            .form-panel h2 {
+                font-size: 1.35rem;
+            }
+
+            .login-input {
+                padding: 12px 14px;
+            }
+
+            .login-btn {
+                padding: 13px 0;
+            }
+
+            .login-input-icon {
+                left: 12px;
+            }
+
+            .password-toggle {
+                right: 8px;
+            }
+
+            .switch-line,
+            .login-demo-info {
+                font-size: 0.85rem;
             }
         }
 
@@ -765,6 +821,13 @@
 
                 <div id="error-msg" class="login-error"></div>
                 <div id="success-msg" class="login-success"></div>
+                <!-- Verification-required banner (shown by login.js when requiresVerification:true) -->
+                <div id="verify-required-banner" style="display:none;padding:12px 14px;border-radius:9px;margin-bottom:16px;
+                     font-size:13px;font-weight:600;color:#fbbf24;background:rgba(251,191,36,.1);
+                     border:1px solid rgba(251,191,36,.28);">
+                  <span>📧 Your email is not yet verified. </span>
+                  <a href="/pages/verify-email.html" style="color:#22d3ee;text-decoration:underline;">Resend / verify now &rarr;</a>
+                </div>
 
                 <!-- Login Form — IDs, field names, and default values match
                      the friend's login.js exactly -->
@@ -796,63 +859,24 @@
                     <div class="switch-line">Don't have an account? <a id="switchToRegister">Sign Up</a></div>
                 </form>
 
-                <!-- Register Form — IDs and reg-role option VALUES match the
-                     friend's login.js / API contract exactly (BDM, MANAGER,
-                     HR, ADMIN) -->
-                <form id="register-form" style="display: none;">
-                    <h2>Create Account</h2>
-                    <p>Join the Marine BDM CRM portal.</p>
+                <!-- Register: public self-registration is disabled.
+                     Accounts are created by Admin/HR via the employee portal. -->
+                <div id="register-form" style="display:none;">
+                    <h2>Request Access</h2>
+                    <p style="color:var(--text-muted);margin-bottom:22px;font-size:13.5px;">Join the Marine BDM CRM portal.</p>
 
-                    <div class="login-input-group">
-                        <label class="login-input-label" for="reg-name">Full Name</label>
-                        <input type="text" id="reg-name" class="login-input" placeholder="e.g. Captain John Doe"
-                            required>
+                    <div style="background:rgba(34,211,238,0.06);border:1px solid rgba(34,211,238,0.18);
+                                border-radius:12px;padding:22px 20px;text-align:center;">
+                      <div style="font-size:2rem;margin-bottom:12px;">🔒</div>
+                      <div style="font-weight:700;font-size:1rem;margin-bottom:8px;color:var(--text-main);">Account Creation Restricted</div>
+                      <div style="font-size:13px;color:var(--text-muted);line-height:1.7;max-width:260px;margin:0 auto;">
+                        Accounts are created by your <strong style="color:var(--teal);">Admin or HR team</strong>.
+                        Once your account is set up, you will receive a verification email to activate your login.
+                      </div>
                     </div>
 
-                    <div class="login-input-group">
-                        <label class="login-input-label" for="reg-email">Email Address</label>
-                        <input type="email" id="reg-email" class="login-input" placeholder="your.name@company.com"
-                            required>
-                    </div>
-
-                    <div class="login-input-group">
-                        <label class="login-input-label" for="reg-password">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" id="reg-password" class="login-input" placeholder="••••••••"
-                                required>
-                            <!-- Decorative-only toggle, not referenced by login.js -->
-                            <button type="button" class="password-toggle pw-toggle-reg" data-target="reg-password"
-                                aria-label="Toggle Password Visibility">
-                                <svg class="icon-eye" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z" />
-                                    <circle cx="12" cy="12" r="3" />
-                                </svg>
-                                <svg class="icon-eye-off" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
-                                    style="display:none">
-                                    <path
-                                        d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.4 20.4 0 0 1 5.06-5.94M9.9 4.24A10.94 10.94 0 0 1 12 4c7 0 11 7 11 7a20.4 20.4 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24" />
-                                    <path d="M1 1l22 22" />
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div class="login-input-group">
-                        <label class="login-input-label" for="reg-role">Role</label>
-                        <select id="reg-role" class="login-input">
-                            <option value="BDM">BDM Sales Executive</option>
-                            <option value="MANAGER">BDM Manager</option>
-                            <option value="HR">Human Resources</option>
-                            <option value="ADMIN">System Admin</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" id="register-submit-btn" class="login-btn">Create Account & Sign In</button>
-
-                    <div class="switch-line">Already have an account? <a id="switchToLogin">Sign In</a></div>
-                </form>
+                    <div class="switch-line" style="margin-top:20px;">Already have an account? <a id="switchToLogin">Sign In</a></div>
+                </div>
 
 
             </div>

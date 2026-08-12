@@ -1,6 +1,10 @@
 const bcrypt = require("bcryptjs");
 const { Employee, Attendance, User, Worksheet, Task } = require("../models");
 const { logActivity } = require("../utils/activityLogger");
+const { generateVerificationToken, sendVerificationEmail } = require("../services/emailService");
+
+const ALLOWED_ROLES = ['ADMIN', 'BDM', 'MANAGER_DOCS', 'MANAGER_SOURCING', 'HR'];
+const getBaseUrl = (req) => `${req.protocol}://${req.get('host')}`;
 
 const getTodayDateStr = () => new Date().toISOString().split("T")[0];
 
@@ -32,7 +36,28 @@ const listEmployees = async (req, res, next) => {
         filter.status = { $ne: "EXITED" };
       }
       const employees = await Employee.find(filter).sort({ createdAt: -1 });
-      return res.json({ success: true, data: employees });
+
+      // Enrich with emailVerified from linked User records
+      const userIds = employees.map((e) => e.userId).filter(Boolean);
+      const users = userIds.length
+        ? await User.find({ _id: { $in: userIds } }).select('_id emailVerified role')
+        : [];
+      const userMap = {};
+      users.forEach((u) => { userMap[u._id.toString()] = u; });
+
+      const enriched = employees.map((e) => {
+        const obj = e.toJSON();
+        if (e.userId) {
+          const u = userMap[e.userId.toString()];
+          if (u) {
+            obj.emailVerified = u.emailVerified;
+            obj.userRole = u.role;
+          }
+        }
+        return obj;
+      });
+
+      return res.json({ success: true, data: enriched });
     }
     // BDM: return only own record
     const emp = await getMyEmployee(req.user.id);
@@ -53,6 +78,7 @@ const createEmployee = async (req, res, next) => {
       phone,
       email,
       password,
+      role,
       location,
       position,
       joinDate,
@@ -64,6 +90,9 @@ const createEmployee = async (req, res, next) => {
         .status(400)
         .json({ success: false, message: "Name and phone are required." });
     }
+
+    // Validate role if provided
+    const assignedRole = role && ALLOWED_ROLES.includes(role) ? role : 'BDM';
 
     // ── Determine final employeeId ──────────────────────────────────────────
     let finalEmployeeId = employeeId ? employeeId.trim() : null;
@@ -88,24 +117,33 @@ const createEmployee = async (req, res, next) => {
       }
     }
 
-    // ── Create Login User ────────────────────────────────────────────────────
+    // ── Create Login User with email verification ────────────────────────────
     let userId = null;
+    let createdUserEmailVerified = undefined;
     if (email && password) {
       const cleanEmail = email.toLowerCase().trim();
       let user = await User.findOne({ email: cleanEmail });
       if (!user) {
         const passwordHash = await bcrypt.hash(password.trim(), 12);
+        const { rawToken, hashedToken } = generateVerificationToken();
         user = await User.create({
           name: name.trim(),
           email: cleanEmail,
           passwordHash,
-          role: "BDM",
+          role: assignedRole,
           phone: phone.trim(),
-          department: position ? position.trim() : "Sales",
+          department: position ? position.trim() : 'General',
           isActive: true,
+          emailVerified: false,
+          verificationToken: hashedToken,
+          verificationTokenExpires: new Date(Date.now() + 24 * 60 * 60 * 1000),
+          verificationSentAt: new Date(),
         });
+        // Send verification email — non-blocking; employee is saved regardless
+        sendVerificationEmail(user, rawToken, getBaseUrl(req)).catch(() => {});
       }
       userId = user._id;
+      createdUserEmailVerified = user.emailVerified;
     }
 
     const employee = await Employee.create({
@@ -127,13 +165,15 @@ const createEmployee = async (req, res, next) => {
       entityType: "EMPLOYEE",
       entityId: employee._id.toString(),
       action: "CREATED",
-      details: { name: employee.name, createdByRole: req.user.role },
+      details: { name: employee.name, role: assignedRole, createdByRole: req.user.role },
     });
 
     res.status(201).json({
       success: true,
-      data: employee,
-      message: "Employee and login user created successfully.",
+      data: { ...employee.toJSON(), emailVerified: createdUserEmailVerified },
+      message: email && password
+        ? 'Employee created. A verification email has been sent to activate the login.'
+        : 'Employee created successfully.',
     });
   } catch (err) {
     if (err.code === 11000) {
@@ -163,16 +203,16 @@ const updateEmployee = async (req, res, next) => {
       phone,
       email,
       password,
+      role,
       location,
       position,
       joinDate,
       employeeId,
       dateOfBirth,
     } = req.body;
+
     if (name) employee.name = name.trim();
     if (phone) employee.phone = phone.trim();
-    if (email !== undefined)
-      employee.email = email ? email.toLowerCase().trim() : null;
     if (location !== undefined)
       employee.location = location ? location.trim() : null;
     if (position !== undefined)
@@ -199,10 +239,45 @@ const updateEmployee = async (req, res, next) => {
       employee.employeeId = employeeId.trim();
     }
 
-    if (employee.userId && password) {
-      const passwordHash = await bcrypt.hash(password.trim(), 12);
-      await User.findByIdAndUpdate(employee.userId, { passwordHash });
+    // ── Sync linked User record ───────────────────────────────────────────────
+    let updatedEmailVerified = undefined;
+    if (employee.userId) {
+      const linkedUser = await User.findById(employee.userId);
+      if (linkedUser) {
+        // Password change
+        if (password) {
+          linkedUser.passwordHash = await bcrypt.hash(password.trim(), 12);
+        }
+
+        // Role change (ADMIN/HR only — already enforced at route level)
+        if (role && ALLOWED_ROLES.includes(role)) {
+          linkedUser.role = role;
+        }
+
+        // Email change → reset verification and send new email
+        const newEmail = email ? email.toLowerCase().trim() : null;
+        const oldEmail = employee.email;
+        if (newEmail && newEmail !== oldEmail) {
+          const { rawToken, hashedToken } = generateVerificationToken();
+          linkedUser.email = newEmail;
+          linkedUser.emailVerified = false;
+          linkedUser.verificationToken = hashedToken;
+          linkedUser.verificationTokenExpires = new Date(Date.now() + 24 * 60 * 60 * 1000);
+          linkedUser.verificationSentAt = new Date();
+          await linkedUser.save();
+          // Non-blocking send
+          sendVerificationEmail(linkedUser, rawToken, getBaseUrl(req)).catch(() => {});
+        } else {
+          await linkedUser.save();
+        }
+
+        updatedEmailVerified = linkedUser.emailVerified;
+      }
     }
+
+    // Update email on employee record
+    if (email !== undefined)
+      employee.email = email ? email.toLowerCase().trim() : null;
 
     await employee.save();
 
@@ -216,13 +291,14 @@ const updateEmployee = async (req, res, next) => {
 
     res.json({
       success: true,
-      data: employee,
+      data: { ...employee.toJSON(), emailVerified: updatedEmailVerified },
       message: "Employee updated successfully.",
     });
   } catch (err) {
     next(err);
   }
 };
+
 
 // ─────────────────────────────────────────────────────────────────────────────
 // DELETE  DELETE /api/employees/:id  (Admin/HR only)

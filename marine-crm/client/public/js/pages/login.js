@@ -52,8 +52,10 @@
     var email = document.getElementById('login-email').value;
     var password = document.getElementById('login-password').value;
     var submitBtn = document.getElementById('login-submit-btn');
+    var verifyBanner = document.getElementById('verify-required-banner');
 
     errorMsg.style.display = 'none';
+    if (verifyBanner) verifyBanner.style.display = 'none';
     submitBtn.disabled = true;
     submitBtn.textContent = 'Authenticating...';
 
@@ -74,57 +76,29 @@
       }
     } catch (error) {
       console.error('Login error:', error);
-      errorMsg.textContent =
-        (error && error.message) ||
-        (error && error.response && error.response.data && error.response.data.message) ||
-        'Login failed. Invalid credentials.';
-      errorMsg.style.display = 'block';
+      // Check for email-verification-required response
+      var errData = (error && error.response && error.response.data) || {};
+      if (errData.requiresVerification && verifyBanner) {
+        verifyBanner.style.display = 'block';
+      } else {
+        errorMsg.textContent =
+          errData.message ||
+          (error && error.message) ||
+          'Login failed. Invalid credentials.';
+        errorMsg.style.display = 'block';
+      }
       submitBtn.disabled = false;
       submitBtn.textContent = 'Sign In to Portal';
     }
   });
 
-  // Handle Register Submit
-  registerForm.addEventListener('submit', async function (e) {
-    e.preventDefault();
-    var name = document.getElementById('reg-name').value;
-    var email = document.getElementById('reg-email').value;
-    var password = document.getElementById('reg-password').value;
-    var role = document.getElementById('reg-role').value;
-    var submitBtn = document.getElementById('register-submit-btn');
-
-    errorMsg.style.display = 'none';
-    successMsg.style.display = 'none';
-    submitBtn.disabled = true;
-    submitBtn.textContent = 'Creating account...';
-
-    try {
-      var res = await window.ApiService.register({ name: name, email: email, password: password, role: role });
-
-      if (res && res.success && res.data && res.data.token) {
-        localStorage.setItem('token', res.data.token);
-        localStorage.setItem('user', JSON.stringify(res.data.user));
-
-        successMsg.textContent = 'Account created! Redirecting to Dashboard...';
-        successMsg.style.display = 'block';
-
-        setTimeout(function () {
-          window.location.href = '/pages/dashboard.html';
-        }, 600);
-      } else {
-        throw new Error(res.message || 'Registration failed.');
-      }
-    } catch (error) {
-      console.error('Register error:', error);
-      errorMsg.textContent =
-        (error && error.message) ||
-        (error && error.response && error.response.data && error.response.data.message) ||
-        'Registration failed. Please check inputs.';
-      errorMsg.style.display = 'block';
-      submitBtn.disabled = false;
-      submitBtn.textContent = 'Create Account & Sign In';
-    }
-  });
+  // Register submit: no-op — registration is disabled; the panel is
+  // now a <div> so submit won't fire, but guard here for safety.
+  if (registerForm && registerForm.addEventListener && registerForm.tagName === 'FORM') {
+    registerForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+    });
+  }
 
 
 
