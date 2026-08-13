@@ -303,9 +303,13 @@
         if (window.Chart) Chart.register(glowActivePointPlugin);
 
         const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const isSourcingManager = ['SOURCING_MANAGER', 'MANAGER_SOURCING'].includes(user.role);
         const isOrgDashboard = ['ADMIN', 'HR', 'MANAGER'].includes(user.role);
 
         async function initDashboard() {
+            if (isSourcingManager) {
+                return reloadSourcingManagerDashboard();
+            }
             if (!isOrgDashboard) {
                 return reloadPersonalDashboard();
             }
@@ -424,6 +428,302 @@
                     window.UI.showToast('Failed to load dashboard data', 'error');
                 }
             }
+        }
+
+        // ─── Sourcing Manager Dashboard Functions ──────────────────────────────────
+        async function reloadSourcingManagerDashboard() {
+            try {
+                const [reqsRes, candidatesRes, tasksRes, followupsRes, visitorsRes] = await Promise.allSettled([
+                    window.ApiService.crewing.requirements.getAll(),
+                    window.ApiService.crewing.candidates.getAll(),
+                    window.ApiService.employees.getTasks(),
+                    window.ApiService.getFollowUps({ status: 'PENDING' }),
+                    window.ApiService.reception.visitors.getAll({ checkOutStatus: 'IN' })
+                ]);
+
+                const requirements = reqsRes.status === 'fulfilled' && reqsRes.value?.data ? reqsRes.value.data : [];
+                const candidates = candidatesRes.status === 'fulfilled' && candidatesRes.value?.data ? candidatesRes.value.data : [];
+                const tasks = tasksRes.status === 'fulfilled' && tasksRes.value?.data ? tasksRes.value.data : [];
+                const followups = followupsRes.status === 'fulfilled' && followupsRes.value?.data ? followupsRes.value.data : [];
+                const visitors = visitorsRes.status === 'fulfilled' && visitorsRes.value?.data ? visitorsRes.value.data : [];
+
+                renderSourcingManagerDashboard({ requirements, candidates, tasks, followups, visitors });
+            } catch (err) {
+                console.error('Error loading Sourcing Manager dashboard:', err);
+                if (window.UI && window.UI.showToast) window.UI.showToast('Failed to load Sourcing Manager dashboard data', 'error');
+            }
+        }
+
+        function renderSourcingManagerDashboard(data) {
+            const requirements = data.requirements || [];
+            const candidates = data.candidates || [];
+            const tasks = data.tasks || [];
+            const followups = data.followups || [];
+            const visitors = data.visitors || [];
+
+            const openReqs = requirements.filter(r => !r.status || r.status === 'OPEN' || r.status === 'ACTIVE');
+            const availableCandidates = candidates.filter(c => c.status === 'AVAILABLE');
+            const pendingTasks = tasks.filter(t => t.status === 'PENDING' || t.status === 'IN_PROGRESS');
+            const now = new Date();
+            const overdueTasks = tasks.filter(t => t.status !== 'COMPLETED' && t.dueDate && new Date(t.dueDate) < now);
+            const completedTasks = tasks.filter(t => t.status === 'COMPLETED');
+
+            const reqStatusMap = {};
+            requirements.forEach(r => {
+                const st = r.status || 'OPEN';
+                reqStatusMap[st] = (reqStatusMap[st] || 0) + 1;
+            });
+
+            const candStatusMap = {};
+            candidates.forEach(c => {
+                const st = c.status || 'AVAILABLE';
+                candStatusMap[st] = (candStatusMap[st] || 0) + 1;
+            });
+
+            const pageContent = document.getElementById('dashboard-content-area');
+            pageContent.innerHTML = `
+                <div class="dash-header" data-reveal>
+                    <div class="dash-header-title-wrap">
+                        <div class="dash-eyebrow"><span class="live-dot"></span> Sourcing & Crewing Overview</div>
+                        <h1 class="page-title">Welcome, ${user.name || 'Sourcing Manager'} 👋</h1>
+                        <p class="page-subtitle">Sourcing Manager Dashboard — Requirements, Seafarers, Tasks & Follow-ups</p>
+                    </div>
+                    <div class="dash-header-meta">
+                        <div class="dash-date" id="dash-header-date-sourcing"></div>
+                        <div>Sourcing Overview</div>
+                    </div>
+                </div>
+
+                <div class="stats-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); margin-bottom: 24px;">
+                    <div class="stat-card">
+                        <h3 class="stat-title">📋 Active Vacancies</h3>
+                        <p class="stat-value skeleton" id="stat-sourcing-vacancies">${openReqs.length}</p>
+                        <div class="stat-trend neutral">${openReqs.length} Open / ${requirements.length} Total</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">👨‍✈️ Total Seafarers</h3>
+                        <p class="stat-value skeleton" id="stat-sourcing-seafarers">${candidates.length}</p>
+                        <div class="stat-trend neutral">${availableCandidates.length} Available</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">📋 My Tasks</h3>
+                        <p class="stat-value skeleton" id="stat-sourcing-tasks">${pendingTasks.length}</p>
+                        <div class="stat-trend neutral">${overdueTasks.length > 0 ? `<span style="color:var(--red);font-weight:600;">${overdueTasks.length} Overdue</span>` : `${completedTasks.length} Done`}</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">🔔 Pending Follow-ups</h3>
+                        <p class="stat-value skeleton" id="stat-sourcing-followups">${followups.length}</p>
+                        <div class="stat-trend neutral">Follow-up Queue</div>
+                    </div>
+                </div>
+
+                <div class="dashboard-content-grid">
+                    <div class="left-col">
+                        <div class="card" style="margin-bottom: 24px;" data-reveal>
+                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <h2 class="card-title">📋 Requirements Vacancies</h2>
+                                <a href="/pages/requirements.html" class="btn btn-secondary btn-sm">View All</a>
+                            </div>
+                            <div class="card-body">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+                                    ${Object.entries(reqStatusMap).map(([st, cnt]) => `
+                                        <span class="badge badge-${st === 'OPEN' ? 'green' : (st === 'CLOSED' ? 'red' : 'blue')}">
+                                            ${st}: ${cnt}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Vessel Type / Rank</th>
+                                                <th>Company</th>
+                                                <th>Status</th>
+                                                <th>Joining Date</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${requirements.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-muted);">No requirements found</td></tr>' : 
+                                                requirements.slice(0, 5).map(r => `
+                                                    <tr>
+                                                        <td>
+                                                            <div style="font-weight:600; color:var(--text-primary);">${r.rank || 'N/A'}</div>
+                                                            <div style="font-size:0.75rem; color:var(--text-muted);">${r.vesselType || ''}</div>
+                                                        </td>
+                                                        <td style="font-size:0.85rem;">${r.companyId?.name || '—'}</td>
+                                                        <td><span class="badge badge-${(r.status || 'OPEN') === 'OPEN' ? 'green' : 'gray'}">${r.status || 'OPEN'}</span></td>
+                                                        <td style="font-size:0.85rem;">${r.joiningDate ? new Date(r.joiningDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                                                    </tr>
+                                                `).join('')
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" style="margin-bottom: 24px;" data-reveal>
+                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <h2 class="card-title">👨‍✈️ Seafarer Candidate Pool</h2>
+                                <a href="/pages/candidates.html" class="btn btn-secondary btn-sm">View Directory</a>
+                            </div>
+                            <div class="card-body">
+                                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px;">
+                                    ${Object.entries(candStatusMap).map(([st, cnt]) => `
+                                        <span class="badge badge-${st === 'AVAILABLE' ? 'green' : (st === 'SHORTLISTED' ? 'blue' : (st === 'APPROVED' ? 'yellow' : 'gray'))}">
+                                            ${st.replace('_', ' ')}: ${cnt}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Name</th>
+                                                <th>Rank</th>
+                                                <th>Status</th>
+                                                <th>Availability</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${candidates.length === 0 ? '<tr><td colspan="4" style="text-align:center; padding:20px; color:var(--text-muted);">No candidates registered</td></tr>' :
+                                                candidates.slice(0, 5).map(c => `
+                                                    <tr>
+                                                        <td>
+                                                            <div style="font-weight:600; color:var(--text-primary);">${c.name}</div>
+                                                            <div style="font-size:0.75rem; color:var(--text-muted);">${c.contactNumber || c.email || ''}</div>
+                                                        </td>
+                                                        <td style="font-size:0.85rem;">${c.rank || '—'}</td>
+                                                        <td><span class="badge badge-${c.status === 'AVAILABLE' ? 'green' : 'blue'}">${(c.status || 'AVAILABLE').replace('_', ' ')}</span></td>
+                                                        <td style="font-size:0.85rem;">${c.availabilityDate ? new Date(c.availabilityDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : 'Immediate'}</td>
+                                                    </tr>
+                                                `).join('')
+                                            }
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" data-reveal>
+                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <h2 class="card-title">📋 My Assigned Tasks</h2>
+                                <a href="/pages/tasks.html" class="btn btn-secondary btn-sm">Manage Tasks</a>
+                            </div>
+                            <div class="card-body" style="padding:0;">
+                                <div class="table-container">
+                                    <table class="table">
+                                        <thead>
+                                            <tr>
+                                                <th>Task Title</th>
+                                                <th>Priority</th>
+                                                <th>Status</th>
+                                                <th>Due Date</th>
+                                                <th>Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="sourcing-tasks-body">
+                                            ${renderTasksRows(tasks)}
+                                        </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="right-col">
+                        <div class="card" style="margin-bottom: 24px;" data-reveal>
+                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <h2 class="card-title">🔔 Pending Follow-ups</h2>
+                                <a href="/pages/followups.html" class="btn btn-secondary btn-sm">View Queue</a>
+                            </div>
+                            <div class="card-body" style="padding:15px;">
+                                ${followups.length === 0 ? '<p style="color:var(--text-muted); text-align:center; padding:15px 0;">No pending follow-ups</p>' :
+                                    followups.slice(0, 5).map(f => `
+                                        <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom: 8px;">
+                                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">
+                                                <span>📅 ${f.scheduledAt ? new Date(f.scheduledAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short' }) : '—'}</span>
+                                                <span class="badge badge-yellow">PENDING</span>
+                                            </div>
+                                            <div style="font-weight:600; color:var(--text-primary); font-size:0.85rem; margin-bottom:2px;">${f.companyId?.name || f.title || 'Follow-up Item'}</div>
+                                            <div style="font-size:0.75rem; color:var(--text-muted);">${f.notes || f.description || ''}</div>
+                                        </div>
+                                    `).join('')
+                                }
+                            </div>
+                        </div>
+
+                        <div class="card" style="margin-bottom: 24px;" data-reveal>
+                            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                                <h2 class="card-title">🛎️ Reception / Front Desk</h2>
+                                <a href="/pages/reception.html" class="btn btn-secondary btn-sm">Reception Desk</a>
+                            </div>
+                            <div class="card-body" style="padding:15px;">
+                                ${visitors.length === 0 ? '<p style="color:var(--text-muted); text-align:center; padding:15px 0;">No visitors currently checked in</p>' :
+                                    visitors.slice(0, 5).map(v => `
+                                        <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); padding:10px; border-radius:6px; margin-bottom: 8px;">
+                                            <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted); margin-bottom:4px;">
+                                                <span style="font-weight:600; color:var(--text-primary);">${v.name}</span>
+                                                <span class="badge badge-green">Checked In</span>
+                                            </div>
+                                            <div style="font-size:0.75rem; color:var(--text-muted);">Purpose: ${v.purpose || '—'} | Contact: ${v.phone || '—'}</div>
+                                        </div>
+                                    `).join('')
+                                }
+                            </div>
+                        </div>
+
+                        <div class="card" data-reveal>
+                            <div class="card-header">
+                                <h2 class="card-title">⚡ Sourcing Quick Actions</h2>
+                            </div>
+                            <div class="card-body">
+                                <div class="quick-actions-grid" style="grid-template-columns: 1fr;">
+                                    <a href="/pages/candidates.html" class="quick-action-card">
+                                        <div class="quick-action-icon">👨‍✈️</div>
+                                        <div class="quick-action-title">Seafarers Directory</div>
+                                        <p class="quick-action-desc">Add or search candidate profiles</p>
+                                    </a>
+                                    <a href="/pages/requirements.html" class="quick-action-card">
+                                        <div class="quick-action-icon">📋</div>
+                                        <div class="quick-action-title">Requirements Vacancies</div>
+                                        <p class="quick-action-desc">View open vessel vacancies</p>
+                                    </a>
+                                    <a href="/pages/tasks.html" class="quick-action-card">
+                                        <div class="quick-action-icon">📋</div>
+                                        <div class="quick-action-title">Task Management</div>
+                                        <p class="quick-action-desc">Manage assigned sourcing tasks</p>
+                                    </a>
+                                    <a href="/pages/followups.html" class="quick-action-card">
+                                        <div class="quick-action-icon">🔔</div>
+                                        <div class="quick-action-title">Follow-up Queue</div>
+                                        <p class="quick-action-desc">Track pending candidate follow-ups</p>
+                                    </a>
+                                    <a href="/pages/reception.html" class="quick-action-card">
+                                        <div class="quick-action-icon">🛎️</div>
+                                        <div class="quick-action-title">Reception Desk</div>
+                                        <p class="quick-action-desc">Visitor log & front desk entries</p>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            const dateElSourcing = document.getElementById('dash-header-date-sourcing');
+            if (dateElSourcing) {
+                dateElSourcing.textContent = new Date().toLocaleDateString(undefined, {
+                    weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+                });
+            }
+
+            animateCountUp(document.getElementById('stat-sourcing-vacancies'), openReqs.length);
+            animateCountUp(document.getElementById('stat-sourcing-seafarers'), candidates.length);
+            animateCountUp(document.getElementById('stat-sourcing-tasks'), pendingTasks.length);
+            animateCountUp(document.getElementById('stat-sourcing-followups'), followups.length);
+
+            if (window.observeReveal) window.observeReveal(pageContent);
         }
 
         // ─── BDM Personal Dashboard Functions ──────────────────────────────────
@@ -666,7 +966,11 @@
             try {
                 await window.ApiService.employees.updateTaskStatus(taskId, { status });
                 UI.showToast(`Task marked as ${status.replace('_', ' ')}.`, 'success');
-                reloadPersonalDashboard();
+                if (['SOURCING_MANAGER', 'MANAGER_SOURCING'].includes(user.role)) {
+                    reloadSourcingManagerDashboard();
+                } else {
+                    reloadPersonalDashboard();
+                }
             } catch (err) {
                 UI.showToast(err.message || 'Failed to update task.', 'error');
             }

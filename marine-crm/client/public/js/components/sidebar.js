@@ -34,6 +34,7 @@ const NAV_GROUPS = [
     icon: '🧑',
     items: [
       { href: '/pages/employee.html', icon: '👨‍✈️', label: 'Employees', match: 'employee' },
+      { href: '/pages/hr-operations.html', icon: '🛠️', label: 'HR Operations', match: 'hr-operations' },
       { href: '/pages/tasks.html', icon: '📋', label: 'Task Management', match: 'tasks' }
     ]
   },
@@ -88,12 +89,51 @@ function isMobileViewport() {
 
 function buildNavGroups(currentPath, userRole) {
   const isActive = (keyword) => currentPath.includes(keyword);
-  const groups = NAV_GROUPS.map(g => ({ ...g, items: [...g.items] }));
+  let groups = NAV_GROUPS.map(g => ({ ...g, items: [...g.items] }));
 
+  // Reports & Analytics: ADMIN / HR / MANAGER only
   if (['ADMIN', 'HR', 'MANAGER'].includes(userRole)) {
     groups.find(g => g.id === 'updates').items.push(
-      { href: '/pages/reports.html', icon: '📈', label: 'Reports & Analytics', match: 'reports' }
+      {
+        href: '/pages/reports.html',
+        icon: '📈',
+        label: 'Reports & Analytics',
+        match: 'reports'
+      }
     );
+  }
+
+  // BDM Sales Executive: Sales Pipeline + Employees + Tasks only
+  if (userRole === 'BDM') {
+    groups = groups.filter(g =>
+      ['sales-pipeline', 'hr-employees'].includes(g.id)
+    );
+  }
+  // Sourcing Manager: Crewing + Task Management + Front Desk + Follow-up Queue
+  // Reports & Analytics remains hidden because it is ADMIN/HR/MANAGER-only.
+  if (userRole === 'SOURCING_MANAGER' || userRole === 'MANAGER_SOURCING') {
+    groups = groups
+      .map(g => {
+        if (g.id === 'crewing') return g;
+        if (g.id === 'frontdesk') return g;
+
+        if (g.id === 'hr-employees') {
+          return {
+            ...g,
+            items: g.items.filter(i => i.match === 'tasks')
+          };
+        }
+
+        if (g.id === 'updates') {
+          return {
+            ...g,
+            items: g.items.filter(i => i.match === 'followups')
+          };
+        }
+
+        return { ...g, items: [] };
+      })
+      .filter(g => g.items.length > 0);
   }
 
   let activeGroupId = null;
@@ -102,6 +142,7 @@ function buildNavGroups(currentPath, userRole) {
     const itemsHtml = group.items.map(item => {
       const active = isActive(item.match);
       if (active) activeGroupId = group.id;
+
       return `
         <a href="${item.href}" class="nav-subitem ${active ? 'active' : ''}" data-tooltip="${item.label}">
           <span class="nav-subitem-icon">${item.icon}</span>

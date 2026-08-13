@@ -64,6 +64,62 @@
             background-color: rgba(16, 185, 129, 0.15);
             color: #10b981;
         }
+
+        /* ── PPE tab: mobile table scrolling ─────────────────────────
+           Previous version used touch-action: pan-y here to stop
+           vertical page-scroll from getting captured by the stacked
+           tables. That was wrong — pan-y explicitly means "only
+           vertical panning is native here," which also DISABLES
+           horizontal panning, so it silently broke the sideways
+           swipe needed to reach the Available / Status / Return Date
+           / Action columns. Removed. Left at the browser default
+           (touch-action: auto), which lets the browser's normal
+           gesture disambiguation handle both directions correctly —
+           .table-container's overflow-x:auto already does the actual
+           scrolling; nothing needs to restrict touch-action at all. */
+        #tab-content-ppe .table-container {
+            position: relative;
+        }
+
+        /* Visual affordance: nothing on the original design told the
+           user more columns exist off-screen, so the cut-off Available
+           / Status columns looked like missing data rather than a
+           scrollable table. This caption stays pinned to the left
+           edge (position: sticky) so it's visible no matter how far
+           the table has been scrolled, only shown on mobile widths
+           where columns are actually cut off. */
+        @media (max-width: 768px) {
+            #tab-content-ppe .table-container::after {
+                content: "↔ Swipe to see more";
+                position: sticky;
+                left: 0;
+                display: block;
+                width: max-content;
+                margin-top: 6px;
+                padding: 4px 10px;
+                font-size: 0.7rem;
+                font-weight: 600;
+                color: var(--text-muted);
+                background: var(--accent-light);
+                border-radius: 20px;
+            }
+        }
+
+        /* Belt-and-braces stacking: CSS Grid collapsing to one column
+           already stacks the two cards correctly, but flexbox is more
+           predictable across older mobile browsers for this exact
+           "two full-width blocks, one above the other" case, and it
+           removes any grid-track-sizing edge cases. Same visual
+           result, just a more robust mechanism on small screens. */
+        @media (max-width: 1024px) {
+            #tab-content-ppe .split-grid {
+                display: flex;
+                flex-direction: column;
+            }
+            #tab-content-ppe .split-grid > .card {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 
@@ -73,7 +129,7 @@
         <div id="sidebar-overlay" class="sidebar-overlay"></div>
         <div class="main-content">
             <div id="navbar-container"></div>
-            <main class="page-content pageEnter">
+            <main class="page-content">
                 <div class="page-header">
                     <div>
                         <h1 class="page-title">🛎️ Reception Desk</h1>

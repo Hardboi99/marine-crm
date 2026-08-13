@@ -1652,8 +1652,12 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 
 .table-actions { display: flex; gap: 8px; }
 
-.table tbody tr .row-actions { opacity: 0; transition: opacity 0.15s ease; }
-.table tbody tr:hover .row-actions { opacity: 1; }
+.table tbody tr .row-actions {
+  opacity: 1;
+  display: flex;
+  gap: 8px;
+}
+
 
 /* ─── Badges & Status Pills ──────────────────────────────────── */
 .badge {

@@ -31,15 +31,25 @@
             border-radius: 6px;
             border: 1px solid var(--border-color, #1e293b);
         }
+
+        /* ── Mobile: table horizontal scroll safety net ─────────────
+           .table-container already has overflow-x:auto app-wide, but
+           this table also carries inline width:100% — make sure that
+           doesn't fight the container's ability to scroll a wider
+           table on very narrow screens. */
+        @media (max-width: 576px) {
+            #appointments-table-el { min-width: 640px; }
+        }
     </style>
 </head>
 <body>
     <div id="ocean-bg"></div>
     <div id="sidebar-container"></div>
-<div id="sidebar-overlay" class="sidebar-overlay"></div>
-    <main class="main-content">
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+    <div class="main-content">
         <div id="navbar-container"></div>
-        
+
+        <div class="page-content">
             <div class="page-header">
                 <div>
                     <h1 class="page-title" style="margin: 0;">📅 Appointment Decision Engine</h1>
@@ -68,7 +78,7 @@
             <div class="card">
                 <div class="card-body" style="padding: 0;">
                     <div class="table-container">
-                        <table class="table" style="width: 100%; border-collapse: collapse;">
+                        <table class="table" id="appointments-table-el" style="width: 100%; border-collapse: collapse;">
                             <thead>
                                 <tr style="border-bottom: 1px solid var(--border-color, #1e293b); background: var(--bg-subtle, rgba(0,0,0,0.2));">
                                     <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Company</th>
@@ -87,8 +97,7 @@
                 </div>
             </div>
         </div>
-       
-    </main>
+    </div>
 
     <!-- ── Modal Template: Book Appointment ─────────────────────────── -->
     <template id="book-appt-modal-content">
@@ -515,6 +524,7 @@
         window.viewAppointmentDetails = viewAppointmentDetails;
         window.filterTable            = filterTable;
     </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
     <script src="/public/js/components/cursor.js"></script>
 </body>
 </html>

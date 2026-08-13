@@ -548,21 +548,6 @@
 
     /* ===================================================================
        LIGHT MODE SAFETY NET FOR THE TWO CUSTOM MODALS (wsd-* / emf-*)
-       -------------------------------------------------------------------
-       Everything above already themes itself automatically via the design
-       system's CSS variables (--bg-card, --text-primary, --border-color,
-       etc.), which are redefined for light mode inside styles1.css under
-       whatever element actually carries the theme flag.
-
-       This block exists purely as a belt-and-braces safety net for a few
-       spots that use fixed (non-token) colors for design reasons — e.g.
-       the semi-transparent modal backdrop, and the skeleton shimmer.
-       It intentionally does NOT hardcode ".wsd-modal"/".emf-modal"
-       backgrounds anymore (that is handled by var(--bg-card) above) and
-       it does NOT assume the theme flag lives on <body> specifically —
-       it matches the flag on ANY ancestor element (html, body, or a
-       wrapper), which is what actually made the previous version fail
-       silently when the toggle set the flag on <html> instead of <body>.
        =================================================================== */
     .light-mode .wsd-overlay,
     [data-theme="light"] .wsd-overlay,
@@ -585,56 +570,6 @@
       box-shadow: 0 2px 10px rgba(14, 165, 233, 0.25);
     }
 
-    /* ===== Employee View Tabs (Active / Ex-Employees) ===== */
-    .emp-tabs {
-      display: flex;
-      gap: 6px;
-      margin-bottom: 16px;
-      border-bottom: 1px solid var(--border-color);
-    }
-
-    .emp-tab-btn {
-      appearance: none;
-      border: none;
-      background: transparent;
-      color: var(--text-muted);
-      font-size: 0.88rem;
-      font-weight: 600;
-      padding: 10px 6px;
-      margin-bottom: -1px;
-      border-bottom: 2px solid transparent;
-      cursor: pointer;
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      transition:
-        color 0.15s ease,
-        border-color 0.15s ease;
-    }
-
-    .emp-tab-btn:hover {
-      color: var(--text-primary);
-    }
-
-    .emp-tab-btn.active {
-      color: var(--accent-primary);
-      border-bottom-color: var(--accent-primary);
-    }
-
-    .emp-tab-count {
-      font-size: 0.72rem;
-      font-weight: 700;
-      padding: 1px 7px;
-      border-radius: 20px;
-      background: var(--bg-input);
-      color: var(--text-muted);
-    }
-
-    .emp-tab-btn.active .emp-tab-count {
-      background: var(--accent-light);
-      color: var(--accent-primary);
-    }
-
     .exit-reason-text {
       max-width: 240px;
       white-space: nowrap;
@@ -643,8 +578,6 @@
       display: inline-block;
     }
   </style>
-
-
 
   <div class="app-wrapper">
     <div id="sidebar-container"></div>
@@ -891,7 +824,6 @@
     </div>
   </template>
 
-
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
@@ -903,14 +835,9 @@
   <script>
     // ─── State ─────────────────────────────────────────────────────────────
     let employees = [];
-    let exEmployees = [];
-    let employeeView = "ACTIVE"; // "ACTIVE" | "EXITED"
     let attendances = {};
     let tasks = [];
     let editingId = null;
-    // Holds the worksheet list currently shown in the "View Worksheets" modal
-    // so the detail modal can look entries up by index without a second fetch.
-    let currentWorksheets = [];
 
     const currentUser = window.UI
       ? window.UI.getUser()
@@ -963,28 +890,6 @@
           `<tr><td colspan="9" style="text-align:center;padding:40px;color:var(--text-muted)">
          <i class="fas fa-exclamation-circle" style="font-size:2rem;margin-bottom:8px;display:block;"></i>
          Failed to load employees. Please refresh.
-       </td></tr>`;
-      } finally {
-        document.getElementById("tab-active-count").textContent =
-          employees.length;
-      }
-    }
-
-    // ─── Load Ex-Employees (only fetched when that tab is opened) ───────────
-    async function loadExEmployees() {
-      const tbody = document.getElementById("exited-employee-table-body");
-      UI.showTableSkeleton(tbody, 8, 4);
-      try {
-        const res = await window.ApiService.employees.listExited();
-        exEmployees = res.data || [];
-        document.getElementById("tab-exited-count").textContent =
-          exEmployees.length;
-        renderExEmployees();
-      } catch (err) {
-        console.error("Error loading ex-employees:", err);
-        UI.showToast("Failed to load ex-employees", "error");
-        tbody.innerHTML = `<tr><td colspan="8" style="text-align:center;padding:40px;color:var(--text-muted)">
-         Failed to load ex-employees. Please refresh.
        </td></tr>`;
       }
     }
@@ -1096,12 +1001,12 @@
         <td style="font-size:0.85rem;">${e.email || "—"}</td>
         <td>
           ${e.userId || e.email
-              ? (e.emailVerified === true
+            ? (e.emailVerified === true
                 ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:0.72rem;font-weight:700;background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3);">✓ Verified</span>`
                 : e.emailVerified === false
                   ? `<span style="display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:20px;font-size:0.72rem;font-weight:700;background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);">⏳ Pending</span>`
                   : `<span style="color:var(--text-muted);font-size:0.75rem;">—</span>`)
-              : `<span style="color:var(--text-muted);font-size:0.75rem;">No login</span>`}
+            : `<span style="color:var(--text-muted);font-size:0.75rem;">No login</span>`}
         </td>
         <td>${e.location ? `<i class="fas fa-map-marker-alt" style="font-size:0.7rem;margin-right:4px;opacity:0.6;"></i>${e.location}` : "—"}</td>
 
@@ -1129,9 +1034,6 @@
               <button class="btn btn-secondary btn-sm" onclick="openEmployeeModal('${e.id}')" title="Edit">
                 <i class="fas fa-edit"></i>
               </button>
-              <button class="btn btn-warning btn-sm" onclick="openExitModal('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Exit Employee">
-                <i class="fas fa-right-from-bracket"></i>
-              </button>
               <button class="btn btn-danger btn-sm" onclick="confirmDeleteEmployee('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Delete">
                 <i class="fas fa-trash"></i>
               </button>
@@ -1143,180 +1045,6 @@
       </tr>`;
         })
         .join("");
-    }
-
-    // ─── Render Ex-Employees Table ─────────────────────────────────────────
-    function renderExEmployees() {
-      const tbody = document.getElementById("exited-employee-table-body");
-
-      if (exEmployees.length === 0) {
-        tbody.innerHTML = `
-      <tr><td colspan="8">
-        ${UI.renderEmptyState(
-          "🎉",
-          "No Ex-Employees",
-          "Everyone on the team is currently active.",
-          "",
-        )}
-      </td></tr>`;
-        return;
-      }
-
-      tbody.innerHTML = exEmployees
-        .map((e, idx) => {
-          const initials = e.name
-            .split(" ")
-            .map((n) => n[0])
-            .join("")
-            .slice(0, 2)
-            .toUpperCase();
-          const exitDateStr = e.exitDate
-            ? new Date(e.exitDate).toLocaleDateString("en-GB", {
-              day: "2-digit",
-              month: "short",
-              year: "numeric",
-            })
-            : "—";
-          const reason = e.exitReason
-            ? e.exitReason.replace(/</g, "&lt;")
-            : "—";
-
-          return `
-      <tr>
-        <td style="color:var(--text-muted);font-size:0.8rem;">${idx + 1}</td>
-        <td>
-          <div style="display:flex;align-items:center;gap:10px;">
-            <div style="width:34px;height:34px;border-radius:50%;
-                        background:linear-gradient(135deg,#94a3b8,#64748b);
-                        display:flex;align-items:center;justify-content:center;
-                        font-size:0.7rem;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>
-            <div>
-              <div style="font-weight:600;color:var(--text-primary);">${e.name}</div>
-              ${e.employeeId ? `<div style="font-size:0.75rem;color:var(--text-muted);">${e.employeeId}</div>` : ""}
-            </div>
-          </div>
-        </td>
-        <td>${e.position ? `<span class="badge badge-gray">${e.position}</span>` : '<span style="color:var(--text-muted)">—</span>'}</td>
-        <td>${e.phone || "—"}</td>
-        <td style="font-size:0.85rem;">${exitDateStr}</td>
-        <td style="font-size:0.82rem;" title="${reason}"><span class="exit-reason-text">${reason}</span></td>
-        <td style="font-size:0.8rem;color:var(--text-muted);">${e.exitedByName || "—"}</td>
-        <td>
-          ${canManage
-              ? `<button class="btn btn-secondary btn-sm" onclick="reactivateEmployeeUI('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Reactivate">
-                <i class="fas fa-rotate-left"></i> Reactivate
-              </button>`
-              : `<span style="color:var(--text-muted);font-size:0.8rem;">View only</span>`
-            }
-        </td>
-      </tr>`;
-        })
-        .join("");
-    }
-
-    // ─── Exit Employee Modal ──────────────────────────────────────────────────
-    function openExitModal(id, name) {
-      if (!canManage)
-        return UI.showToast(
-          "Only Admin or HR can exit employees.",
-          "warning",
-        );
-      const tpl = document.getElementById("exit-modal-tpl");
-
-      const modal = UI.createModal({
-        title: `🚪 Exit Employee — ${name}`,
-        bodyHtml: tpl.innerHTML,
-        footerHtml: `
-      <button class="btn btn-secondary" id="exit-cancel">Cancel</button>
-      <button class="btn btn-warning"   id="exit-submit"><i class="fas fa-right-from-bracket"></i> Confirm Exit</button>
-    `,
-      });
-
-      // Default exit date to today
-      modal.querySelector("#exit-date").value = new Date()
-        .toISOString()
-        .split("T")[0];
-
-      modal.querySelector("#exit-cancel").onclick = () => modal.close();
-      modal.querySelector("#exit-submit").onclick = async () => {
-        const exitDateVal = modal.querySelector("#exit-date").value;
-        const exitReasonVal = modal
-          .querySelector("#exit-reason")
-          .value.trim();
-
-        if (!exitDateVal) {
-          return UI.showToast("Please select an exit date.", "error");
-        }
-
-        const submitBtn = modal.querySelector("#exit-submit");
-        submitBtn.disabled = true;
-        submitBtn.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Processing…';
-
-        try {
-          await window.ApiService.employees.exit(id, {
-            exitDate: exitDateVal,
-            exitReason: exitReasonVal,
-          });
-          UI.showToast(`${name} has been marked as exited.`, "success");
-          modal.close();
-          await loadEmployees();
-          await loadExEmployees(); // keeps the Ex-Employees tab/count in sync
-        } catch (err) {
-          console.error("Exit error:", err);
-          UI.showToast(err.message || "Failed to exit employee.", "error");
-          submitBtn.disabled = false;
-          submitBtn.innerHTML =
-            '<i class="fas fa-right-from-bracket"></i> Confirm Exit';
-        }
-      };
-    }
-
-    // ─── Reactivate Employee ──────────────────────────────────────────────────
-    async function reactivateEmployeeUI(id, name) {
-      if (!canManage)
-        return UI.showToast(
-          "Only Admin or HR can reactivate employees.",
-          "warning",
-        );
-      const confirmed = await UI.confirm({
-        title: "Reactivate Employee?",
-        message: `<strong>${name}</strong> will move back into the active crew directory and their login (if any) will be re-enabled.`,
-        confirmText: "Reactivate",
-        cancelText: "Cancel",
-      });
-      if (!confirmed) return;
-      try {
-        await window.ApiService.employees.reactivate(id);
-        UI.showToast(`${name} has been reactivated.`, "success");
-        await loadExEmployees();
-        await loadEmployees();
-      } catch (err) {
-        console.error("Reactivate error:", err);
-        UI.showToast(err.message || "Failed to reactivate employee.", "error");
-      }
-    }
-
-    // ─── Tab Switching (Active / Ex-Employees) ────────────────────────────────
-    function switchEmployeeView(view) {
-      employeeView = view;
-      const activeBtn = document.getElementById("tab-active-btn");
-      const exitedBtn = document.getElementById("tab-exited-btn");
-      const activeCard = document.getElementById("active-employees-card");
-      const exitedCard = document.getElementById("exited-employees-card");
-
-      if (view === "EXITED") {
-        activeBtn.classList.remove("active");
-        exitedBtn.classList.add("active");
-        activeCard.style.display = "none";
-        exitedCard.style.display = "block";
-        loadExEmployees();
-      } else {
-        exitedBtn.classList.remove("active");
-        activeBtn.classList.add("active");
-        exitedCard.style.display = "none";
-        activeCard.style.display = "block";
-      }
     }
 
     // ─── Attendance Check In / Out ───────────────────────────────────────────
@@ -1394,225 +1122,6 @@
       };
     }
 
-    // ─── View Worksheets History Modal ──────────────────────────────────────
-    async function openWorksheetsViewModal() {
-      try {
-        const res = await window.ApiService.employees.getWorksheets();
-        const list = res.data || [];
-        // Cache the list so the detail modal (opened by index) can read it
-        // without a second network call.
-        currentWorksheets = list;
-
-        const tableRows =
-          list.length === 0
-            ? `<tr><td colspan="5" style="text-align:center;padding:20px;">No worksheets submitted yet.</td></tr>`
-            : list
-              .map(
-                (w, idx) => `
-        <tr>
-          <td style="font-size:0.85rem;">${w.date}</td>
-          <td>
-            <span class="ws-employee-link" tabindex="0" role="button"
-              aria-label="View full worksheet for ${w.employeeId ? w.employeeId.name : "Employee"}"
-              onclick="openWorksheetDetailModal(${idx})"
-              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();openWorksheetDetailModal(${idx});}">
-              <i class="fas fa-eye ws-eye-icon"></i>
-              <strong>${w.employeeId ? w.employeeId.name : "Employee"}</strong>
-            </span>
-          </td>
-          <td style="font-size:0.85rem;">${w.callsMade} calls | ${w.vesselsContacted} vessels</td>
-          <td style="font-size:0.85rem;">${w.summaryOfWork}</td>
-          <td style="font-size:0.8rem;color:var(--text-muted);">${w.notes || "—"}</td>
-        </tr>
-      `,
-              )
-              .join("");
-
-        const bodyHtml = `
-      <div class="table-container" style="max-height:400px;overflow-y:auto;">
-        <table class="table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Employee</th>
-              <th>Activity</th>
-              <th>Summary of Work</th>
-              <th>Notes</th>
-            </tr>
-          </thead>
-          <tbody>${tableRows}</tbody>
-        </table>
-      </div>
-    `;
-
-        UI.createModal({
-          title: "📑 Submitted Daily Worksheets History",
-          bodyHtml,
-          footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Close</button>`,
-        });
-      } catch (err) {
-        UI.showToast("Failed to load worksheets.", "error");
-      }
-    }
-
-    // ─── Full Worksheet Detail Modal (opened from employee name click) ──────
-    function openWorksheetDetailModal(idx) {
-      const w = currentWorksheets[idx];
-      if (!w) return;
-
-      const empName = w.employeeId ? w.employeeId.name : "Employee";
-      const empIdLabel =
-        (w.employeeId && (w.employeeId.employeeId || w.employeeId._id)) ||
-        "—";
-      const initials = empName
-        .split(" ")
-        .map((n) => n[0])
-        .join("")
-        .slice(0, 2)
-        .toUpperCase();
-      const submittedTime =
-        w.createdAt || w.submittedAt
-          ? new Date(w.createdAt || w.submittedAt).toLocaleString("en-GB", {
-            day: "2-digit",
-            month: "short",
-            year: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-          })
-          : "—";
-      const status = w.status || "Submitted";
-      const statusClassMap = {
-        Submitted: "badge-blue",
-        Approved: "badge-green",
-        Pending: "badge-yellow",
-        Rejected: "badge-red",
-      };
-      const statusClass = statusClassMap[status] || "badge-blue";
-      const managerComments = w.managerComments || w.managerComment || null;
-
-      // Remove any existing detail modal before opening a new one
-      const existing = document.getElementById("wsd-overlay");
-      if (existing) existing.remove();
-
-      const overlay = document.createElement("div");
-      overlay.id = "wsd-overlay";
-      overlay.className = "wsd-overlay";
-      overlay.innerHTML = `
-        <div class="wsd-modal glass-card" role="dialog" aria-modal="true" aria-labelledby="wsd-title">
-          <button class="wsd-close" id="wsd-close" aria-label="Close worksheet details">
-            <i class="fas fa-times"></i>
-          </button>
-
-          <div class="wsd-header">
-            <div class="wsd-avatar">${initials}</div>
-            <div class="wsd-heading">
-              <h3 id="wsd-title">${empName}</h3>
-              <div class="wsd-subline">
-                <span class="wsd-empid"><i class="fas fa-id-badge"></i> ${empIdLabel}</span>
-                <span class="badge ${statusClass}">${status}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="wsd-body" id="wsd-body">
-            <div class="wsd-skeleton">
-              <div class="wsd-skel-line" style="width:60%"></div>
-              <div class="wsd-skel-line" style="width:92%"></div>
-              <div class="wsd-skel-line" style="width:78%"></div>
-              <div class="wsd-skel-line" style="width:85%"></div>
-            </div>
-          </div>
-
-          <div class="wsd-footer">
-            <button class="btn btn-secondary btn-sm" id="wsd-print"><i class="fas fa-print"></i> Print</button>
-            <button class="btn btn-secondary btn-sm" id="wsd-pdf"><i class="fas fa-file-pdf"></i> Download PDF</button>
-            <button class="btn btn-primary btn-sm" id="wsd-close-btn">Close</button>
-          </div>
-        </div>
-      `;
-      document.body.appendChild(overlay);
-
-      // Trigger fade + zoom entrance on next frame
-      requestAnimationFrame(() => overlay.classList.add("active"));
-
-      // Data already lives in memory (from getWorksheets()), but we still show
-      // a brief skeleton state for a consistent, premium feel — and this is
-      // exactly where a real per-row API call would slot in if one is added
-      // later, without touching any of the surrounding modal logic.
-      setTimeout(() => {
-        const body = overlay.querySelector("#wsd-body");
-        if (!body) return;
-        body.innerHTML = `
-          <div class="wsd-grid">
-            <div class="wsd-field"><label>Date</label><div class="wsd-value">${w.date || "—"}</div></div>
-            <div class="wsd-field"><label>Activity</label><div class="wsd-value">${w.callsMade ?? 0} calls · ${w.vesselsContacted ?? 0} vessels</div></div>
-            <div class="wsd-field"><label>Number of Calls</label><div class="wsd-value">${w.callsMade ?? "—"}</div></div>
-            <div class="wsd-field"><label>Number of Vessels</label><div class="wsd-value">${w.vesselsContacted ?? "—"}</div></div>
-            <div class="wsd-field"><label>Submitted Time</label><div class="wsd-value">${submittedTime}</div></div>
-            <div class="wsd-field"><label>Employee ID</label><div class="wsd-value">${empIdLabel}</div></div>
-            <div class="wsd-field wsd-span2"><label>Summary of Work</label><div class="wsd-value wsd-longtext">${w.summaryOfWork || "—"}</div></div>
-            <div class="wsd-field wsd-span2"><label>Notes</label><div class="wsd-value wsd-longtext">${w.notes || "—"}</div></div>
-            ${managerComments ? `<div class="wsd-field wsd-span2"><label>Manager Comments</label><div class="wsd-value wsd-longtext">${managerComments}</div></div>` : ""}
-          </div>
-        `;
-      }, 220);
-
-      function closeModal() {
-        overlay.classList.remove("active");
-        setTimeout(() => overlay.remove(), 260);
-        document.removeEventListener("keydown", escHandler);
-      }
-
-      function escHandler(e) {
-        if (e.key === "Escape") closeModal();
-      }
-
-      overlay.querySelector("#wsd-close").onclick = closeModal;
-      overlay.querySelector("#wsd-close-btn").onclick = closeModal;
-      overlay.addEventListener("click", (e) => {
-        if (e.target === overlay) closeModal();
-      });
-      document.addEventListener("keydown", escHandler);
-
-      // Bonus: Print Worksheet
-      overlay.querySelector("#wsd-print").onclick = () => {
-        const printWindow = window.open("", "_blank", "width=700,height=800");
-        if (!printWindow)
-          return UI.showToast("Please allow pop-ups to print.", "warning");
-        printWindow.document.write(`
-          <html><head><title>Worksheet - ${empName} - ${w.date || ""}</title>
-          <style>
-            body{font-family:Arial, sans-serif;padding:24px;color:#111;}
-            h2{margin-bottom:4px;}
-            .row{margin-bottom:10px;}
-            .label{font-weight:600;color:#555;font-size:12px;text-transform:uppercase;letter-spacing:.03em;}
-            .value{font-size:14px;margin-top:2px;}
-          </style></head><body>
-          <h2>Daily Worksheet</h2>
-          <div class="row"><div class="label">Employee</div><div class="value">${empName} (${empIdLabel})</div></div>
-          <div class="row"><div class="label">Date</div><div class="value">${w.date || "—"}</div></div>
-          <div class="row"><div class="label">Calls Made</div><div class="value">${w.callsMade ?? "—"}</div></div>
-          <div class="row"><div class="label">Vessels Contacted</div><div class="value">${w.vesselsContacted ?? "—"}</div></div>
-          <div class="row"><div class="label">Summary of Work</div><div class="value">${w.summaryOfWork || "—"}</div></div>
-          <div class="row"><div class="label">Notes</div><div class="value">${w.notes || "—"}</div></div>
-          <div class="row"><div class="label">Status</div><div class="value">${status}</div></div>
-          ${managerComments ? `<div class="row"><div class="label">Manager Comments</div><div class="value">${managerComments}</div></div>` : ""}
-          </body></html>
-        `);
-        printWindow.document.close();
-        printWindow.focus();
-        setTimeout(() => printWindow.print(), 300);
-      };
-
-      // Bonus: Download PDF (UI placeholder — no backend endpoint yet)
-      overlay.querySelector("#wsd-pdf").onclick = () => {
-        UI.showToast(
-          "PDF export is coming soon — backend endpoint not connected yet.",
-          "warning",
-        );
-      };
-    }
-
     // ─── Open Add / Edit Employee Modal ──────────────────────────────────────
     function openEmployeeModal(id = null) {
       if (!canManage)
@@ -1639,12 +1148,12 @@
               <p style="display:flex;align-items:center;gap:8px;">
                 Fields marked * are required.
                 ${emp && emp.email
-          ? emp.emailVerified === true
-            ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3);">✓ Email Verified</span>`
-            : emp.emailVerified === false
-              ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);">⏳ Pending Verification</span>`
-              : ''
-          : ''}
+                  ? emp.emailVerified === true
+                    ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;background:rgba(52,211,153,0.15);color:#34d399;border:1px solid rgba(52,211,153,0.3);">✓ Email Verified</span>`
+                    : emp.emailVerified === false
+                      ? `<span style="display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:20px;font-size:0.7rem;font-weight:700;background:rgba(251,191,36,0.12);color:#fbbf24;border:1px solid rgba(251,191,36,0.3);">⏳ Pending Verification</span>`
+                      : ''
+                  : ''}
               </p>
             </div>
             <button class="emf-close" id="emf-close" aria-label="Close">
@@ -1662,7 +1171,6 @@
       document.body.appendChild(overlay);
       document.body.style.overflow = "hidden";
 
-      // Trigger fade + zoom entrance on next frame
       requestAnimationFrame(() => overlay.classList.add("active"));
 
       // Password show/hide
@@ -1691,7 +1199,6 @@
         overlay.querySelector("#emp-phone").value = emp.phone || "";
         overlay.querySelector("#emp-email").value = emp.email || "";
 
-        // Populate role from userRole (enriched by listEmployees)
         const roleSelect = overlay.querySelector("#emp-role");
         if (roleSelect && emp.userRole) {
           roleSelect.value = emp.userRole;
@@ -1716,19 +1223,13 @@
             .split("T")[0];
         }
       } else {
-        // NEW EMPLOYEE → AUTO-GENERATE EMPLOYEE ID (still editable)
         const empIdInput = overlay.querySelector("#emp-id");
-
         const nextNumber = employees.length + 1;
-
         empIdInput.value = `EMP-${String(nextNumber).padStart(3, "0")}`;
-
         empIdInput.readOnly = false;
         empIdInput.title = "You can edit the Employee ID";
       }
 
-      // ─ Close handling: Esc key, backdrop click, close/cancel buttons,
-      //   and background-scroll lock while the modal is open.
       function closeModal() {
         overlay.classList.remove("active");
         document.body.style.overflow = "";
@@ -1747,8 +1248,6 @@
       });
       document.addEventListener("keydown", escHandler);
 
-      // saveEmployee(modal) expects modal.querySelector(...) and modal.close() —
-      // overlay is a real DOM node, so we just attach .close to it directly.
       overlay.close = closeModal;
 
       overlay.querySelector("#emp-save").onclick = () =>
@@ -1780,7 +1279,6 @@
         role: modal.querySelector("#emp-role") ? modal.querySelector("#emp-role").value : undefined,
       };
 
-      // Only include password if user actually typed something
       if (passwordVal) {
         data.password = passwordVal;
       }
@@ -1836,247 +1334,18 @@
       }
     }
 
-    // ─── Import from Excel ───────────────────────────────────────────────────
-    async function importFromExcel(file) {
-      if (!canManage)
-        return UI.showToast(
-          "Only Admin or HR can import employees.",
-          "warning",
-        );
-      try {
-        const data = await file.arrayBuffer();
-        const wb = XLSX.read(data, { type: "array", cellDates: true });
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "" });
-
-        if (!rawRows.length)
-          return UI.showToast(
-            "No data rows found in the Excel file.",
-            "warning",
-          );
-
-        // Normalize column names (case-insensitive)
-        const rows = rawRows.map((r) => {
-          const norm = {};
-          for (const key of Object.keys(r)) norm[key.trim()] = r[key];
-          return {
-            name: norm["Name"] || norm["name"] || "",
-            position: norm["Position"] || norm["position"] || "",
-            phone: norm["Phone"] || norm["phone"] || "",
-            email: norm["Email"] || norm["email"] || "",
-            location: norm["Location"] || norm["location"] || "",
-            "Joining Date":
-              norm["Joining Date"] ||
-              norm["joinDate"] ||
-              norm["joining_date"] ||
-              "",
-            "Date of Birth":
-              norm["Date of Birth"] ||
-              norm["dateOfBirth"] ||
-              norm["date_of_birth"] ||
-              "",
-          };
-        });
-
-        const btn = document.getElementById("import-btn");
-        btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Importing…';
-
-        try {
-          const res = await window.ApiService.employees.bulkImport({ rows });
-          const { imported, skipped, failed, details } = res.data;
-
-          // Build result detail list
-          const failedRows = details.filter((d) => d.status === "failed");
-          const skippedRows = details.filter((d) => d.status === "skipped");
-          const failDetail = failedRows
-            .map(
-              (d) =>
-                `<li style="color:#ef4444;">Row ${d.row}: ${d.name} — ${d.reason}</li>`,
-            )
-            .join("");
-          const skipDetail = skippedRows
-            .map(
-              (d) =>
-                `<li style="color:#fbbf24;">Row ${d.row}: ${d.name} — ${d.reason}</li>`,
-            )
-            .join("");
-
-          UI.createModal({
-            title: "📊 Import Results",
-            bodyHtml: `
-              <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:20px;">
-                <div style="text-align:center;padding:16px;background:rgba(16,185,129,0.1);border-radius:10px;border:1px solid rgba(16,185,129,0.2);">
-                  <div style="font-size:2rem;font-weight:800;color:#10b981;">${imported}</div>
-                  <div style="font-size:0.8rem;color:var(--text-muted);">✅ Imported</div>
-                </div>
-                <div style="text-align:center;padding:16px;background:rgba(251,191,36,0.1);border-radius:10px;border:1px solid rgba(251,191,36,0.2);">
-                  <div style="font-size:2rem;font-weight:800;color:#fbbf24;">${skipped}</div>
-                  <div style="font-size:0.8rem;color:var(--text-muted);">⏭️ Skipped</div>
-                </div>
-                <div style="text-align:center;padding:16px;background:rgba(239,68,68,0.1);border-radius:10px;border:1px solid rgba(239,68,68,0.2);">
-                  <div style="font-size:2rem;font-weight:800;color:#ef4444;">${failed}</div>
-                  <div style="font-size:0.8rem;color:var(--text-muted);">❌ Failed</div>
-                </div>
-              </div>
-              ${failDetail || skipDetail ? `<ul style="max-height:200px;overflow-y:auto;font-size:0.82rem;padding-left:18px;color:var(--text-secondary);">${skipDetail}${failDetail}</ul>` : ""}
-            `,
-            footerHtml: `<button class="btn btn-primary" onclick="this.closest('.modal-overlay').close()">Done</button>`,
-          });
-
-          if (imported > 0) await loadEmployees();
-          await loadUpcomingBirthdays();
-        } catch (err) {
-          UI.showToast(err.message || "Import failed.", "error");
-        } finally {
-          btn.disabled = false;
-          btn.innerHTML = '<i class="fas fa-file-upload"></i> Import Excel';
-          document.getElementById("import-file-input").value = "";
-        }
-      } catch (parseErr) {
-        UI.showToast(
-          "Failed to parse Excel file. Ensure it is a valid .xlsx file.",
-          "error",
-        );
-      }
-    }
-
-    // ─── Upcoming Birthdays (Visible to all employees) ───────────────────────
-    async function loadUpcomingBirthdays() {
-      document.getElementById("birthdays-section").style.display = "block";
-      try {
-        const res = await window.ApiService.employees.getUpcomingBirthdays();
-        const list = res.data || [];
-        const container = document.getElementById("birthdays-list");
-
-        if (!list.length) {
-          container.innerHTML =
-            '<div style="color:var(--text-muted);text-align:center;padding:20px;">No upcoming birthdays in the next 30 days.</div>';
-          return;
-        }
-
-        container.innerHTML = `
-          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;">
-            ${list
-            .map((emp) => {
-              const initials = emp.name
-                .split(" ")
-                .map((n) => n[0])
-                .join("")
-                .slice(0, 2)
-                .toUpperCase();
-              const dob = new Date(emp.dateOfBirth);
-              const dobStr = dob.toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-              });
-              const tagHtml = emp.isToday
-                ? `<span style="background:linear-gradient(135deg,#f59e0b,#ef4444);color:#fff;font-size:0.7rem;font-weight:700;padding:3px 8px;border-radius:20px;">🎂 Today!</span>`
-                : `<span style="background:rgba(99,102,241,0.15);color:#818cf8;font-size:0.7rem;font-weight:600;padding:3px 8px;border-radius:20px;">In ${emp.daysUntil} day${emp.daysUntil === 1 ? "" : "s"}</span>`;
-              const cardBg = emp.isToday
-                ? "linear-gradient(135deg,rgba(245,158,11,0.1),rgba(239,68,68,0.08))"
-                : "rgba(255,255,255,0.02)";
-              const cardBorder = emp.isToday
-                ? "1px solid rgba(245,158,11,0.3)"
-                : "1px solid var(--border-color)";
-              return `
-                <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;background:${cardBg};border:${cardBorder};">
-                  <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,#0ea5e9,#6366f1);display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;color:#fff;flex-shrink:0;">${initials}</div>
-                  <div style="flex:1;min-width:0;">
-                    <div style="font-weight:600;font-size:0.88rem;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${emp.name}</div>
-                    <div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">📅 ${dobStr} ${emp.position ? "· " + emp.position : ""}</div>
-                  </div>
-                  <div style="flex-shrink:0;">${tagHtml}</div>
-                </div>`;
-            })
-            .join("")}
-          </div>`;
-      } catch (err) {
-        document.getElementById("birthdays-list").innerHTML =
-          '<div style="color:var(--text-muted);text-align:center;padding:20px;">Could not load birthday data.</div>';
-      }
-    }
-
-    // ─── Export to Excel ──────────────────────────────────────────────────────
-    function exportToExcel() {
-      if (!employees.length)
-        return UI.showToast("No employee data to export.", "warning");
-      const rows = employees.map((e) => ({
-        Name: e.name || "",
-        Position: e.position || "",
-        Phone: e.phone || "",
-        Email: e.email || "",
-        Location: e.location || "",
-        "Joining Date": e.joinDate
-          ? new Date(e.joinDate).toLocaleDateString("en-GB")
-          : "",
-        "Date of Birth": e.dateOfBirth
-          ? new Date(e.dateOfBirth).toLocaleDateString("en-GB")
-          : "",
-      }));
-      const ws = XLSX.utils.json_to_sheet(rows);
-      ws["!cols"] = [28, 22, 16, 28, 18, 16].map((w) => ({ wch: w }));
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Employees");
-      XLSX.writeFile(wb, "employees.xlsx");
-      UI.showToast("Exported employees.xlsx", "success");
-    }
-
     // ─── Init ─────────────────────────────────────────────────────────────────
     window.addEventListener("DOMContentLoaded", () => {
       if (!window.UI || !window.UI.requireAuth()) return;
 
       const addBtn = document.getElementById("add-employee-btn");
-      const worksheetBtn = document.getElementById("view-worksheets-btn");
-      const importBtn = document.getElementById("import-btn");
-      const importInput = document.getElementById("import-file-input");
 
       if (addBtn) {
         if (!canManage) addBtn.style.display = "none";
         else addBtn.addEventListener("click", () => openEmployeeModal());
       }
 
-      if (importBtn && canManage) {
-        importBtn.style.display = "inline-flex";
-        importBtn.addEventListener("click", () => importInput.click());
-        importInput.addEventListener("change", (e) => {
-          if (e.target.files && e.target.files[0])
-            importFromExcel(e.target.files[0]);
-        });
-      }
-
-      if (worksheetBtn) {
-        worksheetBtn.addEventListener("click", openWorksheetsViewModal);
-      }
-
-      const exportBtn = document.getElementById("export-btn");
-
-      if (exportBtn) {
-        if (currentUser.role === "BDM") {
-          exportBtn.style.display = "none";
-        } else {
-          exportBtn.addEventListener("click", exportToExcel);
-        }
-      }
-
-      document
-        .getElementById("tab-active-btn")
-        .addEventListener("click", () => switchEmployeeView("ACTIVE"));
-      document
-        .getElementById("tab-exited-btn")
-        .addEventListener("click", () => switchEmployeeView("EXITED"));
-
       loadEmployees();
-      loadUpcomingBirthdays();
-      // Fetch ex-employee count up front so the tab badge isn't blank
-      window.ApiService.employees
-        .listExited()
-        .then((res) => {
-          exEmployees = res.data || [];
-          document.getElementById("tab-exited-count").textContent =
-            exEmployees.length;
-        })
-        .catch(() => { });
     });
   </script>
   <script src="/public/js/components/cursor.js"></script>
