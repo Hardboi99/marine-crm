@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documents - Marine BDM CRM</title>
+
+    <!-- Zero-flash theme init: copied verbatim from dashboard.html -->
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-theme');
+            }
+        })();
+    </script>
+    <script>
+        (function () {
+            var t = localStorage.getItem('theme') || 'dark';
+            if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+
+    <link rel="stylesheet" href="/public/css/styles1.css">
+
+    <style>
+        /* Page-local layout only — colors all come from styles1.css tokens */
+        .page-content {
+            padding: 24px;
+        }
+
+        .docs-toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
+        }
+
+        .docs-filters {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .docs-filters input[type="text"],
+        .docs-filters select {
+            background: var(--input-bg, rgba(255,255,255,0.03));
+            border: 1px solid rgba(255,255,255,0.08);
+            color: var(--text-primary);
+            border-radius: var(--radius-sm);
+            padding: 8px 12px;
+            font-size: 0.85rem;
+        }
+
+        .doc-name-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .doc-file-icon {
+            font-size: 1.2rem;
+            flex-shrink: 0;
+        }
+
+        .doc-name-text {
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .doc-meta-text {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 40px 20px;
+            color: var(--text-muted);
+        }
+
+        .empty-state-icon {
+            font-size: 2rem;
+            margin-bottom: 8px;
+            opacity: 0.6;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <div id="sidebar-container"></div>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+
+            <div class="page-content" id="documents-content-area">
+
+                <div class="dash-header" data-reveal>
+                    <div class="dash-header-title-wrap">
+                        <div class="dash-eyebrow"><span class="live-dot"></span> Documents</div>
+                        <h1 class="page-title">Documents</h1>
+                        <p class="page-subtitle">Upload, review, and manage company documents</p>
+                    </div>
+                    <div class="dash-header-meta">
+                        <div class="dash-date" id="docs-header-date"></div>
+                        <div id="docs-header-count">Loading…</div>
+                    </div>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h3 class="stat-title">📄 Total Documents</h3>
+                        <p class="stat-value skeleton" id="stat-docs-total">0</p>
+                        <div class="stat-trend neutral">All categories</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">🕓 Pending Review</h3>
+                        <p class="stat-value skeleton" id="stat-docs-pending">0</p>
+                        <div class="stat-trend neutral">Needs attention</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">✅ Approved</h3>
+                        <p class="stat-value skeleton" id="stat-docs-approved">0</p>
+                        <div class="stat-trend neutral">Reviewed & filed</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">🆕 This Week</h3>
+                        <p class="stat-value skeleton" id="stat-docs-week">0</p>
+                        <div class="stat-trend neutral">Newly uploaded</div>
+                    </div>
+                </div>
+
+                <div class="card" data-reveal>
+                    <div class="card-header">
+                        <h2 class="card-title">All Documents</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="docs-toolbar">
+                            <div class="docs-filters">
+                                <input type="text" id="docs-search" placeholder="Search by name…">
+                                <select id="docs-category-filter">
+                                    <option value="">All categories</option>
+                                    <option value="CONTRACT">Contract</option>
+                                    <option value="CREW_CERTIFICATE">Crew Certificate</option>
+                                    <option value="COMPLIANCE">Compliance</option>
+                                    <option value="HR">HR</option>
+                                    <option value="OTHER">Other</option>
+                                </select>
+                                <select id="docs-status-filter">
+                                    <option value="">All statuses</option>
+                                    <option value="PENDING">Pending Review</option>
+                                    <option value="APPROVED">Approved</option>
+                                    <option value="REJECTED">Rejected</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary btn-sm" id="docs-upload-btn">
+                                <i class="fas fa-upload"></i> Upload Document
+                            </button>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Document</th>
+                                        <th>Category</th>
+                                        <th>Uploaded By</th>
+                                        <th>Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="docs-table-body">
+                                    <tr><td colspan="6" style="text-align:center; padding:20px; color:var(--text-muted);">Loading documents…</td></tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Simple upload modal — reuses the app's existing .modal / UI.confirm-style
+         patterns where possible. If your UI.js has a different modal component
+         (e.g. UI.openModal), swap this block for that instead of a bespoke one. -->
+    <div id="docs-upload-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+        <div class="card" style="width:420px; max-width:90vw;">
+            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h2 class="card-title">Upload Document</h2>
+                <button class="btn btn-secondary btn-sm" id="docs-upload-cancel">✕</button>
+            </div>
+            <div class="card-body" style="display:flex; flex-direction:column; gap:12px;">
+                <div>
+                    <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:4px;">File</label>
+                    <input type="file" id="docs-upload-file" style="width:100%;">
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:4px;">Category</label>
+                    <select id="docs-upload-category" style="width:100%; padding:8px; border-radius:var(--radius-sm); background:var(--input-bg, rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.08); color:var(--text-primary);">
+                        <option value="CONTRACT">Contract</option>
+                        <option value="CREW_CERTIFICATE">Crew Certificate</option>
+                        <option value="COMPLIANCE">Compliance</option>
+                        <option value="HR">HR</option>
+                        <option value="OTHER">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:4px;">Notes (optional)</label>
+                    <input type="text" id="docs-upload-notes" style="width:100%; padding:8px; border-radius:var(--radius-sm); background:var(--input-bg, rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.08); color:var(--text-primary);">
+                </div>
+                <button class="btn btn-primary" id="docs-upload-submit" style="margin-top:6px;">Upload</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+
+    <script>
+        // ── Auth + role guard ──────────────────────────────────────
+        // This page is currently intended for MANAGER_DOCS (and ADMIN,
+        // who should be able to see everything). Adjust this list if
+        // other roles should get access later.
+        if (!localStorage.getItem('token')) {
+            window.location.href = '/pages/login.html';
+        }
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        const DOCS_ALLOWED_ROLES = ['MANAGER_DOCS', 'ADMIN'];
+        if (!DOCS_ALLOWED_ROLES.includes(user.role)) {
+            window.location.href = '/pages/dashboard.html';
+        }
+
+        // Header date
+        (function setHeaderDate() {
+            const el = document.getElementById('docs-header-date');
+            if (!el) return;
+            el.textContent = new Date().toLocaleDateString(undefined, {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+        })();
+
+        function animateCountUp(element, target, duration = 800) {
+            if (!element) return;
+            let startTime = null;
+            function step(ts) {
+                if (!startTime) startTime = ts;
+                const progress = Math.min((ts - startTime) / duration, 1);
+                const eased = 1 - (1 - progress) * (1 - progress);
+                element.textContent = Math.floor(eased * target);
+                element.classList.remove('skeleton');
+                if (progress < 1) requestAnimationFrame(step);
+                else element.textContent = target;
+            }
+            requestAnimationFrame(step);
+        }
+
+        const statusBadge = (status) => {
+            const map = {
+                PENDING: '<span class="badge badge-yellow">Pending Review</span>',
+                APPROVED: '<span class="badge badge-green">Approved</span>',
+                REJECTED: '<span class="badge badge-red">Rejected</span>'
+            };
+            return map[status] || `<span class="badge badge-gray">${status || 'Unknown'}</span>`;
+        };
+
+        const fileIcon = (name = '') => {
+            const ext = name.split('.').pop().toLowerCase();
+            if (ext === 'pdf') return '📕';
+            if (['doc', 'docx'].includes(ext)) return '📘';
+            if (['xls', 'xlsx', 'csv'].includes(ext)) return '📗';
+            if (['png', 'jpg', 'jpeg'].includes(ext)) return '🖼️';
+            return '📄';
+        };
+
+        let allDocuments = [];
+
+        function renderDocsTable() {
+            const search = (document.getElementById('docs-search').value || '').toLowerCase();
+            const category = document.getElementById('docs-category-filter').value;
+            const status = document.getElementById('docs-status-filter').value;
+
+            const filtered = allDocuments.filter(d => {
+                const matchesSearch = !search || (d.name || '').toLowerCase().includes(search);
+                const matchesCategory = !category || d.category === category;
+                const matchesStatus = !status || d.status === status;
+                return matchesSearch && matchesCategory && matchesStatus;
+            });
+
+            const body = document.getElementById('docs-table-body');
+
+            if (filtered.length === 0) {
+                body.innerHTML = `
+                    <tr>
+                        <td colspan="6">
+                            <div class="empty-state">
+                                <div class="empty-state-icon">📂</div>
+                                <div>No documents match your filters.</div>
+                            </div>
+                        </td>
+                    </tr>`;
+                return;
+            }
+
+            body.innerHTML = filtered.map(d => `
+                <tr>
+                    <td>
+                        <div class="doc-name-cell">
+                            <span class="doc-file-icon">${fileIcon(d.name)}</span>
+                            <div>
+                                <div class="doc-name-text">${d.name || 'Untitled'}</div>
+                                ${d.notes ? `<div class="doc-meta-text">${d.notes}</div>` : ''}
+                            </div>
+                        </div>
+                    </td>
+                    <td style="font-size:0.85rem;">${(d.category || 'OTHER').replace('_', ' ')}</td>
+                    <td style="font-size:0.85rem;">${d.uploadedBy?.name || d.uploadedByName || '—'}</td>
+                    <td style="font-size:0.85rem;">${d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
+                    <td>${statusBadge(d.status)}</td>
+                    <td>
+                        <a class="btn btn-secondary btn-sm" href="${d.fileUrl || '#'}" target="_blank" rel="noopener">
+                            <i class="fas fa-download"></i> View
+                        </a>
+                    </td>
+                </tr>
+            `).join('');
+        }
+
+        function updateStats() {
+            const total = allDocuments.length;
+            const pending = allDocuments.filter(d => d.status === 'PENDING').length;
+            const approved = allDocuments.filter(d => d.status === 'APPROVED').length;
+            const weekAgo = new Date();
+            weekAgo.setDate(weekAgo.getDate() - 7);
+            const thisWeek = allDocuments.filter(d => d.createdAt && new Date(d.createdAt) >= weekAgo).length;
+
+            animateCountUp(document.getElementById('stat-docs-total'), total);
+            animateCountUp(document.getElementById('stat-docs-pending'), pending);
+            animateCountUp(document.getElementById('stat-docs-approved'), approved);
+            animateCountUp(document.getElementById('stat-docs-week'), thisWeek);
+
+            const countEl = document.getElementById('docs-header-count');
+            if (countEl) countEl.textContent = `${total} document${total === 1 ? '' : 's'}`;
+        }
+
+        async function loadDocuments() {
+            try {
+                // NOTE: window.ApiService.documents does not exist yet in this
+                // project — this call is a placeholder for the shape the
+                // backend endpoint should return. Build a GET /documents
+                // route (paginated list, each item with name, category,
+                // status, uploadedBy, createdAt, fileUrl) and a matching
+                // ApiService.documents.getAll() method, then this page
+                // will work as-is.
+                const res = await window.ApiService.documents.getAll();
+                allDocuments = res?.data || [];
+            } catch (err) {
+                console.error('Failed to load documents (endpoint likely not built yet):', err);
+                allDocuments = [];
+                if (window.UI && window.UI.showToast) {
+                    window.UI.showToast('Documents API not available yet — showing empty state.', 'info');
+                }
+            }
+            updateStats();
+            renderDocsTable();
+        }
+
+        // ── Filters ───────────────────────────────────────────────
+        document.getElementById('docs-search').addEventListener('input', renderDocsTable);
+        document.getElementById('docs-category-filter').addEventListener('change', renderDocsTable);
+        document.getElementById('docs-status-filter').addEventListener('change', renderDocsTable);
+
+        // ── Upload modal ─────────────────────────────────────────
+        const modal = document.getElementById('docs-upload-modal');
+        document.getElementById('docs-upload-btn').addEventListener('click', () => {
+            modal.style.display = 'flex';
+        });
+        document.getElementById('docs-upload-cancel').addEventListener('click', () => {
+            modal.style.display = 'none';
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.style.display = 'none';
+        });
+
+        document.getElementById('docs-upload-submit').addEventListener('click', async () => {
+            const fileInput = document.getElementById('docs-upload-file');
+            const category = document.getElementById('docs-upload-category').value;
+            const notes = document.getElementById('docs-upload-notes').value;
+            const file = fileInput.files[0];
+
+            if (!file) {
+                if (window.UI && window.UI.showToast) window.UI.showToast('Choose a file first.', 'error');
+                return;
+            }
+
+            try {
+                // NOTE: same placeholder situation as loadDocuments() above —
+                // build POST /documents (multipart/form-data: file, category,
+                // notes) plus ApiService.documents.create(formData) to match.
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('category', category);
+                formData.append('notes', notes);
+
+                await window.ApiService.documents.create(formData);
+                if (window.UI && window.UI.showToast) window.UI.showToast('Document uploaded.', 'success');
+                modal.style.display = 'none';
+                fileInput.value = '';
+                document.getElementById('docs-upload-notes').value = '';
+                loadDocuments();
+            } catch (err) {
+                console.error(err);
+                if (window.UI && window.UI.showToast) window.UI.showToast(err.message || 'Upload failed — API not available yet.', 'error');
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', loadDocuments);
+    </script>
+
+
+    <script src="/public/js/components/cursor.js"></script>
+</body>
+
+</html>

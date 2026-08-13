@@ -662,7 +662,13 @@
               Manage internal crew members, daily worksheets, attendance
             </p>
           </div>
+          <div style="display: flex; gap: 8px; flex-wrap: wrap">
           
+            <input type="file" id="import-file-input" accept=".xlsx,.xls" style="display: none;" />
+            <button id="add-employee-btn" class="btn btn-primary">
+              <i class="fas fa-plus"></i> Add Employee
+            </button>
+          </div>
         </div>
 
         <!-- STATS ROW -->
@@ -1390,6 +1396,7 @@
     function switchEmployeeView(view) {
       employeeView = view;
       const activeBtn = document.getElementById("tab-active-btn");
+
       const activeCard = document.getElementById("active-employees-card");
       const exitedCard = document.getElementById("exited-employees-card");
 
@@ -2150,6 +2157,7 @@
       document
         .getElementById("tab-active-btn")
         .addEventListener("click", () => switchEmployeeView("ACTIVE"));
+
 
       loadEmployees();
       loadUpcomingBirthdays();

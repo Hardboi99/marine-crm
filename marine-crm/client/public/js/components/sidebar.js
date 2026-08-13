@@ -134,6 +134,69 @@ function buildNavGroups(currentPath, userRole) {
         return { ...g, items: [] };
       })
       .filter(g => g.items.length > 0);
+      // Manager - Docs: HR & Employees (full) + Seafarers Directory only
+// + Documents
+if (userRole === 'MANAGER_DOCS') {
+  groups = groups
+    .map(g => {
+      if (g.id === 'hr-employees') return g;
+
+      if (g.id === 'crewing') {
+        return {
+          ...g,
+          items: g.items.filter(i => i.match === 'candidates')
+        };
+      }
+
+      return { ...g, items: [] };
+    })
+    .filter(g => g.items.length > 0);
+
+  groups.push({
+    id: 'docs',
+    label: 'Documents',
+    icon: '📄',
+    items: [
+      {
+        href: '/pages/documents.html',
+        icon: '📄',
+        label: 'Documents',
+        match: 'documents'
+      }
+    ]
+  });
+}// Manager - Docs: HR & Employees (full) + Seafarers Directory only
+// + Documents
+if (userRole === 'MANAGER_DOCS') {
+  groups = groups
+    .map(g => {
+      if (g.id === 'hr-employees') return g;
+
+      if (g.id === 'crewing') {
+        return {
+          ...g,
+          items: g.items.filter(i => i.match === 'candidates')
+        };
+      }
+
+      return { ...g, items: [] };
+    })
+    .filter(g => g.items.length > 0);
+
+  groups.push({
+    id: 'docs',
+    label: 'Documents',
+    icon: '📄',
+    items: [
+      {
+        href: '/pages/documents.html',
+        icon: '📄',
+        label: 'Documents',
+        match: 'documents'
+      }
+    ]
+  });
+}
   }
 
   let activeGroupId = null;
@@ -428,7 +491,7 @@ function renderNavbar() {
     if (themeLabelEl) themeLabelEl.textContent = theme === 'light' ? 'Light' : 'Dark';
   }
 
-  const savedTheme = localStorage.getItem('theme') || 'dark';
+  const savedTheme = localStorage.getItem('theme') || 'light';
   if (savedTheme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
     setThemeButtonState('light');
@@ -484,7 +547,7 @@ function renderFooter() {
 }
 
 (function applyStoredThemeEarly() {
-  const savedTheme = localStorage.getItem('theme') || 'dark';
+  const savedTheme = localStorage.getItem('theme') || 'light';
   if (savedTheme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
   } else {
@@ -564,4 +627,4 @@ document.addEventListener('DOMContentLoaded', () => {
     page.classList.add('page-exit');
     window.setTimeout(() => { window.location.href = link.href; }, 160);
   });
-});
+});r̥ṭṭr̥r̥ṭ
