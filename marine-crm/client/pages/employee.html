@@ -662,11 +662,7 @@
               Manage internal crew members, daily worksheets, attendance
             </p>
           </div>
-          <div style="display: flex; gap: 8px; flex-wrap: wrap">
-            <button id="add-employee-btn" class="btn btn-primary">
-              <i class="fas fa-plus"></i> Add Employee
-            </button>
-          </div>
+          
         </div>
 
         <!-- STATS ROW -->
@@ -708,6 +704,16 @@
           </div>
         </div>
 
+        <!-- EMPLOYEE TABS (ACTIVE / EXITED) -->
+        <div class="emp-tabs">
+          <button id="tab-active-btn" class="emp-tab-btn active">
+            <i class="fas fa-check-circle"></i>
+            Active Crew
+            <span id="tab-active-count" class="emp-tab-count">—</span>
+          </button>
+
+        </div>
+
         <!-- EMPLOYEES TABLE CARD (ACTIVE) -->
         <div class="card" id="active-employees-card" style="margin-bottom: 24px">
           <div class="card-header" style="
@@ -747,6 +753,48 @@
               </table>
             </div>
           </div>
+        </div>
+
+        <!-- EXITED EMPLOYEES TABLE CARD -->
+        <div class="card" id="exited-employees-card" style="margin-bottom: 24px; display: none;">
+          <div class="card-header" style="
+                padding: 16px 20px;
+                border-bottom: 1px solid var(--border-color);
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+              ">
+            <h3 style="
+                  margin: 0;
+                  font-size: 1.05rem;
+                  color: var(--text-primary);
+                ">
+              <i class="fas fa-archive" style="margin-right: 8px; color: var(--text-muted)"></i>
+              Exited Crew Members
+            </h3>
+          </div>
+          <div class="card-body" style="padding: 0">
+            <div class="table-container">
+              <table class="table">
+                <thead>
+                  <tr>
+                    <th>#</th>
+                    <th> Employee</th>
+                    <th>Position</th>
+                    <th>Phone</th>
+                    <th>Exit Date</th>
+                    <th>Exit Reason</th>
+                    <th>Exited By</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="exited-employee-table-body"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        
         </div>
       </main>
     </div>
@@ -891,6 +939,30 @@
     </div>
   </template>
 
+  <!-- EXIT EMPLOYEE MODAL TEMPLATE -->
+  <template id="exit-modal-tpl">
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <div style="
+            background: rgba(239, 68, 68, 0.1);
+            padding: 12px;
+            border-radius: 6px;
+            font-size: 0.85rem;
+            color: var(--text-secondary);
+          ">
+        <i class="fas fa-exclamation-triangle" style="color: #ef4444; margin-right: 6px"></i>
+        This action marks the employee as exited. Their login will be disabled.
+      </div>
+      <div>
+        <label class="form-label">Exit Date <span style="color: #f87171">*</span></label>
+        <input id="exit-date" type="date" class="form-control" />
+      </div>
+      <div>
+        <label class="form-label">Exit Reason</label>
+        <textarea id="exit-reason" class="form-control" rows="2"
+          placeholder="e.g. Resignation, Contract completion, etc.…"></textarea>
+      </div>
+    </div>
+  </template>
 
   <!-- SCRIPTS -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
@@ -952,6 +1024,12 @@
         ]);
         employees = empRes.data || [];
         attendances = buildAttendanceMap(attRes.data || []);
+
+        console.info("Employee directory load:", {
+          user: currentUser,
+          employeeCount: employees.length,
+          attendanceCount: (attRes.data || []).length,
+        });
 
         updateStats();
         populatePositionFilter();
@@ -1040,14 +1118,18 @@
       const tbody = document.getElementById("employee-table-body");
 
       if (filtered.length === 0) {
+        const emptyMessage = (() => {
+          if (search || posFilter) return "No employees match your current filters.";
+          if (!canManage) return "This account is not linked to an employee record, or the backend is returning only active records for this role.";
+          return "No active employee records are available right now. If this is unexpected, check whether the employee data exists in the database and whether records are marked as EXITED.";
+        })();
+
         tbody.innerHTML = `
       <tr><td colspan="9">
         ${UI.renderEmptyState(
           "👨‍💼",
           "No Employees Found",
-          search || posFilter
-            ? "No employees match your current filters."
-            : "Add your first employee to get started.",
+          emptyMessage,
           canManage
             ? `<button class="btn btn-primary" onclick="openEmployeeModal()"><i class="fas fa-plus"></i> Add Employee</button>`
             : "",
@@ -1202,12 +1284,19 @@
         <td style="font-size:0.82rem;" title="${reason}"><span class="exit-reason-text">${reason}</span></td>
         <td style="font-size:0.8rem;color:var(--text-muted);">${e.exitedByName || "—"}</td>
         <td>
-          ${canManage
-              ? `<button class="btn btn-secondary btn-sm" onclick="reactivateEmployeeUI('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Reactivate">
+          <div style="display:flex;gap:6px;">
+            ${canManage
+              ? `
+              <button class="btn btn-secondary btn-sm" onclick="reactivateEmployeeUI('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Reactivate employee">
                 <i class="fas fa-rotate-left"></i> Reactivate
-              </button>`
+              </button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDeleteEmployee('${e.id}','${e.name.replace(/'/g, "&#39;")}')" title="Delete employee permanently">
+                <i class="fas fa-trash"></i> Delete
+              </button>
+              `
               : `<span style="color:var(--text-muted);font-size:0.8rem;">View only</span>`
             }
+          </div>
         </td>
       </tr>`;
         })
@@ -1301,7 +1390,6 @@
     function switchEmployeeView(view) {
       employeeView = view;
       const activeBtn = document.getElementById("tab-active-btn");
-      const exitedBtn = document.getElementById("tab-exited-btn");
       const activeCard = document.getElementById("active-employees-card");
       const exitedCard = document.getElementById("exited-employees-card");
 
@@ -2062,9 +2150,6 @@
       document
         .getElementById("tab-active-btn")
         .addEventListener("click", () => switchEmployeeView("ACTIVE"));
-      document
-        .getElementById("tab-exited-btn")
-        .addEventListener("click", () => switchEmployeeView("EXITED"));
 
       loadEmployees();
       loadUpcomingBirthdays();
