@@ -1,30 +1,19 @@
-// Sidebar Navigation Component — Marine BDM CRM (Accordion Edition, v5 — production)
+// Sidebar Navigation Component — Marine BDM CRM (Accordion Edition, v3 — production)
 //
-// v3 fixes (kept): collapsed-desktop hover flyout, breakpoint-crossing
-// reset at 991.98px, collapsed state restore, defensive class strip.
-// v3.1: HR Operations entry.
-// v4: closeMobileDrawer() reused by hamburger/overlay/nav-link taps.
-//
-// v5 — this pass fixes two concrete bugs:
-//
-// 1. SCROLL BLEED: openMobileDrawer()/closeMobileDrawer() now directly
-//    set document.body.style.overflow = 'hidden' / '' (in addition to
-//    the 'no-scroll' class, which stays for any CSS that hooks it).
-//    Previously only the toggle-button code path set 'no-scroll';
-//    other paths that could open/close the drawer didn't always run
-//    through the same code, so the class could be left off and the
-//    page behind the drawer kept scrolling.
-//
-// 2. "FROZEN" NAVIGATION: nav-item/nav-subitem links used to bubble
-//    up to the separate SPA page-transition listener on document.body,
-//    which called e.preventDefault() and only navigated after a
-//    160ms delay. On mobile that combined with the drawer's closing
-//    transition to make taps feel like they did nothing. Nav links
-//    now call e.stopPropagation() (NEVER e.preventDefault()) so that
-//    outer listener never sees the click, and the browser's native
-//    <a href> navigation fires immediately — closeMobileDrawer() runs
-//    first, in the same tick, but does not block or delay the follow-
-//    on navigation in any way.
+// v3 fixes:
+// 1. Collapsed desktop rail no longer blocks navigation — submenu now
+//    shows as a hover flyout (CSS), so HR / Crewing / Reports / etc.
+//    stay reachable even when the sidebar is collapsed.
+// 2. Added the MOBILE_QUERY.addEventListener('change', ...) resize
+//    handler that resets 'collapsed' / 'mobile-open' state whenever
+//    the viewport crosses the 768px breakpoint. This was the actual
+//    cause of the broken mobile drawer: 'collapsed' (desktop) and
+//    'mobile-open' (mobile) could both be present on the sidebar at
+//    once and fight over `transform` with equal-specificity !important
+//    rules.
+// 3. Collapsed state is now restored from localStorage on load, and
+//    is always stripped when entering mobile.
+// 4. Mobile toggle defensively strips 'collapsed' before opening.
 
 const NAV_GROUPS = [
   {
@@ -55,8 +44,8 @@ const NAV_GROUPS = [
     icon: '⚓',
     items: [
       { href: '/pages/candidates.html', icon: '👨‍✈️', label: 'Seafarers Directory', match: 'candidates' },
-      { href: '/pages/job-applicants.html', icon: '📋', label: 'Job Applicants', match: 'job-applicants' },
-      { href: '/pages/requirements.html', icon: '📋', label: 'Requirements Vacancies', match: 'requirements' }
+      { href: '/pages/requirements.html', icon: '📋', label: 'Requirements Vacancies', match: 'requirements' },
+      { href: '/pages/job-applicants.html', icon: '📝', label: 'Job Applications', match: 'job-applicants' }
     ]
   },
   {
@@ -88,77 +77,115 @@ const NAV_GROUPS = [
 
 // ── Single source of truth for "are we in mobile-drawer mode?" ────
 // MUST match the 991.98px breakpoint in styles1.css where the sidebar
-// becomes a fixed off-canvas drawer.
+// becomes a fixed off-canvas drawer (transform: translateX(-105%)).
+// This was previously 768px while CSS used 991.98px — the mismatch
+// froze the sidebar in the 769–991px tablet range: isMobileViewport()
+// returned false there, so the hamburger toggled '.collapsed' (which
+// only changes width) instead of '.mobile-open' (the only class that
+// affects transform in that CSS range), so nothing ever moved.
 const MOBILE_QUERY = window.matchMedia('(max-width: 991.98px)');
 function isMobileViewport() {
   return MOBILE_QUERY.matches;
 }
 
-// ── Symmetric open/close for the mobile drawer ──────────────────────
-// Both functions are the ONLY places that touch mobile-open state, the
-// overlay, the toggle button's is-open class, and body scroll locking.
-// Every caller (hamburger, overlay click, nav-link tap, breakpoint
-// crossing) goes through these two functions so none of that state
-// can ever drift out of sync.
-function openMobileDrawer() {
-  const sidebar = document.getElementById('app-sidebar');
-  const mainContent = document.querySelector('.main-content');
-  const overlay = document.getElementById('sidebar-overlay');
-  const toggleBtn = document.getElementById('sidebar-toggle-btn');
-  if (!sidebar) return;
-
-  // Defensive: never let a stray 'collapsed' class fight 'mobile-open'
-  sidebar.classList.remove('collapsed');
-  mainContent?.classList.remove('sidebar-collapsed');
-
-  sidebar.classList.add('mobile-open');
-  overlay?.classList.add('active');
-  toggleBtn?.classList.add('is-open');
-
-  // Lock background scroll while the drawer is open. Set directly on
-  // the inline style (not just a class) so this can never depend on a
-  // CSS rule being present/loaded — belt-and-braces alongside
-  // 'no-scroll' for any styling that hooks the class.
-  document.body.classList.add('no-scroll');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeMobileDrawer() {
-  const sidebar = document.getElementById('app-sidebar');
-  const mainContent = document.querySelector('.main-content');
-  const overlay = document.getElementById('sidebar-overlay');
-  const toggleBtn = document.getElementById('sidebar-toggle-btn');
-  if (!sidebar) return;
-
-  sidebar.classList.remove('mobile-open');
-  mainContent?.classList.remove('sidebar-collapsed');
-  overlay?.classList.remove('active');
-  toggleBtn?.classList.remove('is-open');
-
-  // Always restore scroll, even if it was never explicitly locked —
-  // this is what guarantees no lingering scroll-bleed after the
-  // drawer closes via ANY path (hamburger, overlay, nav-link tap,
-  // breakpoint crossing).
-  document.body.classList.remove('no-scroll');
-  document.body.style.overflow = '';
-}
-
 function buildNavGroups(currentPath, userRole) {
   const isActive = (keyword) => currentPath.includes(keyword);
-  const groups = NAV_GROUPS.map(g => ({ ...g, items: [...g.items] }));
+  let groups = NAV_GROUPS.map(g => ({ ...g, items: [...g.items] }));
 
+  // Reports & Analytics: ADMIN / HR / MANAGER only
   if (['ADMIN', 'HR', 'MANAGER'].includes(userRole)) {
     groups.find(g => g.id === 'updates').items.push(
-      { href: '/pages/reports.html', icon: '📈', label: 'Reports & Analytics', match: 'reports' }
+      {
+        href: '/pages/reports.html',
+        icon: '📈',
+        label: 'Reports & Analytics',
+        match: 'reports'
+      }
     );
   }
 
+  // BDM Sales Executive: Sales Pipeline + Employees + Tasks only
+  if (userRole === 'BDM') {
+    groups = groups.filter(g =>
+      ['sales-pipeline', 'hr-employees'].includes(g.id)
+    );
+  }
+  // Sourcing Manager: Crewing + Task Management + Front Desk + Follow-up Queue
+  // Reports & Analytics remains hidden because it is ADMIN/HR/MANAGER-only.
+  if (userRole === 'SOURCING_MANAGER' || userRole === 'MANAGER_SOURCING') {
+  groups = groups
+    .map(g => {
+      if (g.id === 'crewing') return g;
+      if (g.id === 'frontdesk') return g;
+
+      if (g.id === 'hr-employees') {
+        return {
+          ...g,
+          items: g.items.filter(i =>
+            ['employee', 'hr-operations', 'tasks'].includes(i.match)
+          )
+        };
+      }
+
+      if (g.id === 'updates') {
+        return {
+          ...g,
+          items: g.items.filter(i => ['candidates', 'job-applicants', 'requirements', 'followups'].includes(i.match))
+        };
+      }
+
+      return { ...g, items: [] };
+    })
+    .filter(g => g.items.length > 0);
+}
+
+
+// Manager - Docs
+if (userRole === 'MANAGER_DOCS') {
+  groups = groups
+    .map(g => {
+
+      if (g.id === 'hr-employees') {
+        return {
+          ...g,
+          items: g.items.filter(i =>
+            ['employee', 'hr-operations', 'tasks'].includes(i.match)
+          )
+        };
+      }
+
+      if (g.id === 'crewing') {
+        return {
+          ...g,
+          items: g.items.filter(i => ['candidates', 'job-applicants'].includes(i.match))
+        };
+      }
+
+      return { ...g, items: [] };
+    })
+    .filter(g => g.items.length > 0);
+
+  groups.push({
+    id: 'docs',
+    label: 'Documents',
+    icon: '📄',
+    items: [
+      {
+        href: '/pages/documents.html',
+        icon: '📄',
+        label: 'Documents',
+        match: 'documents'
+      }
+    ]
+  });
+}
   let activeGroupId = null;
 
   const groupsHtml = groups.map(group => {
     const itemsHtml = group.items.map(item => {
       const active = isActive(item.match);
       if (active) activeGroupId = group.id;
+
       return `
         <a href="${item.href}" class="nav-subitem ${active ? 'active' : ''}" data-tooltip="${item.label}">
           <span class="nav-subitem-icon">${item.icon}</span>
@@ -257,23 +284,6 @@ function renderSidebar() {
 
   // ── Accordion logic ──────────────────────────────────────────
   initSidebarAccordion(activeGroupId);
-
-  // ── Mobile: tapping a real destination link closes the drawer
-  //    instantly and lets native navigation proceed uninterrupted.
-  //    e.stopPropagation() keeps this click from ever reaching the
-  //    SPA page-transition listener on document.body, which is what
-  //    used to preventDefault() it and delay navigation by 160ms —
-  //    that delay, stacked with the drawer's own closing animation,
-  //    is what made taps feel "frozen". NEVER call preventDefault()
-  //    here: the <a href> must be allowed to navigate normally. ────
-  sidebarContainer.querySelectorAll('.nav-item, .nav-subitem').forEach(link => {
-    link.addEventListener('click', (e) => {
-      if (isMobileViewport()) {
-        closeMobileDrawer();
-        e.stopPropagation();
-      }
-    });
-  });
 }
 
 // Applies the persisted "collapsed" preference, but only when we are
@@ -412,16 +422,20 @@ function renderNavbar() {
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
   toggleBtn.addEventListener('click', () => {
     const sidebar = document.getElementById('app-sidebar');
+    const mainContent = document.querySelector('.main-content');
+    const overlay = document.getElementById('sidebar-overlay');
     if (!sidebar) return;
 
     if (isMobileViewport()) {
-      if (sidebar.classList.contains('mobile-open')) {
-        closeMobileDrawer();
-      } else {
-        openMobileDrawer();
-      }
+      // Defensive: never let 'collapsed' fight 'mobile-open'
+      sidebar.classList.remove('collapsed');
+      mainContent?.classList.remove('sidebar-collapsed');
+
+      const isOpen = sidebar.classList.toggle('mobile-open');
+      if (overlay) overlay.classList.toggle('active', isOpen);
+      toggleBtn.classList.toggle('is-open', isOpen);
+      document.body.classList.toggle('no-scroll', isOpen);
     } else {
-      const mainContent = document.querySelector('.main-content');
       sidebar.classList.remove('mobile-open');
       const collapsed = sidebar.classList.toggle('collapsed');
       if (mainContent) mainContent.classList.toggle('sidebar-collapsed', collapsed);
@@ -441,10 +455,6 @@ function renderNavbar() {
     if (confirmed) {
       localStorage.removeItem('token');
       localStorage.removeItem('user');
-      // "Once per login session" for the birthday celebration popup
-      // means the login, not the browser tab — clear it here so a
-      // fresh login after logout is treated as a new session.
-      sessionStorage.removeItem('bdayCelebrationShown');
       window.location.href = '/pages/login.html';
     }
   });
@@ -461,7 +471,7 @@ function renderNavbar() {
     if (themeLabelEl) themeLabelEl.textContent = theme === 'light' ? 'Light' : 'Dark';
   }
 
-  const savedTheme = localStorage.getItem('theme') || 'dark';
+  const savedTheme = localStorage.getItem('theme') || 'light';
   if (savedTheme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
     setThemeButtonState('light');
@@ -490,7 +500,11 @@ function renderNavbar() {
   const overlay = document.getElementById('sidebar-overlay');
   if (overlay) {
     overlay.addEventListener('click', () => {
-      closeMobileDrawer();
+      const sidebar = document.getElementById('app-sidebar');
+      sidebar?.classList.remove('mobile-open');
+      overlay.classList.remove('active');
+      toggleBtn.classList.remove('is-open');
+      document.body.classList.remove('no-scroll');
     });
   }
 }
@@ -513,7 +527,7 @@ function renderFooter() {
 }
 
 (function applyStoredThemeEarly() {
-  const savedTheme = localStorage.getItem('theme') || 'dark';
+  const savedTheme = localStorage.getItem('theme') || 'light';
   if (savedTheme === 'light') {
     document.documentElement.setAttribute('data-theme', 'light');
   } else {
@@ -522,9 +536,17 @@ function renderFooter() {
 })();
 
 // ── Breakpoint-crossing reset ────────────────────────────────────
+// This is the critical fix: without it, 'collapsed' (desktop rail)
+// and 'mobile-open' (mobile drawer) can end up on the sidebar at the
+// same time, and their conflicting `transform` !important rules
+// leave the mobile drawer permanently hidden — OR, as seen in the
+// bug video, leave the desktop rail permanently visible and pushing
+// content even at mobile widths. Whenever the viewport crosses
+// 768px in either direction, force a clean state.
 MOBILE_QUERY.addEventListener('change', (e) => {
   const sidebar = document.getElementById('app-sidebar');
   const mainContent = document.querySelector('.main-content');
+  const overlay = document.getElementById('sidebar-overlay');
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
   if (!sidebar) return;
 
@@ -533,8 +555,11 @@ MOBILE_QUERY.addEventListener('change', (e) => {
     sidebar.classList.remove('collapsed');
     mainContent?.classList.remove('sidebar-collapsed');
   } else {
-    // Entered desktop: strip mobile-only state (also restores scroll)
-    closeMobileDrawer();
+    // Entered desktop: strip mobile-only state, restore collapsed pref
+    sidebar.classList.remove('mobile-open');
+    overlay?.classList.remove('active');
+    document.body.classList.remove('no-scroll');
+    toggleBtn?.classList.remove('is-open');
 
     const storedCollapsed = localStorage.getItem('sidebarCollapsed') === 'true';
     sidebar.classList.toggle('collapsed', storedCollapsed);
@@ -571,11 +596,6 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ── Lightweight SPA-style page-out transition on nav clicks ─────
-// NOTE: this listener never fires for .nav-item/.nav-subitem taps —
-// their own click handler (in renderSidebar, above) calls
-// e.stopPropagation() before this ever runs, so sidebar links always
-// navigate immediately via native <a href> behavior. This handler is
-// still used for other in-app links (quick-action cards, etc.).
 document.addEventListener('DOMContentLoaded', () => {
   const page = document.querySelector('.page-content');
   if (!page) return;
@@ -587,4 +607,4 @@ document.addEventListener('DOMContentLoaded', () => {
     page.classList.add('page-exit');
     window.setTimeout(() => { window.location.href = link.href; }, 160);
   });
-});
+})

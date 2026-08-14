@@ -47,6 +47,20 @@
   --radius-lg:22px;
   --font-display:'Poppins', 'Segoe UI', sans-serif;
   --font-body:'Inter', 'Segoe UI', sans-serif;
+
+  /* ============================================================
+     FIX 1 — "Day mode" text/controls staying dark & unreadable.
+     Without this, the browser infers native-control theming
+     (dropdown/select popups, <input type="date"> calendar
+     pickers, checkboxes, scrollbars) from the OS-level color
+     scheme — NOT from your custom CSS. So on a device/browser
+     set to system dark mode, those native popups render with
+     dark backgrounds + dark text even while the rest of the page
+     correctly shows your light theme, making them unreadable.
+     Declaring color-scheme explicitly forces native controls to
+     match whichever theme is actually active on the page.
+     ============================================================ */
+  color-scheme: light;
 }
 
 html[data-theme="dark"]{
@@ -66,6 +80,10 @@ html[data-theme="dark"]{
   --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
   --shadow-md:0 8px 24px rgba(0,0,0,0.35);
   --shadow-lg:0 24px 60px rgba(0,0,0,0.45);
+
+  /* FIX 1 (continued) — flip native controls to dark only when
+     the page itself is actually in dark mode. */
+  color-scheme: dark;
 }
 
 *{box-sizing:border-box;}
@@ -460,10 +478,25 @@ footer.jc-footer{text-align:center; color:var(--text-muted); font-size:.76rem; m
 
     <form id="applicationForm" class="form-card" novalidate>
 
-      <!-- honeypot field — left blank by humans, invisible via CSS -->
+      <!-- ============================================================
+           FIX 2 — Submit form glitch: honeypot autofill collision.
+           The old field was named/labeled "companyWebsite" /
+           "Company Website" — a name+label combo that Chrome's
+           autofill heuristics frequently match against a saved
+           "Company" / organization value and silently fill in,
+           even though the field is visually hidden. When that
+           happens, the submit handler's honeypot check below sees
+           a non-empty value and treats a genuine applicant as a
+           bot, blocking the submission with a generic
+           "Something went wrong" toast and no real explanation.
+           Renamed to a non-autofill-prone id/name and given a
+           neutral label + autocomplete="off" + explicit
+           autocapitalize/spellcheck off, which stops browsers from
+           pattern-matching it to any saved profile field.
+           ============================================================ -->
       <div class="hp-field" aria-hidden="true">
-        <label for="companyWebsite">Company Website</label>
-        <input type="text" id="companyWebsite" name="companyWebsite" tabindex="-1" autocomplete="off">
+        <label for="hpConfirmField">Leave this field empty</label>
+        <input type="text" id="hpConfirmField" name="hp_confirm_field" tabindex="-1" autocomplete="off" autocapitalize="off" spellcheck="false">
       </div>
 
       <!-- ===== STEP 1 — Personal & Contact ===== -->
@@ -936,7 +969,7 @@ footer.jc-footer{text-align:center; color:var(--text-muted); font-size:.76rem; m
         <span class="ref-label">Application Reference</span>
         <span class="ref-value" id="refValue">—</span>
       </div>
-      
+     
       <!-- Applicant Profile View Container -->
       <div id="submittedProfileContainer" style="margin-top: 24px; text-align: left;"></div>
 
@@ -1275,8 +1308,10 @@ footer.jc-footer{text-align:center; color:var(--text-muted); font-size:.76rem; m
       return;
     }
 
-    // honeypot check — if filled, silently treat as spam
-    var hp = document.getElementById('companyWebsite');
+    // honeypot check — if filled, silently treat as spam.
+    // FIX 2 (continued): reads the renamed field/id so it no longer
+    // collides with browser autofill for "Company"/organization data.
+    var hp = document.getElementById('hpConfirmField');
     if (hp && hp.value.trim() !== '') {
       showToast('Something went wrong. Please try again.', 'error');
       return;
@@ -1288,7 +1323,7 @@ footer.jc-footer{text-align:center; color:var(--text-muted); font-size:.76rem; m
     try {
       var fd = new FormData(form);
       // remove the honeypot before sending
-      fd.delete('companyWebsite');
+      fd.delete('hp_confirm_field');
 
       var res = await fetch(SUBMIT_URL, { method: 'POST', body: fd });
 
@@ -1298,7 +1333,15 @@ footer.jc-footer{text-align:center; color:var(--text-muted); font-size:.76rem; m
         throw new Error((errBody && errBody.message) || ('Server responded with ' + res.status));
       }
 
-      var data = await res.json();
+      // FIX 2 (continued) — response-parsing glitch: if the server
+      // responds 2xx but with an empty/non-JSON body, the old code
+      // let res.json() throw, which fell into the catch block below
+      // and showed an error toast even though the application had
+      // already been saved server-side. Parsing defensively here
+      // means a successful submit always reaches the success screen.
+      var data = null;
+      try { data = await res.json(); } catch (_) { data = null; }
+
       var refId = (data && (data.applicationId || (data.data && data.data.applicationId))) || ('JA-' + Date.now());
       var docId = (data && (data.id || (data.data && data.data._id))) || refId;
       document.getElementById('refValue').textContent = refId;
