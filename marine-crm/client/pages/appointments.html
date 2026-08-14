@@ -12,7 +12,7 @@
         })();
     </script>
     <link rel="stylesheet" href="/public/css/styles1.css">
-    
+
     <style>
         .outcome-action-btn {
             padding: 8px 15px; border-radius: 6px; border: none; cursor: pointer; font-weight: bold;
@@ -25,11 +25,15 @@
         .pending-btn { background: rgba(245,158,11,0.1); color: #f59e0b; border: 1px solid #f59e0b; }
         .pending-btn:hover { background: #f59e0b; color: #fff; }
         .outcome-actions-container { display: flex; gap: 10px; }
+
+        /* FIX (Issue 1): --bg-subtle / --bg-elevated are now real
+           theme-aware variables (see styles1-PATCH.css). Fallbacks
+           kept only as a last-resort safety net, no longer dark-only. */
         .reason-panel, .details-panel {
             display: none; margin-top: 10px; padding: 15px;
-            background: var(--bg-subtle, rgba(0,0,0,0.2));
+            background: var(--bg-subtle);
             border-radius: 6px;
-            border: 1px solid var(--border-color, #1e293b);
+            border: 1px solid var(--border-color);
         }
 
         /* ── Mobile: table horizontal scroll safety net ─────────────
@@ -40,6 +44,36 @@
         @media (max-width: 576px) {
             #appointments-table-el { min-width: 640px; }
         }
+
+        /* ── FIX (Issue 2): field-level validation ──────────────────
+           Belongs long-term in styles1.css (see styles1-PATCH.css),
+           duplicated here inline so this page works standalone even
+           before the shared stylesheet is patched. */
+        .form-control.field-invalid {
+            border-color: var(--red, #ef4444) !important;
+            box-shadow: 0 0 0 3px var(--red-light, rgba(239,68,68,0.14)) !important;
+            animation: fieldShake 0.4s ease;
+        }
+        .field-error-msg {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            color: var(--red, #ef4444);
+            font-size: 0.78rem;
+            font-weight: 600;
+            margin-top: 6px;
+        }
+        .field-error-msg::before { content: '⚠'; font-size: 0.85rem; }
+        @keyframes fieldShake {
+            0%, 100% { transform: translateX(0); }
+            25%      { transform: translateX(-4px); }
+            75%      { transform: translateX(4px); }
+        }
+
+        /* Belt-and-braces: guarantee toasts always win, even if
+           styles1.css hasn't been patched yet on the server. */
+        .toast-container { z-index: 999999 !important; }
+        .toast { z-index: 999999 !important; }
     </style>
 </head>
 <body>
@@ -80,7 +114,7 @@
                     <div class="table-container">
                         <table class="table" id="appointments-table-el" style="width: 100%; border-collapse: collapse;">
                             <thead>
-                                <tr style="border-bottom: 1px solid var(--border-color, #1e293b); background: var(--bg-subtle, rgba(0,0,0,0.2));">
+                                <tr style="border-bottom: 1px solid var(--border-color, #1e293b); background: var(--bg-subtle);">
                                     <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Company</th>
                                     <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Scheduled At</th>
                                     <th style="padding: 15px; text-align: left; color: var(--text-muted, #94a3b8);">Booked By</th>
@@ -133,6 +167,8 @@
                 <button type="button" class="outcome-action-btn pending-btn" onclick="selectOutcome('PENDING')" style="padding:15px 30px;font-size:16px;">⏳ PENDING</button>
             </div>
             <input type="hidden" id="selected-outcome-val">
+            <!-- FIX (Issue 2): dedicated inline error slot for "no outcome selected" -->
+            <div id="outcome-select-error"></div>
 
             <div class="reason-panel" id="no-reason-panel">
                 <div class="form-group">
@@ -175,8 +211,103 @@
                 window.location.href = '/pages/login.html';
                 return;
             }
+            initModalSettleObserver();   // FIX (Issue 2) — see below
             await Promise.all([fetchCompanies(), fetchReasons(), loadAppointments()]);
         });
+
+        // ══════════════════════════════════════════════════════════════════════
+        // FIX (Issue 2, root cause): .modal uses `animation: slideUp ... forwards`
+        // which permanently leaves `transform: translateY(0)` applied after the
+        // entrance animation finishes. A transformed ancestor becomes the
+        // containing block for fixed-position content, which can clip/mis-position
+        // native validation bubbles and trap tooltips inside the modal instead of
+        // letting them render above everything. This observer watches for any
+        // `.modal` being added to the DOM (by window.UI.createModal, wherever it
+        // lives) and strips the leftover animation/transform once it has finished
+        // playing, restoring a normal stacking context.
+        // ══════════════════════════════════════════════════════════════════════
+        function initModalSettleObserver() {
+            const settle = (modalEl) => {
+                if (!modalEl || modalEl.classList.contains('settled')) return;
+                modalEl.classList.add('settled');
+                modalEl.style.animation = 'none';
+                modalEl.style.transform = 'none';
+            };
+
+            const watch = (modalEl) => {
+                if (!modalEl) return;
+                modalEl.addEventListener('animationend', () => settle(modalEl), { once: true });
+                // Fallback in case the animationend event is missed for any reason
+                // (e.g. modal opened while tab was backgrounded).
+                setTimeout(() => settle(modalEl), 400);
+            };
+
+            const observer = new MutationObserver((mutations) => {
+                mutations.forEach((m) => {
+                    m.addedNodes.forEach((node) => {
+                        if (node.nodeType !== 1) return;
+                        if (node.classList && node.classList.contains('modal')) {
+                            watch(node);
+                        }
+                        const nested = node.querySelectorAll ? node.querySelectorAll('.modal') : [];
+                        nested.forEach(watch);
+                    });
+                });
+            });
+
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+
+        // ══════════════════════════════════════════════════════════════════════
+        // FIX (Issue 2): inline field-level validation helpers.
+        // Marks the offending field, drops a visible red message right under it,
+        // scrolls/focuses it into view inside the (now un-transformed) modal, and
+        // clears itself as soon as the user starts fixing it.
+        // ══════════════════════════════════════════════════════════════════════
+        function showFieldError(inputEl, message) {
+            if (!inputEl) return;
+            clearFieldError(inputEl);
+
+            inputEl.classList.add('field-invalid');
+
+            const msg = document.createElement('div');
+            msg.className = 'field-error-msg';
+            msg.textContent = message;
+            msg.dataset.fieldError = 'true';
+            inputEl.insertAdjacentElement('afterend', msg);
+
+            inputEl.scrollIntoView({ block: 'center', behavior: 'smooth' });
+            inputEl.focus();
+
+            const clearOnEdit = () => {
+                clearFieldError(inputEl);
+                inputEl.removeEventListener('input', clearOnEdit);
+                inputEl.removeEventListener('change', clearOnEdit);
+            };
+            inputEl.addEventListener('input', clearOnEdit);
+            inputEl.addEventListener('change', clearOnEdit);
+        }
+
+        function clearFieldError(inputEl) {
+            if (!inputEl) return;
+            inputEl.classList.remove('field-invalid');
+            const next = inputEl.nextElementSibling;
+            if (next && next.dataset && next.dataset.fieldError === 'true') {
+                next.remove();
+            }
+        }
+
+        function showOutcomeSelectError(modalEl, message) {
+            const slot = modalEl.querySelector('#outcome-select-error');
+            if (!slot) return;
+            slot.innerHTML = `<div class="field-error-msg" style="justify-content:center;margin-bottom:12px;">${message}</div>`;
+            slot.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+
+        function clearOutcomeSelectError(modalEl) {
+            const slot = modalEl.querySelector('#outcome-select-error');
+            if (slot) slot.innerHTML = '';
+        }
 
         // ─── Data loaders ─────────────────────────────────────────────────────
         async function fetchCompanies() {
@@ -322,19 +453,26 @@
             const reminderInput  = _bookModal.querySelector('#appt-reminder');
             const notesInput     = _bookModal.querySelector('#appt-notes');
 
+            // Clear any previous field errors before re-validating
+            clearFieldError(companySelect);
+            clearFieldError(scheduledInput);
+
             const companyId    = companySelect  ? companySelect.value.trim()  : '';
             const scheduledAt  = scheduledInput ? scheduledInput.value.trim() : '';
             const reminderAt   = (reminderInput && reminderInput.value.trim()) ? reminderInput.value.trim() : null;
             const meetingNotes = (notesInput && notesInput.value) ? notesInput.value.trim() : '';
 
+            // FIX (Issue 2): visible inline error directly under the field,
+            // in addition to the toast — so the user can never miss it even
+            // if the toast were somehow obscured.
             if (!companyId) {
+                showFieldError(companySelect, 'Please select a vessel owner company');
                 window.UI.showToast('Please select a vessel owner company', 'error');
-                companySelect && companySelect.focus();
                 return;
             }
             if (!scheduledAt) {
+                showFieldError(scheduledInput, 'Please select a scheduled date and time');
                 window.UI.showToast('Please select a scheduled date and time', 'error');
-                scheduledInput && scheduledInput.focus();
                 return;
             }
 
@@ -404,6 +542,8 @@
             const hiddenInput = _outcomeModal.querySelector('#selected-outcome-val');
             if (hiddenInput) hiddenInput.value = val;
 
+            clearOutcomeSelectError(_outcomeModal); // FIX (Issue 2)
+
             _outcomeModal.querySelectorAll('.outcome-action-btn').forEach(b => {
                 b.style.opacity = '0.5'; b.style.transform = 'scale(0.95)';
             });
@@ -414,6 +554,9 @@
             const yesPanel = _outcomeModal.querySelector('#yes-details-panel');
             if (noPanel)  noPanel.style.display  = val === 'NO'  ? 'block' : 'none';
             if (yesPanel) yesPanel.style.display = val === 'YES' ? 'block' : 'none';
+
+            const reasonSelect = _outcomeModal.querySelector('#outcome-reason');
+            if (val !== 'NO') clearFieldError(reasonSelect);
         }
 
         async function submitOutcome() {
@@ -421,13 +564,19 @@
             const apptId       = _outcomeModal.querySelector('#outcome-appt-id')?.value || '';
             const outcome      = (_outcomeModal.querySelector('#selected-outcome-val')?.value || '').trim();
             const outcomeNotes = (_outcomeModal.querySelector('#outcome-notes')?.value || '').trim();
-            const reasonId     = (_outcomeModal.querySelector('#outcome-reason')?.value || '').trim();
+            const reasonSelect = _outcomeModal.querySelector('#outcome-reason');
+            const reasonId     = (reasonSelect?.value || '').trim();
+
+            clearOutcomeSelectError(_outcomeModal);
+            clearFieldError(reasonSelect);
 
             if (!outcome) {
+                showOutcomeSelectError(_outcomeModal, 'Please select an outcome (YES, NO, or PENDING)');
                 window.UI.showToast('Please select an outcome (YES, NO, or PENDING)', 'error');
                 return;
             }
             if (outcome === 'NO' && !reasonId) {
+                showFieldError(reasonSelect, 'Please select a reason for the NO outcome');
                 window.UI.showToast('Please select a reason for the NO outcome', 'error');
                 return;
             }
@@ -473,26 +622,30 @@
                             </div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                            <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                            <!-- FIX (Issue 1): var(--bg-elevated) is now a real,
+                                 theme-aware variable (defined in styles1-PATCH.css)
+                                 instead of an undefined var that always fell back
+                                 to a hard-coded dark hex regardless of theme. -->
+                            <div style="background:var(--bg-elevated);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
                                 <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;">Scheduled</div>
                                 <div style="color:var(--text-primary, #fff);font-weight:600;margin-top:4px;">📅 ${window.UI.formatDateTime(appt.scheduledAt)}</div>
                             </div>
-                            <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                            <div style="background:var(--bg-elevated);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
                                 <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;">Booked By</div>
                                 <div style="color:var(--text-primary, #fff);font-weight:600;margin-top:4px;">👤 ${appt.createdBy?.name || 'Unknown'}</div>
                             </div>
                         </div>
                         <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-                            <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                            <div style="background:var(--bg-elevated);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
                                 <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;">Outcome</div>
                                 <div style="margin-top:6px;">${getOutcomeBadge(appt.outcome)}</div>
                             </div>
-                            <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                            <div style="background:var(--bg-elevated);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
                                 <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;">Reason</div>
                                 <div style="color:#f59e0b;font-weight:600;margin-top:4px;">${appt.reason?.label || 'None'}</div>
                             </div>
                         </div>
-                        <div style="background:var(--bg-elevated, #112240);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
+                        <div style="background:var(--bg-elevated);padding:12px;border-radius:6px;border:1px solid var(--border-color, #1e293b);">
                             <div style="color:var(--text-muted, #94a3b8);font-size:11px;text-transform:uppercase;font-weight:bold;margin-bottom:6px;">Meeting Notes</div>
                             <div style="color:var(--text-secondary, #cbd5e1);line-height:1.5;font-size:13px;white-space:pre-wrap;">${appt.meetingNotes || 'No meeting notes added.'}</div>
                         </div>
@@ -526,5 +679,6 @@
     </script>
     <script src="/public/js/components/ocean-bg.js"></script>
     <script src="/public/js/components/cursor.js"></script>
+    <script src="/public/js/components/birthday.js"></script>
 </body>
 </html>

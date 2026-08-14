@@ -1,0 +1,785 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Job Applicants - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles1.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        .workflow-stepper {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--card-bg-soft, rgba(255, 255, 255, 0.04));
+            border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+            border-radius: var(--radius-md, 12px);
+            padding: 16px 20px;
+            margin: 16px 0 24px;
+            position: relative;
+            overflow-x: auto;
+            gap: 10px;
+        }
+
+        .step-item {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            position: relative;
+            z-index: 2;
+            min-width: 90px;
+        }
+
+        .step-bubble {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: var(--card-bg, #1e293b);
+            border: 2px solid var(--border-color, #475569);
+            color: var(--text-muted, #94a3b8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.85rem;
+            font-weight: 700;
+            transition: all 0.3s ease;
+        }
+
+        .step-item.active .step-bubble {
+            background: var(--accent-primary, #0ea5e9);
+            border-color: var(--accent-primary, #0ea5e9);
+            color: #fff;
+            box-shadow: 0 0 12px rgba(14, 165, 233, 0.4);
+        }
+
+        .step-item.completed .step-bubble {
+            background: #10b981;
+            border-color: #10b981;
+            color: #fff;
+        }
+
+        .step-item.rejected .step-bubble {
+            background: #ef4444;
+            border-color: #ef4444;
+            color: #fff;
+        }
+
+        .step-title {
+            font-size: 0.72rem;
+            font-weight: 600;
+            color: var(--text-secondary, #94a3b8);
+            text-align: center;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .step-item.active .step-title {
+            color: var(--accent-primary, #0ea5e9);
+            font-weight: 700;
+        }
+
+        .step-connector {
+            flex: 1;
+            height: 3px;
+            background: var(--border-color, rgba(255, 255, 255, 0.1));
+            margin-top: -18px;
+            z-index: 1;
+            border-radius: 2px;
+        }
+
+        .step-connector.completed {
+            background: #10b981;
+        }
+
+        .profile-section {
+            background: var(--card-bg-soft, rgba(255, 255, 255, 0.03));
+            border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+            border-radius: var(--radius-md, 12px);
+            padding: 18px 20px;
+            margin-bottom: 20px;
+        }
+
+        .profile-section-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent-primary, #0ea5e9);
+            border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 14px 20px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            color: var(--text-muted, #94a3b8);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .info-value {
+            font-size: 0.9rem;
+            color: var(--text-primary, #f8fafc);
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .doc-card-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 12px;
+        }
+
+        .doc-card {
+            background: var(--card-bg, #1e293b);
+            border: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
+            border-radius: var(--radius-sm, 8px);
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            gap: 10px;
+            transition: border-color 0.2s ease;
+        }
+
+        .doc-card:hover {
+            border-color: var(--accent-primary, #0ea5e9);
+        }
+
+        .doc-card-title {
+            font-size: 0.82rem;
+            font-weight: 600;
+            color: var(--text-primary, #fff);
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .doc-card-meta {
+            font-size: 0.72rem;
+            color: var(--text-muted, #94a3b8);
+        }
+
+        .tag-chip {
+            display: inline-block;
+            background: var(--accent-light, rgba(14, 165, 233, 0.12));
+            color: var(--accent-primary, #0ea5e9);
+            border: 1px solid rgba(14, 165, 233, 0.25);
+            padding: 3px 8px;
+            border-radius: 999px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .workflow-stepper {
+                justify-content: flex-start;
+            }
+            .info-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+        }
+        @media (max-width: 480px) {
+            .info-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <div id="sidebar-container"></div>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+            <main class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">📋 Job Applicants</h1>
+                        <p class="page-subtitle">Review, track, and manage seafarer job applications</p>
+                    </div>
+                    <a href="/pages/job-application.html" target="_blank" class="btn btn-primary">
+                        <i class="fas fa-plus-circle"></i> Submit Application Form
+                    </a>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="stats-grid" style="margin-bottom: 20px;">
+                    <div class="stat-card">
+                        <span class="stat-label">Total Applications</span>
+                        <span class="stat-value" id="stat-total">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">New Applications</span>
+                        <span class="stat-value" id="stat-new" style="color: #0ea5e9;">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Under Review</span>
+                        <span class="stat-value" id="stat-reviewed" style="color: #a855f7;">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Shortlisted</span>
+                        <span class="stat-value" id="stat-shortlisted" style="color: #3b82f6;">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Interview Scheduled</span>
+                        <span class="stat-value" id="stat-interview" style="color: #eab308;">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Hired</span>
+                        <span class="stat-value" id="stat-hired" style="color: #22c55e;">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Rejected</span>
+                        <span class="stat-value" id="stat-rejected" style="color: #ef4444;">0</span>
+                    </div>
+                </div>
+
+                <!-- Filter Bar -->
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <input type="text" id="search-input" class="form-control" placeholder="Search by name, ID, rank, email or company...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="status-filter" class="form-control">
+                            <option value="">All Statuses</option>
+                            <option value="NEW">NEW</option>
+                            <option value="REVIEWED">REVIEWED</option>
+                            <option value="SHORTLISTED">SHORTLISTED</option>
+                            <option value="INTERVIEW_SCHEDULED">INTERVIEW SCHEDULED</option>
+                            <option value="HIRED">HIRED</option>
+                            <option value="REJECTED">REJECTED</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="dept-filter" class="form-control">
+                            <option value="">All Departments</option>
+                            <option value="Deck">Deck</option>
+                            <option value="Engine">Engine</option>
+                            <option value="Galley">Galley</option>
+                            <option value="Electrical">Electrical</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="rank-filter" class="form-control">
+                            <option value="">All Ranks</option>
+                            <optgroup label="Deck Side">
+                                <option value="Master">Master</option>
+                                <option value="Chief Officer">Chief Officer</option>
+                                <option value="2nd Officer">2nd Officer</option>
+                                <option value="3rd Officer">3rd Officer</option>
+                                <option value="Bosun">Bosun</option>
+                                <option value="AB">AB</option>
+                                <option value="OS">OS</option>
+                            </optgroup>
+                            <optgroup label="Engine Side">
+                                <option value="Chief Engineer">Chief Engineer</option>
+                                <option value="2nd Engineer">2nd Engineer</option>
+                                <option value="3rd Engineer">3rd Engineer</option>
+                                <option value="4th Engineer">4th Engineer</option>
+                                <option value="ETO">ETO</option>
+                                <option value="Fitter">Fitter</option>
+                                <option value="Oiler">Oiler</option>
+                            </optgroup>
+                            <optgroup label="Galley">
+                                <option value="Cook">Cook</option>
+                                <option value="Messman">Messman</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Table Card -->
+                <div class="card">
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-container">
+                            <table id="applicants-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Application ID &amp; Name</th>
+                                        <th>Rank &amp; Department</th>
+                                        <th>Contact Details</th>
+                                        <th>Experience</th>
+                                        <th>Application Date</th>
+                                        <th>Status</th>
+                                        <th>Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="applicants-tbody">
+                                    <tr class="skeleton-row">
+                                        <td colspan="7" style="text-align: center; padding: 24px; color: var(--text-muted);">
+                                            <i class="fas fa-spinner fa-spin"></i> Loading job applications...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="empty-state" class="empty-state" style="display: none; padding: 40px; text-align: center;">
+                            <i class="fas fa-user-slash fa-3x" style="color: var(--text-muted); margin-bottom: 12px;"></i>
+                            <p style="color: var(--text-secondary); font-weight: 500;">No job applications found matching your criteria.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script src="/public/js/components/birthday.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let applications = [];
+            let currentProfileModal = null;
+
+            const tbody = document.getElementById('applicants-tbody');
+            const emptyState = document.getElementById('empty-state');
+            const searchInput = document.getElementById('search-input');
+            const statusFilter = document.getElementById('status-filter');
+            const deptFilter = document.getElementById('dept-filter');
+            const rankFilter = document.getElementById('rank-filter');
+
+            // ── Fetch Initial Data ──────────────────────────────────────
+            async function loadData() {
+                try {
+                    const [resList, resStats] = await Promise.all([
+                        window.ApiService.recruitment.jobApplications.getAll({ limit: 100 }),
+                        window.ApiService.recruitment.jobApplications.getStats().catch(() => null)
+                    ]);
+
+                    applications = (resList && resList.data) ? resList.data : [];
+                    renderStats(resStats || {});
+                    renderTable();
+
+                    // Check if URL contains ?id= or ?appId= to auto open profile
+                    const params = new URLSearchParams(window.location.search);
+                    const openId = params.get('id') || params.get('appId');
+                    if (openId) {
+                        openApplicantProfile(openId);
+                    }
+                } catch (err) {
+                    console.error('Error fetching job applications:', err);
+                    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center; padding: 24px; color: #ef4444;">Failed to load job applications. Please try again.</td></tr>`;
+                    if (window.UI?.showToast) window.UI.showToast('Failed to load applications', 'error');
+                }
+            }
+
+            function renderStats(statsData) {
+                const total = statsData.total || applications.length;
+                const byStatus = statsData.byStatus || {};
+
+                document.getElementById('stat-total').textContent = total;
+                document.getElementById('stat-new').textContent = byStatus['NEW'] || applications.filter(a => a.status === 'NEW').length;
+                document.getElementById('stat-reviewed').textContent = byStatus['REVIEWED'] || applications.filter(a => a.status === 'REVIEWED').length;
+                document.getElementById('stat-shortlisted').textContent = byStatus['SHORTLISTED'] || applications.filter(a => a.status === 'SHORTLISTED').length;
+                document.getElementById('stat-interview').textContent = byStatus['INTERVIEW_SCHEDULED'] || applications.filter(a => a.status === 'INTERVIEW_SCHEDULED').length;
+                document.getElementById('stat-hired').textContent = byStatus['HIRED'] || applications.filter(a => a.status === 'HIRED').length;
+                document.getElementById('stat-rejected').textContent = byStatus['REJECTED'] || applications.filter(a => a.status === 'REJECTED').length;
+            }
+
+            function renderTable() {
+                const search = searchInput.value.toLowerCase().trim();
+                const status = statusFilter.value;
+                const dept = deptFilter.value;
+                const rank = rankFilter.value;
+
+                const filtered = applications.filter(app => {
+                    const name = (app.fullName || '').toLowerCase();
+                    const appId = (app.applicationId || '').toLowerCase();
+                    const appRank = (app.rankAppliedFor || '').toLowerCase();
+                    const email = (app.email || '').toLowerCase();
+                    const company = (app.lastCompany || '').toLowerCase();
+
+                    const matchSearch = !search || name.includes(search) || appId.includes(search) || appRank.includes(search) || email.includes(search) || company.includes(search);
+                    const matchStatus = !status || app.status === status;
+                    const matchDept = !dept || app.department === dept;
+                    const matchRank = !rank || app.rankAppliedFor === rank;
+
+                    return matchSearch && matchStatus && matchDept && matchRank;
+                });
+
+                tbody.innerHTML = '';
+                if (filtered.length === 0) {
+                    emptyState.style.display = 'block';
+                    document.getElementById('applicants-table').style.display = 'none';
+                    return;
+                }
+
+                emptyState.style.display = 'none';
+                document.getElementById('applicants-table').style.display = 'table';
+
+                filtered.forEach(app => {
+                    const tr = document.createElement('tr');
+                    const createdDate = app.createdAt ? new Date(app.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                    const expYears = (app.totalSeaExperience?.years || 0);
+                    const expMonths = (app.totalSeaExperience?.months || 0);
+
+                    tr.innerHTML = `
+                        <td>
+                            <div><strong style="color: var(--text-primary); font-size: 0.92rem;">${escapeHtml(app.fullName)}</strong></div>
+                            <div style="font-size: 0.75rem; color: var(--accent-primary); font-weight: 600;">${escapeHtml(app.applicationId || app._id)}</div>
+                        </td>
+                        <td>
+                            <div><span class="badge badge-blue">${escapeHtml(app.rankAppliedFor || 'N/A')}</span></div>
+                            <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 2px;">${escapeHtml(app.department || '')}</div>
+                        </td>
+                        <td>
+                            <div style="font-size: 0.85rem;"><i class="fas fa-phone" style="font-size:0.75rem; opacity:0.7;"></i> ${escapeHtml(app.mobileNumber || '')}${app.isWhatsapp ? ' <span style="color:#22c55e" title="WhatsApp Available"><i class="fab fa-whatsapp"></i></span>' : ''}</div>
+                            <div style="font-size: 0.78rem; color: var(--text-secondary);"><i class="fas fa-envelope" style="font-size:0.75rem; opacity:0.7;"></i> ${escapeHtml(app.email || '')}</div>
+                        </td>
+                        <td>
+                            <div style="font-size: 0.85rem; font-weight: 600;">${expYears}y ${expMonths}m</div>
+                            <div style="font-size: 0.75rem; color: var(--text-muted);">${escapeHtml(app.lastVesselName ? 'Last: ' + app.lastVesselName : '')}</div>
+                        </td>
+                        <td style="font-size: 0.85rem; color: var(--text-secondary);">${createdDate}</td>
+                        <td>${renderStatusBadge(app.status)}</td>
+                        <td class="row-actions">
+                            <button class="btn btn-primary btn-sm" onclick="openApplicantProfile('${app._id}')" title="View Profile">
+                                <i class="fas fa-eye"></i> View Profile
+                            </button>
+                            ${app.resume?.path ? `
+                                <a href="${window.ApiService.recruitment.jobApplications.getFileUrl(app._id, 'resume')}" target="_blank" class="btn btn-secondary btn-sm" title="Download Resume">
+                                    <i class="fas fa-file-pdf"></i>
+                                </a>
+                            ` : ''}
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            // ── Status Badges Helper ────────────────────────────────────
+            function renderStatusBadge(status) {
+                switch (status) {
+                    case 'NEW':
+                        return `<span class="badge badge-blue"><i class="fas fa-star" style="font-size:0.7rem"></i> NEW</span>`;
+                    case 'REVIEWED':
+                        return `<span class="badge badge-purple" style="background:rgba(168,85,247,0.15);color:#c084fc;border:1px solid rgba(168,85,247,0.3);"><i class="fas fa-search" style="font-size:0.7rem"></i> REVIEWED</span>`;
+                    case 'SHORTLISTED':
+                        return `<span class="badge badge-yellow"><i class="fas fa-bookmark" style="font-size:0.7rem"></i> SHORTLISTED</span>`;
+                    case 'INTERVIEW_SCHEDULED':
+                        return `<span class="badge badge-yellow" style="background:rgba(234,179,8,0.2);color:#eab308;"><i class="fas fa-calendar-alt" style="font-size:0.7rem"></i> INTERVIEW</span>`;
+                    case 'HIRED':
+                        return `<span class="badge badge-green"><i class="fas fa-check-circle" style="font-size:0.7rem"></i> HIRED</span>`;
+                    case 'REJECTED':
+                        return `<span class="badge badge-red"><i class="fas fa-times-circle" style="font-size:0.7rem"></i> REJECTED</span>`;
+                    default:
+                        return `<span class="badge">${escapeHtml(status || 'PENDING')}</span>`;
+                }
+            }
+
+            // ── Open Applicant Profile Modal ───────────────────────────
+            window.openApplicantProfile = async function(id) {
+                try {
+                    if (window.UI?.showToast) window.UI.showToast('Fetching applicant profile...', 'info');
+                    
+                    const res = await window.ApiService.recruitment.jobApplications.get(id);
+                    const app = res.data;
+                    if (!app) {
+                        if (window.UI?.showToast) window.UI.showToast('Applicant profile not found', 'error');
+                        return;
+                    }
+
+                    const profileHtml = buildProfileModalHtml(app);
+                    
+                    if (currentProfileModal) {
+                        currentProfileModal.close();
+                    }
+
+                    currentProfileModal = window.UI.createModal({
+                        title: `Applicant Profile — ${app.fullName}`,
+                        bodyHtml: profileHtml,
+                        footerHtml: `
+                            <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Close</button>
+                        `,
+                        onClose: () => { currentProfileModal = null; }
+                    });
+
+                    // Wire status change buttons inside modal
+                    const modalEl = document.querySelector('.modal-overlay');
+                    if (modalEl) {
+                        modalEl.style.maxWidth = '920px';
+                        
+                        modalEl.querySelectorAll('[data-status-btn]').forEach(btn => {
+                            btn.addEventListener('click', async (e) => {
+                                const newStatus = e.currentTarget.getAttribute('data-status-btn');
+                                const notesInput = modalEl.querySelector('#internal-notes-input');
+                                const internalNotes = notesInput ? notesInput.value.trim() : '';
+
+                                try {
+                                    btn.disabled = true;
+                                    await window.ApiService.recruitment.jobApplications.updateStatus(app._id, {
+                                        status: newStatus,
+                                        internalNotes
+                                    });
+
+                                    if (window.UI?.showToast) window.UI.showToast(`Status updated to ${newStatus}`, 'success');
+                                    loadData();
+                                    openApplicantProfile(app._id); // Reload modal view
+                                } catch (err) {
+                                    console.error('Failed to update status:', err);
+                                    if (window.UI?.showToast) window.UI.showToast('Failed to update status', 'error');
+                                    btn.disabled = false;
+                                }
+                            });
+                        });
+                    }
+
+                } catch (err) {
+                    console.error('Error loading applicant profile:', err);
+                    if (window.UI?.showToast) window.UI.showToast(err.message || 'Invalid or missing application ID', 'error');
+                }
+            };
+
+            // ── Build Profile HTML ──────────────────────────────────────
+            function buildProfileModalHtml(app) {
+                const createdDate = app.createdAt ? new Date(app.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+                const dobFormatted = app.dob ? new Date(app.dob).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const passExp = app.passportExpiryDate ? new Date(app.passportExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const cdcExp = app.cdcExpiryDate ? new Date(app.cdcExpiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const cocExp = app.coc?.expiryDate ? new Date(app.coc.expiryDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—';
+                const availDate = app.availableFromDate ? new Date(app.availableFromDate).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : 'Immediate / Not Specified';
+
+                const stages = ['NEW', 'REVIEWED', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'HIRED'];
+                const isRejected = app.status === 'REJECTED';
+                const currentStageIdx = stages.indexOf(app.status);
+
+                // Stepper HTML
+                const stepperHtml = `
+                    <div class="workflow-stepper">
+                        ${stages.map((stg, i) => {
+                            const isDone = !isRejected && currentStageIdx > i;
+                            const isActive = !isRejected && currentStageIdx === i;
+                            const isCompletedClass = isDone ? 'completed' : (isActive ? 'active' : '');
+                            const label = stg.replace('_', ' ');
+                            return `
+                                <div class="step-item ${isCompletedClass}">
+                                    <div class="step-bubble">${isDone ? '✓' : (i + 1)}</div>
+                                    <div class="step-title">${label}</div>
+                                </div>
+                                ${i < stages.length - 1 ? `<div class="step-connector ${isDone ? 'completed' : ''}"></div>` : ''}
+                            `;
+                        }).join('')}
+                    </div>
+                `;
+
+                // Document File Card Generator
+                function renderDocCard(title, fileObj, fieldName) {
+                    if (!fileObj || !fileObj.originalName) {
+                        return `
+                            <div class="doc-card" style="opacity: 0.6;">
+                                <div class="doc-card-title"><i class="fas fa-file"></i> ${title}</div>
+                                <div class="doc-card-meta">Not Provided</div>
+                            </div>
+                        `;
+                    }
+                    const url = window.ApiService.recruitment.jobApplications.getFileUrl(app._id, fieldName);
+                    return `
+                        <div class="doc-card">
+                            <div>
+                                <div class="doc-card-title"><i class="fas fa-file-alt" style="color:var(--accent-primary);"></i> ${title}</div>
+                                <div class="doc-card-meta" style="margin-top:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(fileObj.originalName)}">
+                                    ${escapeHtml(fileObj.originalName)}
+                                </div>
+                            </div>
+                            <a href="${url}" target="_blank" class="btn btn-primary btn-sm" style="margin-top:6px; font-size:0.75rem; text-align:center;">
+                                <i class="fas fa-external-link-alt"></i> View Document
+                            </a>
+                        </div>
+                    `;
+                }
+
+                return `
+                    <div style="max-height: 75vh; overflow-y: auto; padding-right: 6px;">
+                        
+                        <!-- Top Banner / Header Card -->
+                        <div style="background: var(--card-bg-soft, rgba(255,255,255,0.04)); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: var(--radius-md, 12px); padding: 20px; margin-bottom: 20px; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 16px;">
+                            <div>
+                                <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                                    <h2 style="margin: 0; font-size: 1.35rem; font-weight: 700; color: var(--text-primary);">${escapeHtml(app.fullName)}</h2>
+                                    <span class="tag-chip">${escapeHtml(app.applicationId || app._id)}</span>
+                                    ${renderStatusBadge(app.status)}
+                                </div>
+                                <div style="margin-top: 6px; font-size: 0.88rem; color: var(--text-secondary); display: flex; gap: 16px; flex-wrap: wrap;">
+                                    <span><i class="fas fa-anchor"></i> <strong>Rank:</strong> ${escapeHtml(app.rankAppliedFor)} (${escapeHtml(app.department)})</span>
+                                    <span><i class="fas fa-envelope"></i> ${escapeHtml(app.email)}</span>
+                                    <span><i class="fas fa-phone"></i> ${escapeHtml(app.mobileNumber)}</span>
+                                    <span><i class="fas fa-calendar-alt"></i> Applied: ${createdDate}</span>
+                                </div>
+                            </div>
+                            ${app.photo?.path ? `
+                                <img src="${window.ApiService.recruitment.jobApplications.getFileUrl(app._id, 'photo')}" alt="Photo" style="width: 64px; height: 64px; border-radius: 50%; object-fit: cover; border: 2px solid var(--accent-primary);">
+                            ` : ''}
+                        </div>
+
+                        <!-- Recruitment Workflow Stepper -->
+                        <div style="margin-bottom: 20px;">
+                            <label class="info-label" style="margin-bottom: 6px; display: block;">Recruitment Stage Pipeline</label>
+                            ${stepperHtml}
+                            
+                            <!-- Recruiter Status Controls -->
+                            <div style="background: var(--card-bg-soft, rgba(255,255,255,0.02)); border: 1px dashed var(--border-color, rgba(255,255,255,0.12)); border-radius: 8px; padding: 14px; display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;">
+                                <div>
+                                    <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary);">Update Recruiter Status:</span>
+                                </div>
+                                <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                                    <button class="btn btn-secondary btn-sm" data-status-btn="NEW" ${app.status === 'NEW' ? 'disabled' : ''}>NEW</button>
+                                    <button class="btn btn-secondary btn-sm" data-status-btn="REVIEWED" ${app.status === 'REVIEWED' ? 'disabled' : ''}>REVIEWED</button>
+                                    <button class="btn btn-secondary btn-sm" data-status-btn="SHORTLISTED" ${app.status === 'SHORTLISTED' ? 'disabled' : ''}>SHORTLIST</button>
+                                    <button class="btn btn-secondary btn-sm" data-status-btn="INTERVIEW_SCHEDULED" ${app.status === 'INTERVIEW_SCHEDULED' ? 'disabled' : ''}>INTERVIEW</button>
+                                    <button class="btn btn-primary btn-sm" data-status-btn="HIRED" ${app.status === 'HIRED' ? 'disabled' : ''} style="background:#22c55e; border-color:#22c55e;">HIRE</button>
+                                    <button class="btn btn-danger btn-sm" data-status-btn="REJECTED" ${app.status === 'REJECTED' ? 'disabled' : ''}>REJECT</button>
+                                </div>
+                            </div>
+                            <div style="margin-top: 10px;">
+                                <input type="text" id="internal-notes-input" class="form-control" placeholder="Internal recruiter notes (optional)..." value="${escapeHtml(app.internalNotes || '')}">
+                            </div>
+                        </div>
+
+                        <!-- 1. Personal & Contact -->
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fas fa-user"></i> 1. Personal &amp; Contact Details</div>
+                            <div class="info-grid">
+                                <div class="info-item"><span class="info-label">Full Name</span><span class="info-value">${escapeHtml(app.fullName)}</span></div>
+                                <div class="info-item"><span class="info-label">Date of Birth</span><span class="info-value">${dobFormatted}</span></div>
+                                <div class="info-item"><span class="info-label">Gender</span><span class="info-value">${escapeHtml(app.gender || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Nationality</span><span class="info-value">${escapeHtml(app.nationality)}</span></div>
+                                <div class="info-item"><span class="info-label">Marital Status</span><span class="info-value">${escapeHtml(app.maritalStatus || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Mobile Number</span><span class="info-value">${escapeHtml(app.mobileNumber)}${app.isWhatsapp ? ' (WhatsApp Enabled)' : ''}</span></div>
+                                <div class="info-item"><span class="info-label">Alternate Number</span><span class="info-value">${escapeHtml(app.altNumber || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Email Address</span><span class="info-value">${escapeHtml(app.email)}</span></div>
+                                <div class="info-item" style="grid-column: 1 / -1;"><span class="info-label">Current Address</span><span class="info-value">${escapeHtml(app.currentAddress)}</span></div>
+                                <div class="info-item" style="grid-column: 1 / -1;"><span class="info-label">Emergency Contact</span><span class="info-value">${escapeHtml(app.emergencyContact?.name || '—')} (${escapeHtml(app.emergencyContact?.relation || 'Relation')}) — ${escapeHtml(app.emergencyContact?.number || '')}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Identity & Documents -->
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fas fa-passport"></i> 2. Identity &amp; Travel Documents</div>
+                            <div class="info-grid">
+                                <div class="info-item"><span class="info-label">Passport Number</span><span class="info-value">${escapeHtml(app.passportNumber)}</span></div>
+                                <div class="info-item"><span class="info-label">Passport Issue Place</span><span class="info-value">${escapeHtml(app.passportIssuePlace || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Passport Expiry Date</span><span class="info-value">${passExp}</span></div>
+                                <div class="info-item"><span class="info-label">CDC Number</span><span class="info-value">${escapeHtml(app.cdcNumber || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">CDC Expiry Date</span><span class="info-value">${cdcExp}</span></div>
+                                <div class="info-item"><span class="info-label">INDoS Number</span><span class="info-value">${escapeHtml(app.indosNumber || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">US Visa Status</span><span class="info-value">${escapeHtml(app.usVisaStatus || '—')}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Rank & Sea Experience -->
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fas fa-ship"></i> 3. Rank &amp; Sea Experience</div>
+                            <div class="info-grid">
+                                <div class="info-item"><span class="info-label">Department</span><span class="info-value">${escapeHtml(app.department)}</span></div>
+                                <div class="info-item"><span class="info-label">Rank Applied For</span><span class="info-value">${escapeHtml(app.rankAppliedFor)}</span></div>
+                                <div class="info-item"><span class="info-label">Current Rank</span><span class="info-value">${escapeHtml(app.currentRank || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Engine Type Experience</span><span class="info-value">${escapeHtml(app.engineTypeExperience || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Total Sea Experience</span><span class="info-value">${app.totalSeaExperience?.years || 0} Years, ${app.totalSeaExperience?.months || 0} Months</span></div>
+                                <div class="info-item"><span class="info-label">Rank Experience</span><span class="info-value">${app.rankExperience?.years || 0} Years, ${app.rankExperience?.months || 0} Months</span></div>
+                                <div class="info-item" style="grid-column: 1 / -1;">
+                                    <span class="info-label" style="margin-bottom:4px;">Preferred Vessel Types</span>
+                                    <div>
+                                        ${(app.preferredVesselTypes && app.preferredVesselTypes.length > 0) ? app.preferredVesselTypes.map(v => `<span class="tag-chip">${escapeHtml(v)}</span>`).join('') : '<span class="info-value">—</span>'}
+                                    </div>
+                                </div>
+                                <div class="info-item"><span class="info-label">Last Vessel Name</span><span class="info-value">${escapeHtml(app.lastVesselName || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Last Vessel Type</span><span class="info-value">${escapeHtml(app.lastVesselType || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Last Company</span><span class="info-value">${escapeHtml(app.lastCompany || '—')}</span></div>
+                                <div class="info-item" style="grid-column: 1 / -1;"><span class="info-label">Sign Off Reason</span><span class="info-value">${escapeHtml(app.signOffReason || '—')}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Certificates -->
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fas fa-certificate"></i> 4. Certificates &amp; Endorsements</div>
+                            <div class="info-grid">
+                                <div class="info-item"><span class="info-label">COC Class</span><span class="info-value">${escapeHtml(app.coc?.class || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">COC Number</span><span class="info-value">${escapeHtml(app.coc?.number || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">COC Expiry</span><span class="info-value">${cocExp}</span></div>
+                                <div class="info-item"><span class="info-label">COE Number</span><span class="info-value">${escapeHtml(app.coe?.number || '—')}</span></div>
+                                <div class="info-item" style="grid-column: 1 / -1;">
+                                    <span class="info-label" style="margin-bottom:4px;">Certificates Held</span>
+                                    <div>
+                                        ${(app.certificatesHeld && app.certificatesHeld.length > 0) ? app.certificatesHeld.map(c => `<span class="tag-chip">${escapeHtml(c)}</span>`).join('') : '<span class="info-value">None specified</span>'}
+                                    </div>
+                                </div>
+                                ${app.otherCertificates ? `<div class="info-item" style="grid-column: 1 / -1;"><span class="info-label">Other Certificates / Training</span><span class="info-value">${escapeHtml(app.otherCertificates)}</span></div>` : ''}
+                            </div>
+                        </div>
+
+                        <!-- 5. Availability / Preferences -->
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fas fa-user-clock"></i> 5. Availability &amp; Preferences</div>
+                            <div class="info-grid">
+                                <div class="info-item"><span class="info-label">Medical Certificate</span><span class="info-value">${escapeHtml(app.medicalCertStatus || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Current Status</span><span class="info-value">${escapeHtml(app.currentStatus || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Available From</span><span class="info-value">${availDate}</span></div>
+                                <div class="info-item"><span class="info-label">Expected Salary</span><span class="info-value">${escapeHtml(app.expectedSalary || '—')}</span></div>
+                                <div class="info-item"><span class="info-label">Referral Source</span><span class="info-value">${escapeHtml(app.referralSource || '—')} ${app.referralOther ? `(${escapeHtml(app.referralOther)})` : ''}</span></div>
+                            </div>
+                        </div>
+
+                        <!-- 6. Uploaded Documents -->
+                        <div class="profile-section">
+                            <div class="profile-section-title"><i class="fas fa-folder-open"></i> 6. Uploaded Documents</div>
+                            <div class="doc-card-grid">
+                                ${renderDocCard('Resume / CV', app.resume, 'resume')}
+                                ${renderDocCard('Photo', app.photo, 'photo')}
+                                ${renderDocCard('Passport Copy', app.passportCopy, 'passportCopy')}
+                                ${renderDocCard('CDC Copy', app.cdcCopy, 'cdcCopy')}
+                                ${renderDocCard('Certificates File', app.certificatesFile, 'certificatesFile')}
+                            </div>
+                        </div>
+
+                    </div>
+                `;
+            }
+
+            function escapeHtml(str) {
+                if (!str) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            }
+
+            // Event Listeners for Filters
+            searchInput.addEventListener('input', renderTable);
+            statusFilter.addEventListener('change', renderTable);
+            deptFilter.addEventListener('change', renderTable);
+            rankFilter.addEventListener('change', renderTable);
+
+            // Load initial data
+            loadData();
+        });
+    </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+    <script src="/public/js/components/cursor.js"></script>
+</body>
+
+</html>

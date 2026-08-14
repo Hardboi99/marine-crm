@@ -14,6 +14,8 @@
   --bg-card-hover: #123049;
   --bg-sidebar: #051220;
   --bg-input: #0A1F30;
+  --bg-elevated: #112240;
+  --bg-subtle: rgba(255, 255, 255, 0.03);
 
   --border-color: rgba(94, 234, 212, 0.10);
   --border-focus: rgba(45, 212, 191, 0.55);
@@ -80,6 +82,8 @@
   --bg-card-hover: #F2FBFA;
   --bg-sidebar: #062B2A;
   --bg-input: #F4FAF9;
+  --bg-elevated: #F2FBFA;
+  --bg-subtle: rgba(6, 60, 56, 0.04);
 
   --border-color: rgba(6, 60, 56, 0.10);
   --border-focus: rgba(13, 148, 136, 0.5);
@@ -1614,6 +1618,35 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 .form-error { font-size: 0.78rem; color: var(--red); margin-top: 4px; }
 .form-hint  { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
 
+/* ─── Field-level validation (Issue 2 fix) ───────────────────── */
+.form-control.field-invalid {
+  border-color: var(--red) !important;
+  box-shadow: 0 0 0 3px var(--red-light) !important;
+  animation: fieldShake 0.4s ease;
+}
+
+.field-error-msg {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--red);
+  font-size: 0.78rem;
+  font-weight: 600;
+  margin-top: 6px;
+  animation: slideUp 0.2s ease;
+}
+
+.field-error-msg::before {
+  content: '⚠';
+  font-size: 0.85rem;
+}
+
+@keyframes fieldShake {
+  0%, 100% { transform: translateX(0); }
+  25%      { transform: translateX(-4px); }
+  75%      { transform: translateX(4px); }
+}
+
 /* ─── Tables ─────────────────────────────────────────────────── */
 .table-container { overflow-x: auto; }
 
@@ -1729,6 +1762,17 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   max-height: 90vh;
   overflow-y: auto;
   animation: slideUp 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+/* Issue 2 fix: once the entrance animation finishes, JS adds this
+   class to strip the leftover transform (fill-mode:forwards keeps
+   `transform: translateY(0)` applied indefinitely otherwise, which
+   creates a containing block that can clip/mis-position native
+   validation bubbles and other fixed-position content anchored to
+   fields inside the modal). */
+.modal.settled {
+  animation: none !important;
+  transform: none !important;
 }
 
 .modal-lg { max-width: 720px; }
@@ -1850,7 +1894,7 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   position: fixed;
   top: 80px;
   right: 24px;
-  z-index: 2000;
+  z-index: 999999 !important;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -1872,6 +1916,7 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   pointer-events: all;
   font-size: 0.875rem;
   color: var(--text-primary);
+  z-index: 999999 !important;
 }
 
 @keyframes slideIn {
@@ -2218,7 +2263,7 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   }
 
 
- 
+
 
   .page-content {
     padding: 18px 14px;
@@ -2624,7 +2669,7 @@ textarea.form-control { resize: vertical; min-height: 100px; }
   inset: 0;
   background: rgba(2, 10, 16, 0.78);
   backdrop-filter: blur(6px);
-  z-index: 2000;
+  z-index: 999998 !important;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2787,7 +2832,6 @@ textarea.form-control { resize: vertical; min-height: 100px; }
 
 /* ============================================================
    CURSOR GLOW — theme-aware, reduced size (v3)
-   Replace the existing ".cursor-glow" block in styles1.css with this.
    ============================================================ */
 
 body.custom-cursor-active,
@@ -2867,7 +2911,6 @@ body.custom-cursor-active * {
 
 /* ============================================================
    SECTION: THEME COMPLETENESS + MOTION PACK
-   (merged in — previously a separate dashboard-theme-and-motion.css)
    ============================================================ */
 
 /* ------------------------------------------------------------
@@ -3471,22 +3514,14 @@ textarea:focus-visible,
    must default to hidden unless explicitly opened. This must match
    the 991.98px threshold where the sidebar first becomes a fixed
    off-canvas drawer (see the main @media (max-width: 991.98px)
-   block above) — NOT a narrower 768px. A mismatch here previously
-   froze the sidebar in the 769–991px tablet range: the sidebar
-   started hidden at 991.98px, but the only rule that could show it
-   again only existed at ≤768px, so between 769–991px no CSS rule
-   could ever bring it back on screen no matter what the hamburger
-   click toggled. sidebar.js's MOBILE_QUERY must use the same
-   991.98px threshold for the same reason — see sidebar.js. ────── */
+   block above) — NOT a narrower 768px. ────── */
 @media (max-width: 991.98px) {
   .sidebar.collapsed {
     width: min(280px, 88vw) !important;
   }
 
   /* Belt-and-braces default: on tablet/mobile, ANY sidebar state that
-     is not '.mobile-open' stays off-screen — this is what actually
-     fixes the "sidebar stuck visible / pushing content" bug, since
-     it no longer depends on 'collapsed' being present or absent. */
+     is not '.mobile-open' stays off-screen. */
   .sidebar:not(.mobile-open) {
     transform: translateX(-105%) !important;
   }
@@ -3538,9 +3573,7 @@ textarea:focus-visible,
 
 /* ── 5. app-wrapper AND app-layout: sidebar is position:fixed so
    neither wrapper class should be counted as a flex sibling taking
-   up space. app-layout is included here as a safety net for any
-   page still using the older class name until every page is
-   migrated to app-wrapper. ─────────────────────────────────────── */
+   up space. ─────────────────────────────────────── */
 .app-wrapper,
 .app-layout {
   width: 100%;

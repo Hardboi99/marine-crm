@@ -169,8 +169,6 @@
             flex: 1 1 0;
         }
 
-        /* Split equally for center red dot */
-
         /* Desktop Connecting Lines */
         .tree li::before,
         .tree li::after {
@@ -241,8 +239,8 @@
             transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             position: relative;
             transform-origin: center;
-            cursor: pointer;
             z-index: 1;
+            cursor: pointer;
         }
 
         .avatar {
@@ -263,40 +261,25 @@
             font-weight: bold;
         }
 
-        .avatar img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-
         .node:hover:not(.zoomed) {
             transform: translateY(-5px);
             background: var(--node-hover);
             box-shadow: 0 12px 25px rgba(0, 0, 0, 0.4);
         }
 
-        /* Click Zoom */
+        /* Click Zoom - Now applied to ALL nodes when clicked */
         .node.zoomed {
-            transform: scale(1.4);
+            transform: scale(1.15); /* Slightly bigger */
             z-index: 50;
             background: var(--bg-grad-1);
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
             border-color: var(--primary) !important;
         }
 
         body.light-mode .node.zoomed {
             background: #ffffff;
-            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.2);
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.2);
             border-color: var(--primary) !important;
-        }
-
-        .tree.has-zoomed .node:not(.zoomed) {
-            filter: blur(3px) opacity(0.4);
-            pointer-events: none;
-        }
-
-        .tree.has-zoomed .dept-title {
-            filter: blur(3px) opacity(0.4);
         }
 
         .name {
@@ -325,91 +308,36 @@
             padding: 8px 18px;
             border-radius: 20px;
             margin-bottom: 20px;
-            display: inline-block;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
             box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            cursor: pointer;
         }
 
-        .border-gold {
-            border-color: var(--primary);
-        }
+        .border-gold { border-color: var(--primary); }
+        .role-gold { background: rgba(246, 179, 80, 0.2); color: var(--primary); }
+        body.light-mode .role-gold { background: var(--primary); color: #fff; }
 
-        .role-gold {
-            background: rgba(246, 179, 80, 0.2);
-            color: var(--primary);
-        }
+        .border-green { border-color: var(--secondary); }
+        .role-green { background: rgba(125, 211, 192, 0.2); color: var(--secondary); }
+        body.light-mode .role-green { background: var(--secondary); color: #0f172a; }
 
-        body.light-mode .role-gold {
-            background: var(--primary);
-            color: #fff;
-        }
+        .border-blue { border-color: var(--accent-blue); }
+        .role-blue { background: rgba(56, 189, 248, 0.2); color: var(--accent-blue); }
+        body.light-mode .role-blue { background: var(--accent-blue); color: #fff; }
 
-        .border-green {
-            border-color: var(--secondary);
-        }
+        .role-docs { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
+        body.light-mode .role-docs { background: #fbbf24; color: #000; }
 
-        .role-green {
-            background: rgba(125, 211, 192, 0.2);
-            color: var(--secondary);
-        }
+        .role-bd { background: rgba(167, 139, 250, 0.2); color: var(--accent-purple); }
+        body.light-mode .role-bd { background: var(--accent-purple); color: #fff; }
 
-        body.light-mode .role-green {
-            background: var(--secondary);
-            color: #0f172a;
-        }
+        .role-social { background: rgba(244, 114, 182, 0.2); color: var(--accent-pink); }
+        body.light-mode .role-social { background: var(--accent-pink); color: #fff; }
 
-        .border-blue {
-            border-color: var(--accent-blue);
-        }
-
-        .role-blue {
-            background: rgba(56, 189, 248, 0.2);
-            color: var(--accent-blue);
-        }
-
-        body.light-mode .role-blue {
-            background: var(--accent-blue);
-            color: #fff;
-        }
-
-        .role-docs {
-            background: rgba(251, 191, 36, 0.2);
-            color: #fbbf24;
-        }
-
-        body.light-mode .role-docs {
-            background: #fbbf24;
-            color: #000;
-        }
-
-        .role-bd {
-            background: rgba(167, 139, 250, 0.2);
-            color: var(--accent-purple);
-        }
-
-        body.light-mode .role-bd {
-            background: var(--accent-purple);
-            color: #fff;
-        }
-
-        .role-social {
-            background: rgba(244, 114, 182, 0.2);
-            color: var(--accent-pink);
-        }
-
-        body.light-mode .role-social {
-            background: var(--accent-pink);
-            color: #fff;
-        }
-
-        .role-admin {
-            background: rgba(148, 163, 184, 0.2);
-            color: #cbd5e1;
-        }
-
-        body.light-mode .role-admin {
-            background: var(--accent-grey);
-            color: #fff;
-        }
+        .role-admin { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
+        body.light-mode .role-admin { background: var(--accent-grey); color: #fff; }
 
         .vertical-stack {
             display: flex;
@@ -418,36 +346,90 @@
             align-items: center;
         }
 
-        /* Manager -> Officer Side-by-Side (Desktop) */
+        /* --- Manager -> Officer (Now Vertically Stacked Everywhere) --- */
         .pair {
             display: flex;
+            flex-direction: column; /* Vertical alignment */
             align-items: center;
             position: relative;
+            width: 100%;
         }
 
+        .pair .node:last-child {
+            margin-top: 45px; /* Space for the arrow */
+        }
+
+        /* Dynamic Downward Arrow for Expandable Pairs */
         .pair .node:first-child::after {
-            content: '→';
+            content: '↓'; /* Downward pointing arrow */
             position: absolute;
-            right: -24px;
-            top: 50%;
-            transform: translateY(-50%);
+            left: 50%;
+            bottom: -32px;
+            transform: translateX(-50%);
             color: var(--line-color);
             font-size: 1.5rem;
             font-weight: bold;
             pointer-events: none;
+            opacity: 0; /* Hidden until expanded */
+            transition: opacity 0.3s ease;
         }
 
-        .pair .node:last-child {
-            margin-left: 45px;
+        .pair .node:first-child.expanded::after {
+            opacity: 1; /* Show arrow when expanded */
+        }
+
+        /* --- COLLAPSIBLE CSS ADDITIONS --- */
+        .branch {
+            display: none !important;
+        }
+        ul.branch.show, div.branch.show {
+            display: flex !important;
+        }
+        .node.branch.show {
+            display: inline-flex !important;
+        }
+        
+        .expand-icon {
+            position: absolute;
+            bottom: -14px;
+            background: var(--bg-grad-1);
+            border: 2px solid var(--primary);
+            color: var(--text-main);
+            border-radius: 50%;
+            width: 26px;
+            height: 26px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            transition: transform 0.3s ease, background 0.3s ease;
+            z-index: 10;
+        }
+        body.light-mode .expand-icon {
+            background: #ffffff;
+            color: #000;
+        }
+        .toggler.expanded > .expand-icon {
+            transform: rotate(180deg);
+        }
+        
+        .expand-icon-inline {
+            display: inline-block;
+            margin-left: 8px;
+            font-size: 11px;
+            transition: transform 0.3s ease;
+        }
+        .toggler.expanded .expand-icon-inline {
+            transform: rotate(180deg);
         }
 
         /* ========================================================
-           MOBILE & TABLET VIEW (STRICTLY VERTICAL)
+           MOBILE & TABLET VIEW
            ======================================================== */
         @media (max-width: 992px) {
             .chart-wrapper {
                 overflow-x: hidden;
-                /* Stops horizontal scroll */
                 overflow-y: auto;
                 padding: 1.5rem 1rem 4rem 1rem;
             }
@@ -459,7 +441,6 @@
 
             .tree ul {
                 flex-direction: column;
-                /* Force vertical stacking */
                 align-items: center;
                 padding-top: 20px;
             }
@@ -472,14 +453,12 @@
                 align-items: center;
             }
 
-            /* 1. Hide all complex desktop lines */
             .tree li::before,
             .tree li::after,
             .tree ul ul::before {
                 display: none !important;
             }
 
-            /* 2. Create simple vertical connecting lines */
             .tree ul::before {
                 content: '';
                 position: absolute;
@@ -496,8 +475,6 @@
                 display: none;
             }
 
-            /* Hide for root */
-
             .tree li:not(:first-child)::before {
                 content: '';
                 position: absolute;
@@ -510,38 +487,16 @@
                 display: block;
             }
 
-            /* 3. Stack Manager -> Officer pairs vertically */
-            .pair {
-                flex-direction: column;
-                width: 100%;
-            }
-
-            .pair .node:last-child {
-                margin-left: 0;
-                margin-top: 25px;
-            }
-
-            .pair .node:first-child::after {
-                content: '↓';
-                right: auto;
-                left: 50%;
-                top: auto;
-                bottom: -28px;
-                transform: translateX(-50%);
-            }
-
-            /* 4. Fix Widths & Spacing for Mobile */
             .node {
                 width: 100%;
                 max-width: 320px;
                 min-width: unset;
             }
-
-            .node.zoomed {
-                transform: scale(1.1);
+            
+            .node.branch.show {
+                display: flex !important; /* Make full width on mobile */
             }
 
-            /* Smaller zoom on mobile so it doesn't break screen */
             .tree>ul>li>ul>li {
                 flex: none;
                 width: 100%;
@@ -575,148 +530,16 @@
             <ul>
                 <!-- LEVEL 1: FOUNDER -->
                 <li>
-                    <div class="node border-gold">
-                        <div class="avatar">
-                            <!-- <img src="founder-image.jpg" alt="Photo"> -->
-                            RK
-                        </div>
+                    <div class="node border-gold toggler">
+                        <div class="avatar">RK</div>
                         <span class="name">Ram B Keshari</span>
                         <span class="role role-gold">Founder and Director</span>
+                        <div class="expand-icon">▼</div>
                     </div>
 
                     <!-- LEVEL 2 -->
-                    <ul>
-                        <!-- C.O.O Branch -->
-                        <li>
-                            <div class="node border-green">
-                                <div class="avatar">SG</div>
-                                <span class="name">Sheetal S G</span>
-                                <span class="role role-green">C.O.O</span>
-                            </div>
-
-                            <!-- LEVEL 3 (Under COO) -->
-                            <ul>
-                                <li>
-                                    <div class="dept-title">SOURCING/CREWING</div>
-                                    <div class="vertical-stack">
-                                        <div class="pair">
-                                            <div class="node border-blue">
-                                                <div class="avatar">NC</div>
-                                                <span class="name">Nandini C</span>
-                                                <span class="role role-blue">Sourcing Manager</span>
-                                            </div>
-                                            <div class="node border-blue">
-                                                <div class="avatar">UD</div>
-                                                <span class="name">Unnati D</span>
-                                                <span class="role role-blue">Sourcing Officer</span>
-                                            </div>
-                                        </div>
-                                        <div class="pair">
-                                            <div class="node border-blue">
-                                                <div class="avatar">PS</div>
-                                                <span class="name">Puja Shetty</span>
-                                                <span class="role role-blue">Sourcing Manager</span>
-                                            </div>
-                                            <div class="node border-blue">
-                                                <div class="avatar">MK</div>
-                                                <span class="name">Monika K</span>
-                                                <span class="role role-blue">Sourcing Officer</span>
-                                            </div>
-                                        </div>
-                                        <div class="pair">
-                                            <div class="node border-blue">
-                                                <div class="avatar">DK</div>
-                                                <span class="name">Dipak Keshari</span>
-                                                <span class="role role-blue">Sourcing Manager</span>
-                                            </div>
-                                            <div class="node border-blue">
-                                                <div class="avatar">VD</div>
-                                                <span class="name">Vijay Dubey</span>
-                                                <span class="role role-blue">Sourcing Officer</span>
-                                            </div>
-                                        </div>
-                                        <div class="pair">
-                                            <div class="node border-blue">
-                                                <div class="avatar">AV</div>
-                                                <span class="name">Aditi Verma</span>
-                                                <span class="role role-blue">Sourcing Officer</span>
-                                            </div>
-                                            <div class="node border-blue">
-                                                <div class="avatar">HT</div>
-                                                <span class="name">Hemangi Thakur</span>
-                                                <span class="role role-blue">Sourcing Officer</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </li>
-
-                                <li>
-                                    <div class="dept-title" style="background:#fde047; color:#000;">DOCUMENTATION</div>
-                                    <div class="vertical-stack">
-                                        <div class="pair">
-                                            <div class="node border-blue" style="border-color:#fbbf24;">
-                                                <div class="avatar">PS</div>
-                                                <span class="name">Prashant Sakpal</span>
-                                                <span class="role role-docs">Manager - Docs</span>
-                                            </div>
-                                            <div class="node border-blue" style="border-color:#fbbf24;">
-                                                <div class="avatar">RY</div>
-                                                <span class="name">Rahul Yadav</span>
-                                                <span class="role role-docs">Officer - Docs</span>
-                                            </div>
-                                        </div>
-                                        <div class="pair">
-                                            <div class="node border-blue" style="border-color:#fbbf24;">
-                                                <div class="avatar">SG</div>
-                                                <span class="name">Siddhi G</span>
-                                                <span class="role role-docs">Officer - Docs</span>
-                                            </div>
-                                            <div class="node border-blue" style="border-color:#fbbf24;">
-                                                <div class="avatar">HT</div>
-                                                <span class="name">Hemangi Thakur</span>
-                                                <span class="role role-docs">Officer - Docs</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </li>
-
-                                <li>
-                                    <div class="vertical-stack" style="gap:35px;">
-                                        <div>
-                                            <div class="dept-title"
-                                                style="background:#e5e7eb; color:#000; font-size:0.7rem; margin-bottom:8px;">
-                                                BUSINESS DEVELOPMENT</div>
-                                            <div class="node" style="border-color:var(--accent-purple);">
-                                                <div class="avatar">QK</div>
-                                                <span class="name">Queeny Kapoor</span>
-                                                <span class="role role-bd">Officer - BD</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="dept-title"
-                                                style="background:#fef08a; color:#000; font-size:0.7rem; margin-bottom:8px;">
-                                                SOCIAL MEDIA</div>
-                                            <div class="node" style="border-color:var(--accent-pink);">
-                                                <div class="avatar">JK</div>
-                                                <span class="name">Jayash Keshari</span>
-                                                <span class="role role-social">Officer - Social Media</span>
-                                            </div>
-                                        </div>
-                                        <div>
-                                            <div class="dept-title"
-                                                style="background:#fcd34d; color:#000; font-size:0.7rem; margin-bottom:8px;">
-                                                ADMINISTRATION</div>
-                                            <div class="node" style="border-color:var(--accent-grey);">
-                                                <div class="avatar">MS</div>
-                                                <span class="name">Muskaan Singh</span>
-                                                <span class="role role-admin">Officer - Admin</span>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </li>
-                            </ul>
-                        </li>
-
+                    <ul class="branch">
+                        
                         <!-- Accounts Branch -->
                         <li>
                             <div class="node" style="border-color:#cbd5e1;">
@@ -724,6 +547,159 @@
                                 <span class="name">Akansha Gupta</span>
                                 <span class="role role-admin">Officer Accounts</span>
                             </div>
+                        </li>
+
+                        <!-- C.O.O Branch -->
+                        <li>
+                            <div class="node border-green toggler">
+                                <div class="avatar">SG</div>
+                                <span class="name">Sheetal S G</span>
+                                <span class="role role-green">C.O.O</span>
+                                <div class="expand-icon">▼</div>
+                            </div>
+
+                            <!-- LEVEL 3 -->
+                            <ul class="branch">
+                                
+                                <!-- DEPARTMENT 1: SOURCING -->
+                                <li>
+                                    <div class="dept-title toggler">
+                                        SOURCING/CREWING <span class="expand-icon-inline">▼</span>
+                                    </div>
+                                    <div class="vertical-stack branch">
+                                        <div class="pair">
+                                            <div class="node border-blue toggler">
+                                                <div class="avatar">NC</div>
+                                                <span class="name">Nandini C</span>
+                                                <span class="role role-blue">Sourcing Manager</span>
+                                                <div class="expand-icon">▼</div>
+                                            </div>
+                                            <div class="node border-blue branch">
+                                                <div class="avatar">UD</div>
+                                                <span class="name">Unnati D</span>
+                                                <span class="role role-blue">Sourcing Officer</span>
+                                            </div>
+                                        </div>
+                                        <div class="pair">
+                                            <div class="node border-blue toggler">
+                                                <div class="avatar">PS</div>
+                                                <span class="name">Puja Shetty</span>
+                                                <span class="role role-blue">Sourcing Manager</span>
+                                                <div class="expand-icon">▼</div>
+                                            </div>
+                                            <div class="node border-blue branch">
+                                                <div class="avatar">MK</div>
+                                                <span class="name">Monika K</span>
+                                                <span class="role role-blue">Sourcing Officer</span>
+                                            </div>
+                                        </div>
+                                        <div class="pair">
+                                            <div class="node border-blue toggler">
+                                                <div class="avatar">DK</div>
+                                                <span class="name">Dipak Keshari</span>
+                                                <span class="role role-blue">Sourcing Manager</span>
+                                                <div class="expand-icon">▼</div>
+                                            </div>
+                                            <div class="node border-blue branch">
+                                                <div class="avatar">VD</div>
+                                                <span class="name">Vijay Dubey</span>
+                                                <span class="role role-blue">Sourcing Officer</span>
+                                            </div>
+                                        </div>
+                                        <div class="pair">
+                                            <div class="node border-blue toggler">
+                                                <div class="avatar">AV</div>
+                                                <span class="name">Aditi Verma</span>
+                                                <span class="role role-blue">Sourcing Manager</span>
+                                                <div class="expand-icon">▼</div>
+                                            </div>
+                                            <div class="node border-blue branch">
+                                                <div class="avatar">HT</div>
+                                                <span class="name">Hemangi Thakur</span>
+                                                <span class="role role-blue">Sourcing Officer</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+
+                                <!-- DEPARTMENT 2: DOCUMENTATION -->
+                                <li>
+                                    <div class="dept-title toggler" style="background:#fde047; color:#000;">
+                                        DOCUMENTATION <span class="expand-icon-inline">▼</span>
+                                    </div>
+                                    <div class="vertical-stack branch">
+                                        <div class="pair">
+                                            <div class="node border-blue toggler" style="border-color:#fbbf24;">
+                                                <div class="avatar">PS</div>
+                                                <span class="name">Prashant Sakpal</span>
+                                                <span class="role role-docs">Manager - Docs</span>
+                                                <div class="expand-icon">▼</div>
+                                            </div>
+                                            <div class="node border-blue branch" style="border-color:#fbbf24;">
+                                                <div class="avatar">RY</div>
+                                                <span class="name">Rahul Yadav</span>
+                                                <span class="role role-docs">Officer - Docs</span>
+                                            </div>
+                                        </div>
+                                        <div class="pair">
+                                            <div class="node border-blue toggler" style="border-color:#fbbf24;">
+                                                <div class="avatar">SG</div>
+                                                <span class="name">Siddhi G</span>
+                                                <span class="role role-docs">Manager - Docs</span>
+                                                <div class="expand-icon">▼</div>
+                                            </div>
+                                            <div class="node border-blue branch" style="border-color:#fbbf24;">
+                                                <div class="avatar">HT</div>
+                                                <span class="name">Hemangi Thakur</span>
+                                                <span class="role role-docs">Officer - Docs</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </li>
+
+                                <!-- DEPARTMENT 3: BUSINESS DEVELOPMENT -->
+                                <li>
+                                    <div class="dept-title toggler" style="background:#e5e7eb; color:#000;">
+                                        BUSINESS DEVELOPMENT <span class="expand-icon-inline">▼</span>
+                                    </div>
+                                    <div class="vertical-stack branch">
+                                        <div class="node" style="border-color:var(--accent-purple);">
+                                            <div class="avatar">QK</div>
+                                            <span class="name">Queeny Kapoor</span>
+                                            <span class="role role-bd">Officer - BD</span>
+                                        </div>
+                                    </div>
+                                </li>
+
+                                <!-- DEPARTMENT 4: SOCIAL MEDIA -->
+                                <li>
+                                    <div class="dept-title toggler" style="background:#fef08a; color:#000;">
+                                        SOCIAL MEDIA <span class="expand-icon-inline">▼</span>
+                                    </div>
+                                    <div class="vertical-stack branch">
+                                        <div class="node" style="border-color:var(--accent-pink);">
+                                            <div class="avatar">JK</div>
+                                            <span class="name">Jayash Keshari</span>
+                                            <span class="role role-social">Officer - Social Media</span>
+                                        </div>
+                                    </div>
+                                </li>
+
+                                <!-- DEPARTMENT 5: ADMINISTRATION -->
+                                <li>
+                                    <div class="dept-title toggler" style="background:#fcd34d; color:#000;">
+                                        ADMINISTRATION <span class="expand-icon-inline">▼</span>
+                                    </div>
+                                    <div class="vertical-stack branch">
+                                        <div class="node" style="border-color:var(--accent-grey);">
+                                            <div class="avatar">MS</div>
+                                            <span class="name">Muskaan Singh</span>
+                                            <span class="role role-admin">Officer - Admin</span>
+                                        </div>
+                                    </div>
+                                </li>
+
+                            </ul>
                         </li>
                     </ul>
                 </li>
@@ -744,7 +720,6 @@
             }
         }
 
-        // --- Day / Night Theme Toggle ---
         themeToggle.addEventListener('click', () => {
             document.body.classList.toggle('light-mode');
             updateThemeButton();
@@ -760,29 +735,53 @@
 
         updateThemeButton();
 
-        // --- Click to Zoom Node Logic ---
-        const nodes = document.querySelectorAll('.node');
-        const orgTree = document.getElementById('org-tree');
+        // --- EXPAND AND ZOOM LOGIC COMBINED ---
+        const allNodes = document.querySelectorAll('.node');
+        const deptTitles = document.querySelectorAll('.dept-title');
 
-        nodes.forEach(node => {
-            node.addEventListener('click', (e) => {
+        // Logic for Department Titles (Only expand)
+        deptTitles.forEach(dept => {
+            dept.addEventListener('click', (e) => {
                 e.stopPropagation();
-                const isCurrentlyZoomed = node.classList.contains('zoomed');
-                nodes.forEach(n => n.classList.remove('zoomed'));
-
-                if (!isCurrentlyZoomed) {
-                    node.classList.add('zoomed');
-                    orgTree.classList.add('has-zoomed');
-                } else {
-                    orgTree.classList.remove('has-zoomed');
+                if (dept.classList.contains('toggler')) {
+                    const branch = dept.nextElementSibling;
+                    if (branch && branch.classList.contains('branch')) {
+                        branch.classList.toggle('show');
+                        dept.classList.toggle('expanded');
+                    }
                 }
             });
         });
 
-        // Clicking anywhere else removes the zoom effect
+        // Logic for User Nodes (Zoom + Expand)
+        allNodes.forEach(node => {
+            node.addEventListener('click', (e) => {
+                e.stopPropagation(); 
+                
+                // 1. Handle Zoom Logic
+                const isCurrentlyZoomed = node.classList.contains('zoomed');
+                // Remove zoom from all other nodes
+                allNodes.forEach(n => n.classList.remove('zoomed'));
+                
+                // Add zoom to current if it wasn't already zoomed
+                if (!isCurrentlyZoomed) {
+                    node.classList.add('zoomed');
+                }
+
+                // 2. Handle Expand Logic (If it's a Main Node/Manager)
+                if (node.classList.contains('toggler')) {
+                    const branch = node.nextElementSibling;
+                    if (branch && branch.classList.contains('branch')) {
+                        branch.classList.toggle('show');
+                        node.classList.toggle('expanded');
+                    }
+                }
+            });
+        });
+
+        // Click anywhere else removes the zoom effect
         document.body.addEventListener('click', () => {
-            nodes.forEach(n => n.classList.remove('zoomed'));
-            orgTree.classList.remove('has-zoomed');
+            allNodes.forEach(n => n.classList.remove('zoomed'));
         });
     </script>
 </body>

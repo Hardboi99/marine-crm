@@ -18,6 +18,8 @@ const opsRoutes = require('./routes/ops');
 const employeeRoutes = require('./routes/employees');
 const receptionRoutes = require('./routes/reception');
 const birthdayRoutes = require('./routes/birthdayRoutes');
+const jobApplicationsRoutes = require('./routes/jobApplications.routes');
+
 
 const app = express();
 
@@ -120,6 +122,7 @@ app.use('/api/crewing', crewingRoutes);
 app.use('/api/ops', opsRoutes);
 app.use('/api/reception', receptionRoutes);
 app.use('/api/birthdays', birthdayRoutes);
+app.use('/api/recruitment/job-applications', jobApplicationsRoutes);
 
 // Legacy or malformed employee page URLs
 app.get('/pages/employee=', (req, res) => res.redirect('/pages/employee.html'));

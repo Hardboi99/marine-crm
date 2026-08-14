@@ -187,6 +187,16 @@ const ApiService = {
     }
   },
 
+  recruitment: {
+    jobApplications: {
+      getAll:       (params)   => api.get('/recruitment/job-applications', { params }),
+      getStats:     ()         => api.get('/recruitment/job-applications/stats/summary'),
+      get:          (id)       => api.get(`/recruitment/job-applications/${id}`),
+      updateStatus: (id, data) => api.patch(`/recruitment/job-applications/${id}/status`, data),
+      getFileUrl:   (id, field) => `${API_BASE_URL}/recruitment/job-applications/${id}/files/${field}`
+    }
+  },
+
   // ── Operations & Compliance ───────────────────────────────────────────────
   ops: {
     onboardings: {
