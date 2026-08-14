@@ -1,31 +1,31 @@
-// Birthday Celebration Widget — Marine BDM CRM (Premium Edition, v2)
+// Birthday Celebration Widget — Marine BDM CRM (Premium Edition, v3)
 // ------------------------------------------------------------------
 // Self-mounting, vanilla JS/CSS only (no frameworks). Include this
-// script on any page and it will:
+// script on any page — as of v3 it only actually does anything on
+// the Dashboard page (dashboard.html):
 //
-//   1. Render the existing floating "Upcoming Birthdays" pill/panel
-//      (bottom-right desktop, bottom-center mobile) on EVERY page —
-//      structure kept intact from the previous version.
-//   2. If ANY employee's birthday is today, automatically show a
-//      full-screen Celebration Popup as soon as the data loads on
-//      page load — confetti, balloons, sparkles, glowing avatar ring,
-//      the works — BUT ONLY ON THE DASHBOARD PAGE (dashboard.html).
+//   1. Renders the floating "Upcoming Birthdays" pill/panel
+//      (bottom-right desktop, bottom-center mobile) — DASHBOARD ONLY.
 //      On every other page (employee, HR, reports, follow-ups,
-//      appointments, reception, etc.) the widget/panel/badge still
-//      shows and still loads data, it just never opens the popup.
+//      appointments, reception, etc.) the widget does not mount at
+//      all: no fab, no panel, no badge, no API call.
+//   2. If ANY employee's birthday is today, automatically shows a
+//      full-screen Celebration Popup once per login session as soon
+//      as the data loads — confetti, balloons, sparkles, glowing
+//      avatar ring, the works.
 //   3. Clicking ANY birthday card in the panel (today or upcoming)
-//      opens the same popup for that specific person — again, only
-//      when the current page is the dashboard. On any other page a
-//      card click simply closes the panel and does nothing else.
+//      opens the same popup for that specific person.
 //   4. "Today" cards in the list get a stronger gradient, pulsing
 //      glow border, gentle float, and a small animated cake icon.
 //      Upcoming cards keep the clean look with just a hover lift.
 //
-// v2 change: added isDashboardPage() and routed every call site that
-// opens the celebration popup (auto-trigger + card click) through
-// openCelebrationFor(), which now checks the page first and no-ops
-// everywhere else. Nothing about the confetti/balloon/sparkle
-// effects, popup markup, or card styling was changed.
+// v3 change: isDashboardPage() now gates mount() itself, so the
+// floating widget only ever appears on the dashboard — previously it
+// mounted everywhere and only the popup was dashboard-gated. The
+// openCelebrationFor() gate from v2 is kept as a second safety net.
+// v2 change: added isDashboardPage() and the sessionStorage-gated
+// once-per-login-session auto-trigger. Nothing about the confetti/
+// balloon/sparkle effects, popup markup, or card styling changed.
 //
 // Data source: window.ApiService.employees.getUpcomingBirthdays()
 // Expected fields per record (extra/missing fields degrade
@@ -951,9 +951,65 @@
   }
 
   /* ------------------------------------------------------------
+     SIDEBAR-DRAWER AWARENESS (mobile)
+     ------------------------------------------------------------
+     On mobile, sidebar.js opens the nav as a fixed off-canvas
+     drawer by adding 'mobile-open' to #app-sidebar. The birthday
+     fab is also fixed-position, so without this the two fight for
+     the same corner of the screen — the fab renders on top of (or
+     gets visually cut against) the drawer, and can end up showing
+     only its emoji with the label clipped behind the drawer's user
+     footer, exactly like the screenshot. Simplest fix: hide the
+     birthday fab/panel entirely for as long as the drawer is open,
+     and restore it the instant the drawer closes. No CSS changes —
+     this only ever sets an inline display style from JS. */
+  function watchSidebarDrawer(widget) {
+    const applyVisibility = () => {
+      const sidebar = document.getElementById('app-sidebar');
+      const isMobile = window.matchMedia('(max-width: 991.98px)').matches;
+      const drawerOpen = !!(sidebar && sidebar.classList.contains('mobile-open'));
+
+      if (isMobile && drawerOpen) {
+        // Also collapse the birthday panel itself if it happened to
+        // be open, since it would otherwise sit invisibly underneath.
+        widget.classList.remove('open');
+        widget.style.display = 'none';
+      } else {
+        widget.style.display = '';
+      }
+    };
+
+    applyVisibility();
+
+    // Watch the sidebar container for class changes (drawer open/
+    // close) and for the sidebar itself being (re)rendered into it.
+    const sidebarContainer = document.getElementById('sidebar-container');
+    if (sidebarContainer) {
+      const observer = new MutationObserver(applyVisibility);
+      observer.observe(sidebarContainer, {
+        subtree: true,
+        attributes: true,
+        attributeFilter: ["class"],
+        childList: true,
+      });
+    }
+
+    // Also re-check on viewport changes (e.g. rotating a tablet, or
+    // resizing across the mobile/desktop breakpoint).
+    window.addEventListener("resize", applyVisibility);
+  }
+
+  /* ------------------------------------------------------------
      MOUNT
      ------------------------------------------------------------ */
   async function mount() {
+    // The floating "Upcoming Birthdays" fab/panel itself is now
+    // Dashboard-only — it should not render (and its API call should
+    // not even happen) on employee, HR, reports, follow-ups,
+    // appointments, reception, or any other page. Everything below
+    // this line only ever runs when isDashboardPage() is true.
+    if (!isDashboardPage()) return;
+
     if (!window.ApiService || !window.ApiService.employees || !window.ApiService.employees.getUpcomingBirthdays) {
       return;
     }
@@ -981,6 +1037,7 @@
       </button>
     `;
     document.body.appendChild(widget);
+    watchSidebarDrawer(widget);
 
     const fab = widget.querySelector("#bday-fab");
     const closeBtn = widget.querySelector(".bday-panel-close");
