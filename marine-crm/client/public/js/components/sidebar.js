@@ -30,7 +30,7 @@ const NAV_GROUPS = [
   },
   {
     id: 'hr-employees',
-    label: 'HR & Employees',
+    label: 'Employees',
     icon: '🧑',
     items: [
       { href: '/pages/employee.html', icon: '👨‍✈️', label: 'Employees', match: 'employee' },

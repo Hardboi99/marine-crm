@@ -673,6 +673,8 @@
                             </div>
                         </div>
 
+
+                        ${!['SOURCING_MANAGER', 'MANAGER_SOURCING', 'MANAGER_DOCS'].includes(user.role) ? `
                         <div class="card" data-reveal>
                             <div class="card-header">
                                 <h2 class="card-title">⚡ Sourcing Quick Actions</h2>
@@ -709,6 +711,7 @@
                         </div>
                     </div>
                 </div>
+            ` : ''}
             `;
 
             const dateElSourcing = document.getElementById('dash-header-date-sourcing');
