@@ -22,6 +22,7 @@ const ReceptionCall = require('./ReceptionCall');
 const PpeStock = require('./PpeStock');
 const PpeIssuance = require('./PpeIssuance');
 const DocIntake = require('./DocIntake');
+const Document = require('./Document');
 
 module.exports = {
   User,
@@ -48,6 +49,5 @@ module.exports = {
   PpeStock,
   PpeIssuance,
   DocIntake,
+  Document,
 };
-
-

@@ -87,6 +87,29 @@
             margin-bottom: 8px;
             opacity: 0.6;
         }
+
+        #docs-upload-submit[disabled] {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .upload-error-text {
+            display: none;
+        }
+
+        /* Upload modal — built on the app's real .modal-overlay / .modal
+           system (see modal-header/modal-title/modal-close/modal-body/
+           modal-footer and .form-group/.form-label/.form-control, all
+           already defined in styles1.css) instead of the previous
+           one-off misuse of a bare `.modal` with inline position:fixed
+           overrides. `.modal` in styles1.css is 900px by default (sized
+           for bigger dialogs elsewhere in the app); this narrows it for
+           a small form. Everything else — centering, z-index, backdrop,
+           mobile breakpoints at 576px — comes from the shared CSS. */
+        .docs-upload-modal-box {
+            width: 100%;
+            max-width: 460px;
+        }
     </style>
 </head>
 
@@ -186,36 +209,44 @@
         </div>
     </div>
 
-    <!-- Simple upload modal — reuses the app's existing .modal / UI.confirm-style
-         patterns where possible. If your UI.js has a different modal component
-         (e.g. UI.openModal), swap this block for that instead of a bespoke one. -->
-    <div id="docs-upload-modal" class="modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
-        <div class="card" style="width:420px; max-width:90vw;">
-            <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <h2 class="card-title">Upload Document</h2>
-                <button class="btn btn-secondary btn-sm" id="docs-upload-cancel">✕</button>
+    <!-- Upload modal — .modal-overlay (fixed, full-viewport, centers
+         its child) wrapping .modal (the panel itself), matching how
+         modals work elsewhere in this app. See the CSS comment above
+         for why the previous version didn't use this pairing. -->
+    <div id="docs-upload-modal" class="modal-overlay" style="display:none;">
+        <div class="modal docs-upload-modal-box" id="docs-upload-dialog">
+            <div class="modal-header">
+                <h2 class="modal-title">Upload Document</h2>
+                <button class="modal-close" id="docs-upload-cancel" type="button" aria-label="Close">✕</button>
             </div>
-            <div class="card-body" style="display:flex; flex-direction:column; gap:12px;">
-                <div>
-                    <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:4px;">File</label>
-                    <input type="file" id="docs-upload-file" style="width:100%;">
+            <form id="docs-upload-form" novalidate>
+                <div class="modal-body" style="display:flex; flex-direction:column; gap:16px;">
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label required" for="docs-upload-file">File</label>
+                        <input type="file" id="docs-upload-file" name="file" class="form-control"
+                               accept=".pdf,.doc,.docx,.xls,.xlsx,.csv,.png,.jpg,.jpeg" required>
+                        <div class="form-error upload-error-text" id="docs-upload-file-error">Please choose a file to upload.</div>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" for="docs-upload-category">Category</label>
+                        <select id="docs-upload-category" name="category" class="form-control">
+                            <option value="CONTRACT">Contract</option>
+                            <option value="CREW_CERTIFICATE">Crew Certificate</option>
+                            <option value="COMPLIANCE">Compliance</option>
+                            <option value="HR">HR</option>
+                            <option value="OTHER">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group" style="margin-bottom:0;">
+                        <label class="form-label" for="docs-upload-notes">Notes (optional)</label>
+                        <input type="text" id="docs-upload-notes" name="notes" class="form-control">
+                    </div>
                 </div>
-                <div>
-                    <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:4px;">Category</label>
-                    <select id="docs-upload-category" style="width:100%; padding:8px; border-radius:var(--radius-sm); background:var(--input-bg, rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.08); color:var(--text-primary);">
-                        <option value="CONTRACT">Contract</option>
-                        <option value="CREW_CERTIFICATE">Crew Certificate</option>
-                        <option value="COMPLIANCE">Compliance</option>
-                        <option value="HR">HR</option>
-                        <option value="OTHER">Other</option>
-                    </select>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" id="docs-upload-cancel-footer">Cancel</button>
+                    <button type="submit" class="btn btn-primary" id="docs-upload-submit">Upload</button>
                 </div>
-                <div>
-                    <label style="font-size:0.8rem; color:var(--text-muted); display:block; margin-bottom:4px;">Notes (optional)</label>
-                    <input type="text" id="docs-upload-notes" style="width:100%; padding:8px; border-radius:var(--radius-sm); background:var(--input-bg, rgba(255,255,255,0.03)); border:1px solid rgba(255,255,255,0.08); color:var(--text-primary);">
-                </div>
-                <button class="btn btn-primary" id="docs-upload-submit" style="margin-top:6px;">Upload</button>
-            </div>
+            </form>
         </div>
     </div>
 
@@ -227,9 +258,6 @@
 
     <script>
         // ── Auth + role guard ──────────────────────────────────────
-        // This page is currently intended for MANAGER_DOCS (and ADMIN,
-        // who should be able to see everything). Adjust this list if
-        // other roles should get access later.
         if (!localStorage.getItem('token')) {
             window.location.href = '/pages/login.html';
         }
@@ -239,6 +267,13 @@
         if (!DOCS_ALLOWED_ROLES.includes(user.role)) {
             window.location.href = '/pages/dashboard.html';
         }
+
+        const documentsApi = (window.ApiService && window.ApiService.documents)
+            ? window.ApiService.documents
+            : {
+                getAll: (params) => axios.get('/api/documents', { params, headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }),
+                create: (fd) => axios.post('/api/documents', fd, { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } })
+            };
 
         // Header date
         (function setHeaderDate() {
@@ -354,20 +389,13 @@
 
         async function loadDocuments() {
             try {
-                // NOTE: window.ApiService.documents does not exist yet in this
-                // project — this call is a placeholder for the shape the
-                // backend endpoint should return. Build a GET /documents
-                // route (paginated list, each item with name, category,
-                // status, uploadedBy, createdAt, fileUrl) and a matching
-                // ApiService.documents.getAll() method, then this page
-                // will work as-is.
-                const res = await window.ApiService.documents.getAll();
-                allDocuments = res?.data || [];
+                const res = await documentsApi.getAll();
+                allDocuments = res?.data?.data || res?.data || [];
             } catch (err) {
-                console.error('Failed to load documents (endpoint likely not built yet):', err);
+                console.error('Failed to load documents:', err);
                 allDocuments = [];
                 if (window.UI && window.UI.showToast) {
-                    window.UI.showToast('Documents API not available yet — showing empty state.', 'info');
+                    window.UI.showToast('Could not load documents. Please try again shortly.', 'error');
                 }
             }
             updateStats();
@@ -380,46 +408,102 @@
         document.getElementById('docs-status-filter').addEventListener('change', renderDocsTable);
 
         // ── Upload modal ─────────────────────────────────────────
-        const modal = document.getElementById('docs-upload-modal');
-        document.getElementById('docs-upload-btn').addEventListener('click', () => {
+        const modal = document.getElementById('docs-upload-modal');   // .modal-overlay
+        const dialog = document.getElementById('docs-upload-dialog'); // .modal
+        const uploadForm = document.getElementById('docs-upload-form');
+        const fileInput = document.getElementById('docs-upload-file');
+        const fileErrorEl = document.getElementById('docs-upload-file-error');
+        const submitBtn = document.getElementById('docs-upload-submit');
+
+        // Defensive: guarantee this is a direct child of <body>, so it
+        // can never end up nested inside an ancestor with a transform/
+        // filter applied (which would break position:fixed on the
+        // overlay by anchoring it to that ancestor instead of the
+        // viewport).
+        document.body.appendChild(modal);
+
+        // .modal's entrance animation (slideUp) uses fill-mode:forwards,
+        // which — per the .modal.settled comment in styles1.css — leaves
+        // a permanent transform on the element once it finishes. Your
+        // own CSS already accounts for this via a `.settled` class;
+        // replicate that here so this dialog behaves the same way.
+        dialog.addEventListener('animationend', () => dialog.classList.add('settled'));
+
+        function openUploadModal() {
+            dialog.classList.remove('settled'); // let the entrance animation replay
             modal.style.display = 'flex';
-        });
-        document.getElementById('docs-upload-cancel').addEventListener('click', () => {
+            document.body.classList.add('no-scroll'); // same scroll-lock class the mobile sidebar drawer uses
+        }
+
+        function closeUploadModal() {
             modal.style.display = 'none';
-        });
+            document.body.classList.remove('no-scroll');
+            resetUploadForm();
+        }
+
+        function resetUploadForm() {
+            uploadForm.reset();
+            fileErrorEl.style.display = 'none';
+            submitBtn.disabled = false;
+            submitBtn.innerHTML = 'Upload';
+        }
+
+        document.getElementById('docs-upload-btn').addEventListener('click', openUploadModal);
+        document.getElementById('docs-upload-cancel').addEventListener('click', closeUploadModal);
+        document.getElementById('docs-upload-cancel-footer').addEventListener('click', closeUploadModal);
         modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.style.display = 'none';
+            if (e.target === modal) closeUploadModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && modal.style.display === 'flex') closeUploadModal();
         });
 
-        document.getElementById('docs-upload-submit').addEventListener('click', async () => {
-            const fileInput = document.getElementById('docs-upload-file');
+        // Using the form's submit event (not a raw button click) means
+        // the browser's built-in "required" validation on the file
+        // input also runs, and Enter-to-submit works inside the modal.
+        uploadForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+
             const category = document.getElementById('docs-upload-category').value;
             const notes = document.getElementById('docs-upload-notes').value;
             const file = fileInput.files[0];
 
             if (!file) {
-                if (window.UI && window.UI.showToast) window.UI.showToast('Choose a file first.', 'error');
+                fileErrorEl.style.display = 'block';
+                return;
+            }
+            fileErrorEl.style.display = 'none';
+
+            // 25MB client-side guard so obviously-too-large files fail
+            // fast instead of hanging on a slow upload the server will
+            // reject anyway. Keep this in sync with the backend limit.
+            const MAX_BYTES = 25 * 1024 * 1024;
+            if (file.size > MAX_BYTES) {
+                if (window.UI && window.UI.showToast) window.UI.showToast('File is larger than 25MB.', 'error');
                 return;
             }
 
-            try {
-                // NOTE: same placeholder situation as loadDocuments() above —
-                // build POST /documents (multipart/form-data: file, category,
-                // notes) plus ApiService.documents.create(formData) to match.
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('category', category);
-                formData.append('notes', notes);
+            const formData = new FormData();
+            // Field name "file" must match the multer field name
+            // (upload.single('file')) on the backend route.
+            formData.append('file', file);
+            formData.append('category', category);
+            formData.append('notes', notes);
 
-                await window.ApiService.documents.create(formData);
+            submitBtn.disabled = true;
+            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Uploading…';
+
+            try {
+                await documentsApi.create(formData);
                 if (window.UI && window.UI.showToast) window.UI.showToast('Document uploaded.', 'success');
-                modal.style.display = 'none';
-                fileInput.value = '';
-                document.getElementById('docs-upload-notes').value = '';
+                closeUploadModal();
                 loadDocuments();
             } catch (err) {
-                console.error(err);
-                if (window.UI && window.UI.showToast) window.UI.showToast(err.message || 'Upload failed — API not available yet.', 'error');
+                console.error('Upload failed:', err);
+                const serverMessage = err?.message || err?.response?.data?.message;
+                if (window.UI && window.UI.showToast) window.UI.showToast(serverMessage || 'Upload failed. Please try again.', 'error');
+                submitBtn.disabled = false;
+                submitBtn.innerHTML = 'Upload';
             }
         });
 

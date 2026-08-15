@@ -257,6 +257,13 @@ const ApiService = {
     listExited:          ()   => api.get('/employees', { params: { status: 'EXITED' } }),
     exit:               (id, data) => api.patch(`/employees/${id}/exit`, data),
     reactivate:         (id) => api.patch(`/employees/${id}/reactivate`),
+  },
+
+  documents: {
+    getAll: (params) => api.get('/documents', { params }),
+    create: (formData) => api.post('/documents', formData, {
+      headers: { 'Content-Type': undefined }
+    }),
   }
 };
 
