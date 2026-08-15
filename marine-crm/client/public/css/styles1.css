@@ -3579,3 +3579,75 @@ textarea:focus-visible,
   width: 100%;
 }
 
+/* ============================================================
+   ATTENDANCE NAVBAR BUTTON — append this block to styles1.css
+   (e.g. right after the "PREMIUM HAMBURGER" section). Uses only
+   existing tokens (--green, --yellow, --red, --accent-*, --radius-*)
+   so it matches both the dark "Deep Sea" and light "Sunlit Shallows"
+   themes automatically.
+   ============================================================ */
+
+.attendance-nav-btn {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.attendance-nav-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--yellow);
+  box-shadow: 0 0 6px var(--yellow);
+  animation: badgePulse 1.5s ease-in-out infinite;
+  flex-shrink: 0;
+}
+
+/* Not checked in yet today — inviting, teal accent (matches primary btn) */
+.attendance-nav-btn.state-checkin {
+  border-color: rgba(20, 184, 166, 0.35);
+  color: var(--accent-primary);
+}
+.attendance-nav-btn.state-checkin:hover {
+  border-color: var(--accent-primary);
+  box-shadow: 0 0 0 3px var(--accent-light);
+}
+
+/* Currently checked in — amber, with the pulsing dot, so "you are
+   actively clocked in" is unmistakable at a glance */
+.attendance-nav-btn.state-checkout {
+  border-color: rgba(242, 197, 114, 0.4);
+  color: var(--yellow);
+  background: var(--yellow-light);
+}
+.attendance-nav-btn.state-checkout:hover {
+  border-color: var(--yellow);
+  box-shadow: 0 0 0 3px var(--yellow-light);
+}
+
+/* Already checked out for the day — calm, neutral/green */
+.attendance-nav-btn.state-done {
+  border-color: rgba(52, 211, 153, 0.35);
+  color: var(--green);
+}
+.attendance-nav-btn.state-done:hover {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px var(--green-light);
+}
+
+/* Icon-only collapse at ≤576px, matching the Org Chart / Logout / theme
+   toggle buttons that already collapse at this breakpoint. */
+@media (max-width: 576px) {
+  .attendance-nav-btn {
+    padding: 7px 9px !important;
+    gap: 4px;
+  }
+  .attendance-nav-btn .navbar-label {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .attendance-nav-dot { animation: none !important; }
+}

@@ -1,0 +1,841 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Attendance - Marine BDM CRM</title>
+
+    <!-- Zero-flash theme init: copied verbatim from documents.html / dashboard.html -->
+    <script>
+        (function () {
+            const theme = localStorage.getItem('theme');
+            if (theme === 'light') {
+                document.documentElement.classList.add('light-theme');
+            }
+        })();
+    </script>
+    <script>
+        (function () {
+            var t = localStorage.getItem('theme') || 'dark';
+            if (t === 'light') document.documentElement.setAttribute('data-theme', 'light');
+        })();
+    </script>
+
+    <link rel="stylesheet" href="/public/css/styles1.css">
+
+    <style>
+        /* Page-local layout only — colors all come from styles1.css tokens,
+           same convention as documents.html */
+        .page-content { padding: 24px; }
+
+        /* ── Today card ─────────────────────────────────────────── */
+        .today-card-body {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        .today-times {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 28px;
+        }
+
+        .today-time-block { min-width: 120px; }
+
+        .today-time-label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .today-time-value {
+            font-family: 'Manrope', 'Inter', sans-serif;
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-primary);
+        }
+
+        .today-time-value.dim { color: var(--text-muted); font-weight: 700; }
+
+        .today-action {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 10px;
+        }
+
+        .attendance-status-note {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            text-align: right;
+        }
+
+        .checkio-btn {
+            padding: 13px 30px;
+            font-size: 0.95rem;
+            border-radius: var(--radius-md);
+            font-weight: 800;
+        }
+
+        .checkio-btn.in {
+            background: linear-gradient(135deg, var(--accent-primary), var(--accent-aqua));
+            color: #fff;
+            border: none;
+            box-shadow: 0 4px 18px rgba(20, 184, 166, 0.35);
+        }
+
+        .checkio-btn.out {
+            background: linear-gradient(135deg, var(--yellow), #F2A65A);
+            color: #1a1300;
+            border: none;
+            box-shadow: 0 4px 18px rgba(242, 197, 114, 0.35);
+        }
+
+        .checkio-btn.done {
+            background: var(--green-light);
+            color: var(--green);
+            border: 1px solid rgba(52, 211, 153, 0.3);
+            cursor: default;
+        }
+
+        .live-duration {
+            font-size: 0.78rem;
+            font-weight: 700;
+            color: var(--accent-aqua);
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        /* ── Calendar ───────────────────────────────────────────── */
+        .cal-toolbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 12px;
+            margin-bottom: 16px;
+            flex-wrap: wrap;
+        }
+
+        .cal-month-label {
+            font-size: 1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            min-width: 160px;
+            text-align: center;
+        }
+
+        .cal-nav-btns { display: flex; gap: 6px; align-items: center; }
+
+        .cal-legend {
+            display: flex;
+            gap: 14px;
+            flex-wrap: wrap;
+            font-size: 0.75rem;
+            color: var(--text-secondary);
+        }
+
+        .cal-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+
+        .cal-legend-dot {
+            width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+        }
+
+        .cal-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 8px;
+        }
+
+        .cal-dow {
+            text-align: center;
+            font-size: 0.68rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: var(--text-muted);
+            padding-bottom: 4px;
+        }
+
+        .cal-cell {
+            position: relative;
+            aspect-ratio: 1 / 1;
+            min-height: 52px;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-color);
+            background: var(--bg-input);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+
+        .cal-cell.empty { visibility: hidden; cursor: default; }
+
+        .cal-cell:hover:not(.empty) {
+            border-color: var(--accent-primary);
+            transform: translateY(-2px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .cal-cell-date {
+            font-size: 0.82rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .cal-cell-dot {
+            width: 8px; height: 8px; border-radius: 50%;
+        }
+
+        .cal-cell.status-present .cal-cell-dot { background: var(--green); }
+        .cal-cell.status-absent .cal-cell-dot { background: var(--red); }
+        .cal-cell.status-holiday .cal-cell-dot { background: var(--yellow); }
+        .cal-cell.status-none .cal-cell-dot { background: var(--text-muted); opacity: 0.5; }
+
+        .cal-cell.is-today {
+            box-shadow: inset 0 0 0 2px var(--blue);
+        }
+        .cal-cell.is-today .cal-cell-date { color: var(--blue); }
+
+        /* ── Day detail modal (reuses .modal-overlay / .modal) ───── */
+        .att-day-modal-box { width: 100%; max-width: 420px; }
+
+        .day-detail-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px 0;
+            border-bottom: 1px solid var(--border-color);
+            font-size: 0.85rem;
+        }
+        .day-detail-row:last-child { border-bottom: none; }
+        .day-detail-label { color: var(--text-secondary); font-weight: 600; }
+        .day-detail-value { color: var(--text-primary); font-weight: 700; }
+
+        /* ── Employee selector (admin/hr/manager only) ────────────── */
+        .emp-selector-wrap {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .emp-selector-wrap select { min-width: 220px; }
+        .emp-selector-wrap.hidden { display: none; }
+
+        @media (max-width: 576px) {
+            .today-card-body { flex-direction: column; align-items: stretch; }
+            .today-action { align-items: stretch; }
+            .checkio-btn { width: 100%; }
+            .cal-cell { min-height: 40px; }
+            .cal-legend { font-size: 0.68rem; gap: 10px; }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <div id="sidebar-container"></div>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+
+            <div class="page-content" id="attendance-content-area">
+
+                <div class="dash-header" data-reveal>
+                    <div class="dash-header-title-wrap">
+                        <div class="dash-eyebrow"><span class="live-dot"></span> Attendance</div>
+                        <h1 class="page-title">Attendance</h1>
+                        <p class="page-subtitle">Check in, check out, and track your working hours</p>
+                    </div>
+                    <div class="dash-header-meta">
+                        <div class="dash-date" id="att-header-date"></div>
+                        <div id="att-employee-name-display"></div>
+                    </div>
+                </div>
+
+                <!-- Admin/HR/Manager employee selector -->
+                <div class="card emp-selector-wrap hidden" id="emp-selector-card" style="padding:16px 24px;" data-reveal>
+                    <label class="form-label" for="emp-selector" style="margin-bottom:0;">Viewing attendance for</label>
+                    <select id="emp-selector" class="form-control" style="width:auto;">
+                        <option value="">Myself</option>
+                    </select>
+                </div>
+
+                <!-- Monthly summary -->
+                <div class="stats-grid" data-reveal>
+                    <div class="stat-card">
+                        <h3 class="stat-title">🟢 Present Days</h3>
+                        <p class="stat-value skeleton" id="stat-att-present">0</p>
+                        <div class="stat-trend neutral">This month</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">🔴 Absent Days</h3>
+                        <p class="stat-value skeleton" id="stat-att-absent">0</p>
+                        <div class="stat-trend neutral">This month</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">🟡 Holidays</h3>
+                        <p class="stat-value skeleton" id="stat-att-holidays">0</p>
+                        <div class="stat-trend neutral">This month</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">⏱️ Total Hours</h3>
+                        <p class="stat-value skeleton" id="stat-att-total-hours">0h</p>
+                        <div class="stat-trend neutral">This month</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">📊 Avg Hours / Day</h3>
+                        <p class="stat-value skeleton" id="stat-att-avg-hours">0h</p>
+                        <div class="stat-trend neutral">This month</div>
+                    </div>
+                </div>
+
+                <!-- Today: check in / check out -->
+                <div class="card" data-reveal>
+                    <div class="card-header">
+                        <h2 class="card-title">Today</h2>
+                        <span class="badge badge-gray" id="today-status-badge">Loading…</span>
+                    </div>
+                    <div class="card-body today-card-body">
+                        <div class="today-times">
+                            <div class="today-time-block">
+                                <div class="today-time-label">Date</div>
+                                <div class="today-time-value" id="today-date-value">—</div>
+                            </div>
+                            <div class="today-time-block">
+                                <div class="today-time-label">Check In</div>
+                                <div class="today-time-value" id="today-checkin-value">
+                                    <span class="dim">—</span>
+                                </div>
+                            </div>
+                            <div class="today-time-block">
+                                <div class="today-time-label">Check Out</div>
+                                <div class="today-time-value" id="today-checkout-value">
+                                    <span class="dim">—</span>
+                                </div>
+                            </div>
+                            <div class="today-time-block">
+                                <div class="today-time-label">Total Hours</div>
+                                <div class="today-time-value" id="today-total-value">
+                                    <span class="dim">—</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="today-action">
+                            <button class="btn checkio-btn in" id="checkio-btn">Check In</button>
+                            <div class="attendance-status-note" id="attendance-status-note"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Calendar -->
+                <div class="card" data-reveal>
+                    <div class="card-header">
+                        <h2 class="card-title">Monthly Calendar</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="cal-toolbar">
+                            <div class="cal-nav-btns">
+                                <button class="btn btn-secondary btn-sm" id="cal-prev-btn" aria-label="Previous month">‹</button>
+                                <div class="cal-month-label" id="cal-month-label">—</div>
+                                <button class="btn btn-secondary btn-sm" id="cal-next-btn" aria-label="Next month">›</button>
+                            </div>
+                            <div class="cal-legend">
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--green);"></span> Present</span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--red);"></span> Absent</span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--yellow);"></span> Holiday</span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--blue);box-shadow:0 0 0 2px var(--blue) inset;"></span> Today</span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--text-muted);opacity:0.5;"></span> No data</span>
+                            </div>
+                        </div>
+                        <div class="cal-grid" id="cal-dow-row">
+                            <div class="cal-dow">Sun</div><div class="cal-dow">Mon</div><div class="cal-dow">Tue</div>
+                            <div class="cal-dow">Wed</div><div class="cal-dow">Thu</div><div class="cal-dow">Fri</div>
+                            <div class="cal-dow">Sat</div>
+                        </div>
+                        <div class="cal-grid" id="cal-grid" style="margin-top:8px;">
+                            <div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">Loading calendar…</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Day detail modal -->
+    <div id="att-day-modal" class="modal-overlay" style="display:none;">
+        <div class="modal att-day-modal-box" id="att-day-dialog">
+            <div class="modal-header">
+                <h2 class="modal-title" id="att-day-modal-title">Day Details</h2>
+                <button class="modal-close" id="att-day-modal-close" type="button" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body" id="att-day-modal-body">
+                <!-- populated by JS -->
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" id="att-day-modal-close-footer">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+
+    <script>
+        // ============================================================
+        // ATTENDANCE PAGE
+        //
+        // Talks to window.AttendanceService, defined in sidebar.js.
+        // That service prefers window.ApiService.attendance.* if your
+        // backend layer exposes one; otherwise it falls back to fetch()
+        // calls against /api/attendance/* (see the comment block above
+        // ATTENDANCE_ENDPOINTS in sidebar.js). No backend files were
+        // provided, so those routes are ASSUMED — confirm/adjust them
+        // against your real API before wiring this to production data.
+        //
+        // Expected record shape per day:
+        //   {
+        //     date: 'YYYY-MM-DD',
+        //     status: 'PRESENT' | 'ABSENT' | 'HOLIDAY' | 'NOT_MARKED',
+        //     checkInTime: ISOString | null,
+        //     checkOutTime: ISOString | null,
+        //     totalMinutes: number | null,
+        //     holidayName: string | null
+        //   }
+        // getMonth() is expected to resolve to an array of these for
+        // the requested month. getSummary() resolves to:
+        //   { presentDays, absentDays, holidays, totalMinutes, averageMinutes }
+        // ============================================================
+
+        if (!localStorage.getItem('token')) {
+            window.location.href = '/pages/login.html';
+        }
+
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const ATTENDANCE_ADMIN_ROLES = ['ADMIN', 'HR', 'MANAGER'];
+
+        let viewingEmployeeId = ''; // '' = self
+        let calYear, calMonth; // calMonth is 1-12
+        let monthRecords = [];
+        let todayRecord = null;
+        let liveDurationTimer = null;
+
+        const pad2 = (n) => String(n).padStart(2, '0');
+        const isoDateOnly = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+        function formatClockTime(isoString) {
+            if (!isoString) return null;
+            const d = new Date(isoString);
+            if (isNaN(d.getTime())) return null;
+            return d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function formatMinutesAsHM(totalMinutes) {
+            if (totalMinutes === null || totalMinutes === undefined || isNaN(totalMinutes)) return null;
+            const h = Math.floor(totalMinutes / 60);
+            const m = Math.round(totalMinutes % 60);
+            return `${h}h ${pad2(m)}m`;
+        }
+
+        function minutesBetween(startIso, endIso) {
+            const start = new Date(startIso).getTime();
+            const end = new Date(endIso).getTime();
+            if (isNaN(start) || isNaN(end)) return null;
+            return Math.max(0, (end - start) / 60000);
+        }
+
+        // ── Header date ──────────────────────────────────────────
+        (function setHeaderDate() {
+            const el = document.getElementById('att-header-date');
+            if (!el) return;
+            el.textContent = new Date().toLocaleDateString(undefined, {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
+            });
+        })();
+
+        // ── Admin/HR/Manager: employee selector ─────────────────
+        async function initEmployeeSelector() {
+            if (!ATTENDANCE_ADMIN_ROLES.includes(currentUser.role)) return;
+
+            const card = document.getElementById('emp-selector-card');
+            const select = document.getElementById('emp-selector');
+            card.classList.remove('hidden');
+
+            // Reuses whatever employee-listing endpoint the app already
+            // has (mirrors the existing Employees directory page). Not
+            // supplied in the files I was given, so this degrades
+            // silently to "Myself only" if it isn't available.
+            try {
+                let employees = [];
+                if (window.ApiService && window.ApiService.employees && window.ApiService.employees.getAll) {
+                    const res = await window.ApiService.employees.getAll();
+                    employees = (res && res.data && res.data.data) || (res && res.data) || res || [];
+                } else {
+                    const token = localStorage.getItem('token');
+                    const res = await fetch('/api/employees', { headers: { Authorization: `Bearer ${token}` } });
+                    if (res.ok) {
+                        const json = await res.json();
+                        employees = json.data || json || [];
+                    }
+                }
+                employees.forEach(emp => {
+                    const opt = document.createElement('option');
+                    opt.value = emp.id || emp._id || '';
+                    opt.textContent = emp.name || emp.fullName || 'Unnamed';
+                    if (opt.value) select.appendChild(opt);
+                });
+            } catch (err) {
+                console.warn('Employee list unavailable — admin view limited to own attendance.', err);
+            }
+
+            select.addEventListener('change', () => {
+                viewingEmployeeId = select.value;
+                const displayEl = document.getElementById('att-employee-name-display');
+                displayEl.textContent = viewingEmployeeId
+                    ? `Viewing: ${select.options[select.selectedIndex].textContent}`
+                    : '';
+                loadToday();
+                loadMonth();
+            });
+        }
+
+        // ── Today card ────────────────────────────────────────────
+        function stopLiveDurationTimer() {
+            if (liveDurationTimer) {
+                clearInterval(liveDurationTimer);
+                liveDurationTimer = null;
+            }
+        }
+
+        function startLiveDurationTimer(checkInIso) {
+            stopLiveDurationTimer();
+            const totalEl = document.getElementById('today-total-value');
+            const tick = () => {
+                const mins = minutesBetween(checkInIso, new Date().toISOString());
+                totalEl.innerHTML = `${formatMinutesAsHM(mins)} <span class="live-duration">● live</span>`;
+            };
+            tick();
+            liveDurationTimer = setInterval(tick, 30000);
+        }
+
+        function renderTodayCard(record) {
+            todayRecord = record;
+            stopLiveDurationTimer();
+
+            const badge = document.getElementById('today-status-badge');
+            const dateEl = document.getElementById('today-date-value');
+            const inEl = document.getElementById('today-checkin-value');
+            const outEl = document.getElementById('today-checkout-value');
+            const totalEl = document.getElementById('today-total-value');
+            const btn = document.getElementById('checkio-btn');
+            const note = document.getElementById('attendance-status-note');
+
+            dateEl.textContent = new Date().toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+
+            const checkIn = record && record.checkInTime;
+            const checkOut = record && record.checkOutTime;
+
+            inEl.innerHTML = checkIn ? formatClockTime(checkIn) : '<span class="dim">—</span>';
+            outEl.innerHTML = checkOut ? formatClockTime(checkOut) : '<span class="dim">—</span>';
+
+            const isSelf = !viewingEmployeeId;
+
+            if (checkIn && checkOut) {
+                const mins = (record.totalMinutes !== null && record.totalMinutes !== undefined)
+                    ? record.totalMinutes
+                    : minutesBetween(checkIn, checkOut);
+                totalEl.textContent = formatMinutesAsHM(mins) || '—';
+                badge.className = 'badge badge-green';
+                badge.textContent = 'Checked Out';
+                btn.className = 'btn checkio-btn done';
+                btn.textContent = 'Done for Today';
+                btn.disabled = !isSelf;
+                note.textContent = isSelf ? "You've completed today's attendance." : '';
+            } else if (checkIn && !checkOut) {
+                startLiveDurationTimer(checkIn);
+                badge.className = 'badge badge-yellow';
+                badge.textContent = 'Checked In';
+                btn.className = 'btn checkio-btn out';
+                btn.textContent = 'Check Out';
+                btn.disabled = !isSelf;
+                note.textContent = isSelf ? 'Working duration updates automatically.' : '';
+            } else if (record && record.status === 'HOLIDAY') {
+                totalEl.innerHTML = '<span class="dim">—</span>';
+                badge.className = 'badge badge-yellow';
+                badge.textContent = record.holidayName ? `Holiday — ${record.holidayName}` : 'Holiday';
+                btn.className = 'btn checkio-btn done';
+                btn.textContent = 'Holiday';
+                btn.disabled = true;
+                note.textContent = 'No check-in required today.';
+            } else if (record && record.status === 'ABSENT') {
+                totalEl.innerHTML = '<span class="dim">—</span>';
+                badge.className = 'badge badge-red';
+                badge.textContent = 'Absent';
+                btn.className = 'btn checkio-btn in';
+                btn.textContent = 'Check In';
+                btn.disabled = !isSelf;
+                note.textContent = isSelf ? 'Marked absent — check in if this is incorrect.' : '';
+            } else {
+                totalEl.innerHTML = '<span class="dim">—</span>';
+                badge.className = 'badge badge-gray';
+                badge.textContent = 'Not Checked In';
+                btn.className = 'btn checkio-btn in';
+                btn.textContent = 'Check In';
+                btn.disabled = !isSelf;
+                note.textContent = isSelf ? '' : 'No attendance record for today yet.';
+            }
+        }
+
+        async function loadToday() {
+            const badge = document.getElementById('today-status-badge');
+            badge.textContent = 'Loading…';
+            badge.className = 'badge badge-gray';
+            try {
+                const record = viewingEmployeeId
+                    ? await window.AttendanceService.getMonth(calYear, calMonth, viewingEmployeeId)
+                        .then(list => (list || []).find(r => r.date === isoDateOnly(new Date())) || null)
+                    : await window.AttendanceService.getToday();
+                renderTodayCard(record);
+            } catch (err) {
+                console.error('Failed to load today\'s attendance:', err);
+                renderTodayCard(null);
+                if (window.UI && window.UI.showToast) {
+                    window.UI.showToast('Could not load today\'s attendance.', 'error');
+                }
+            }
+        }
+
+        document.getElementById('checkio-btn').addEventListener('click', async () => {
+            if (viewingEmployeeId) return; // read-only when viewing someone else
+            const btn = document.getElementById('checkio-btn');
+            const isCheckingOut = todayRecord && todayRecord.checkInTime && !todayRecord.checkOutTime;
+
+            btn.disabled = true;
+            const originalText = btn.textContent;
+            btn.textContent = isCheckingOut ? 'Checking out…' : 'Checking in…';
+
+            try {
+                if (isCheckingOut) {
+                    const updated = await window.AttendanceService.checkOut();
+                    renderTodayCard(updated || { ...todayRecord, checkOutTime: new Date().toISOString() });
+                    if (window.UI && window.UI.showToast) window.UI.showToast('Checked out. Have a good one!', 'success');
+                } else {
+                    const updated = await window.AttendanceService.checkIn();
+                    renderTodayCard(updated || { checkInTime: new Date().toISOString(), checkOutTime: null, status: 'PRESENT' });
+                    if (window.UI && window.UI.showToast) window.UI.showToast('Checked in. Have a great day!', 'success');
+                }
+                window.dispatchEvent(new CustomEvent('attendance:changed'));
+                loadMonth();
+                loadSummary();
+            } catch (err) {
+                console.error('Check in/out failed:', err);
+                btn.disabled = false;
+                btn.textContent = originalText;
+                const message = err && err.message ? err.message : 'Something went wrong. Please try again.';
+                if (window.UI && window.UI.showToast) window.UI.showToast(message, 'error');
+            }
+        });
+
+        // ── Summary cards ─────────────────────────────────────────
+        function animateCountUp(element, target, duration = 700, suffix = '') {
+            if (!element) return;
+            let startTime = null;
+            function step(ts) {
+                if (!startTime) startTime = ts;
+                const progress = Math.min((ts - startTime) / duration, 1);
+                const eased = 1 - (1 - progress) * (1 - progress);
+                element.textContent = Math.floor(eased * target) + suffix;
+                element.classList.remove('skeleton');
+                if (progress < 1) requestAnimationFrame(step);
+                else element.textContent = target + suffix;
+            }
+            requestAnimationFrame(step);
+        }
+
+        async function loadSummary() {
+            try {
+                const summary = await window.AttendanceService.getSummary(calYear, calMonth, viewingEmployeeId || undefined) || {};
+                animateCountUp(document.getElementById('stat-att-present'), summary.presentDays || 0);
+                animateCountUp(document.getElementById('stat-att-absent'), summary.absentDays || 0);
+                animateCountUp(document.getElementById('stat-att-holidays'), summary.holidays || 0);
+
+                const totalHoursEl = document.getElementById('stat-att-total-hours');
+                totalHoursEl.classList.remove('skeleton');
+                totalHoursEl.textContent = formatMinutesAsHM(summary.totalMinutes || 0) || '0h 00m';
+
+                const avgHoursEl = document.getElementById('stat-att-avg-hours');
+                avgHoursEl.classList.remove('skeleton');
+                avgHoursEl.textContent = formatMinutesAsHM(summary.averageMinutes || 0) || '0h 00m';
+            } catch (err) {
+                console.error('Failed to load attendance summary:', err);
+                ['stat-att-present', 'stat-att-absent', 'stat-att-holidays'].forEach(id => {
+                    const el = document.getElementById(id);
+                    el.classList.remove('skeleton');
+                    el.textContent = '—';
+                });
+                document.getElementById('stat-att-total-hours').textContent = '—';
+                document.getElementById('stat-att-avg-hours').textContent = '—';
+            }
+        }
+
+        // ── Calendar ──────────────────────────────────────────────
+        function statusClassFor(record) {
+            if (!record) return 'status-none';
+            if (record.status === 'HOLIDAY') return 'status-holiday';
+            if (record.checkInTime || record.status === 'PRESENT') return 'status-present';
+            if (record.status === 'ABSENT') return 'status-absent';
+            return 'status-none';
+        }
+
+        function renderCalendarMonthLabel() {
+            const label = document.getElementById('cal-month-label');
+            const d = new Date(calYear, calMonth - 1, 1);
+            label.textContent = d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
+        }
+
+        function renderCalendarGrid() {
+            const grid = document.getElementById('cal-grid');
+            const firstOfMonth = new Date(calYear, calMonth - 1, 1);
+            const startWeekday = firstOfMonth.getDay(); // 0 = Sun
+            const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+            const todayIso = isoDateOnly(new Date());
+
+            const recordsByDate = {};
+            monthRecords.forEach(r => { recordsByDate[r.date] = r; });
+
+            let html = '';
+            for (let i = 0; i < startWeekday; i++) {
+                html += `<div class="cal-cell empty"></div>`;
+            }
+            for (let day = 1; day <= daysInMonth; day++) {
+                const dateIso = `${calYear}-${pad2(calMonth)}-${pad2(day)}`;
+                const record = recordsByDate[dateIso];
+                const statusClass = statusClassFor(record);
+                const isToday = dateIso === todayIso;
+                html += `
+                    <div class="cal-cell ${statusClass} ${isToday ? 'is-today' : ''}" data-date="${dateIso}">
+                        <div class="cal-cell-date">${day}</div>
+                        <div class="cal-cell-dot"></div>
+                    </div>`;
+            }
+
+            grid.innerHTML = html;
+
+            grid.querySelectorAll('.cal-cell:not(.empty)').forEach(cell => {
+                cell.addEventListener('click', () => openDayModal(cell.dataset.date, recordsByDate[cell.dataset.date]));
+            });
+        }
+
+        async function loadMonth() {
+            const grid = document.getElementById('cal-grid');
+            grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">Loading calendar…</div>`;
+            renderCalendarMonthLabel();
+            try {
+                monthRecords = await window.AttendanceService.getMonth(calYear, calMonth, viewingEmployeeId || undefined) || [];
+                renderCalendarGrid();
+            } catch (err) {
+                console.error('Failed to load monthly attendance:', err);
+                monthRecords = [];
+                grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:24px;color:var(--text-muted);">Could not load the calendar.</div>`;
+                if (window.UI && window.UI.showToast) window.UI.showToast('Could not load the attendance calendar.', 'error');
+            }
+        }
+
+        document.getElementById('cal-prev-btn').addEventListener('click', () => {
+            calMonth -= 1;
+            if (calMonth < 1) { calMonth = 12; calYear -= 1; }
+            loadMonth();
+            loadSummary();
+        });
+        document.getElementById('cal-next-btn').addEventListener('click', () => {
+            calMonth += 1;
+            if (calMonth > 12) { calMonth = 1; calYear += 1; }
+            loadMonth();
+            loadSummary();
+        });
+
+        // ── Day detail modal ─────────────────────────────────────
+        const dayModal = document.getElementById('att-day-modal');
+        const dayDialog = document.getElementById('att-day-dialog');
+
+        document.body.appendChild(dayModal);
+        dayDialog.addEventListener('animationend', () => dayDialog.classList.add('settled'));
+
+        function openDayModal(dateIso, record) {
+            dayDialog.classList.remove('settled');
+            const title = document.getElementById('att-day-modal-title');
+            const body = document.getElementById('att-day-modal-body');
+
+            const d = new Date(dateIso + 'T00:00:00');
+            title.textContent = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+
+            const statusLabel = !record ? 'No Data'
+                : record.status === 'HOLIDAY' ? (record.holidayName ? `Holiday — ${record.holidayName}` : 'Holiday')
+                : record.status === 'ABSENT' ? 'Absent'
+                : (record.checkInTime && record.checkOutTime) ? 'Checked Out'
+                : record.checkInTime ? 'Checked In'
+                : 'Present';
+
+            const totalMins = record
+                ? (record.totalMinutes !== null && record.totalMinutes !== undefined
+                    ? record.totalMinutes
+                    : minutesBetween(record.checkInTime, record.checkOutTime))
+                : null;
+
+            body.innerHTML = `
+                <div class="day-detail-row"><span class="day-detail-label">Status</span><span class="day-detail-value">${statusLabel}</span></div>
+                <div class="day-detail-row"><span class="day-detail-label">Check In</span><span class="day-detail-value">${record && record.checkInTime ? formatClockTime(record.checkInTime) : '—'}</span></div>
+                <div class="day-detail-row"><span class="day-detail-label">Check Out</span><span class="day-detail-value">${record && record.checkOutTime ? formatClockTime(record.checkOutTime) : '—'}</span></div>
+                <div class="day-detail-row"><span class="day-detail-label">Total Hours</span><span class="day-detail-value">${formatMinutesAsHM(totalMins) || '—'}</span></div>
+            `;
+
+            dayModal.style.display = 'flex';
+            document.body.classList.add('no-scroll');
+        }
+
+        function closeDayModal() {
+            dayModal.style.display = 'none';
+            document.body.classList.remove('no-scroll');
+        }
+
+        document.getElementById('att-day-modal-close').addEventListener('click', closeDayModal);
+        document.getElementById('att-day-modal-close-footer').addEventListener('click', closeDayModal);
+        dayModal.addEventListener('click', (e) => { if (e.target === dayModal) closeDayModal(); });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && dayModal.style.display === 'flex') closeDayModal();
+        });
+
+        // ── Init ──────────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', () => {
+            const now = new Date();
+            calYear = now.getFullYear();
+            calMonth = now.getMonth() + 1;
+
+            initEmployeeSelector();
+            loadToday();
+            loadMonth();
+            loadSummary();
+        });
+
+        window.addEventListener('beforeunload', stopLiveDurationTimer);
+    </script>
+
+    <script src="/public/js/components/cursor.js"></script>
+</body>
+
+</html>

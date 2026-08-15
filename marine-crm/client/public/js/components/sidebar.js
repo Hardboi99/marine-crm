@@ -1,16 +1,32 @@
-// Sidebar Navigation Component — Marine BDM CRM (Accordion Edition, v3 — production)
+// Sidebar Navigation Component — Marine BDM CRM (Accordion Edition, v4)
 //
-// v3 fixes:
-// 1. Collapsed desktop rail no longer blocks navigation — submenu now
+// v4 adds (on top of the v3 production fixes below):
+// 1. A shared window.AttendanceService — a thin wrapper that prefers
+//    window.ApiService.attendance.* if your backend layer already
+//    exposes one, and otherwise falls back to fetch() calls against
+//    the endpoints in ATTENDANCE_ENDPOINTS. THESE ENDPOINT PATHS ARE
+//    ASSUMED (no backend/API files were provided) — update
+//    ATTENDANCE_ENDPOINTS to match your real routes, or wire a
+//    window.ApiService.attendance object with the same method names
+//    (getToday, checkIn, checkOut, getMonth, getSummary) and this
+//    file will use it automatically without any further changes.
+// 2. A navbar IN/OUT button (renderAttendanceNavButton) that shows
+//    the employee's live attendance state and opens
+//    /pages/attendance.html. It reuses the existing
+//    .btn.btn-secondary.btn-sm styling used by the Org Chart button
+//    so it stays visually consistent, plus a small state-driven
+//    accent class (see the CSS addon file).
+// 3. A 'attendance:changed' window event: attendance.html dispatches
+//    it after a successful check-in/check-out so the navbar button
+//    refreshes immediately without a full page reload.
+//
+// v3 fixes (unchanged):
+// 1. Collapsed desktop rail no longer blocks navigation — submenu
 //    shows as a hover flyout (CSS), so HR / Crewing / Reports / etc.
 //    stay reachable even when the sidebar is collapsed.
 // 2. Added the MOBILE_QUERY.addEventListener('change', ...) resize
 //    handler that resets 'collapsed' / 'mobile-open' state whenever
-//    the viewport crosses the 768px breakpoint. This was the actual
-//    cause of the broken mobile drawer: 'collapsed' (desktop) and
-//    'mobile-open' (mobile) could both be present on the sidebar at
-//    once and fight over `transform` with equal-specificity !important
-//    rules.
+//    the viewport crosses the 768px breakpoint.
 // 3. Collapsed state is now restored from localStorage on load, and
 //    is always stripped when entering mobile.
 // 4. Mobile toggle defensively strips 'collapsed' before opening.
@@ -78,11 +94,6 @@ const NAV_GROUPS = [
 // ── Single source of truth for "are we in mobile-drawer mode?" ────
 // MUST match the 991.98px breakpoint in styles1.css where the sidebar
 // becomes a fixed off-canvas drawer (transform: translateX(-105%)).
-// This was previously 768px while CSS used 991.98px — the mismatch
-// froze the sidebar in the 769–991px tablet range: isMobileViewport()
-// returned false there, so the hamburger toggled '.collapsed' (which
-// only changes width) instead of '.mobile-open' (the only class that
-// affects transform in that CSS range), so nothing ever moved.
 const MOBILE_QUERY = window.matchMedia('(max-width: 991.98px)');
 function isMobileViewport() {
   return MOBILE_QUERY.matches;
@@ -381,6 +392,167 @@ function initSidebarAccordion(activeGroupId) {
   });
 }
 
+// ================================================================
+// ATTENDANCE — shared service + navbar IN/OUT button
+//
+// No backend/API files were supplied alongside sidebar.js, so the
+// endpoints below are assumed to match the REST conventions already
+// used by documentsApi in documents.html (Bearer auth header, JSON
+// body, /api/<resource> paths). If your real backend uses different
+// routes, either update ATTENDANCE_ENDPOINTS below, or define
+// window.ApiService.attendance = { getToday, checkIn, checkOut,
+// getMonth, getSummary } in your api.js — this file will prefer
+// that automatically and none of the code below needs to change.
+// ================================================================
+
+const ATTENDANCE_ENDPOINTS = {
+  today: '/api/attendance/today',
+  checkin: '/api/attendance/checkin',
+  checkout: '/api/attendance/checkout',
+  month: '/api/attendance/month',
+  summary: '/api/attendance/summary'
+};
+
+async function attendanceFetch(method, url, body) {
+  const token = localStorage.getItem('token');
+  const opts = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {})
+    }
+  };
+  if (body !== undefined) opts.body = JSON.stringify(body);
+
+  const res = await fetch(url, opts);
+  let data = null;
+  try { data = await res.json(); } catch (e) { /* empty/non-JSON body */ }
+
+  if (!res.ok) {
+    const message = (data && (data.message || data.error)) || `Request failed (${res.status})`;
+    throw new Error(message);
+  }
+  return data;
+}
+
+// Normalizes both possible shapes: a window.ApiService.attendance.*
+// call (which — like documentsApi.getAll() elsewhere in this app —
+// may resolve to an axios response with a `.data` envelope) and a
+// raw fetch() call (which resolves to the parsed JSON directly).
+async function callAttendanceMethod(methodName, ...args) {
+  if (window.ApiService && window.ApiService.attendance &&
+      typeof window.ApiService.attendance[methodName] === 'function') {
+    const res = await window.ApiService.attendance[methodName](...args);
+    return (res && res.data !== undefined) ? res.data : res;
+  }
+  return ATTENDANCE_FETCH_IMPL[methodName](...args);
+}
+
+const ATTENDANCE_FETCH_IMPL = {
+  getToday: () => attendanceFetch('GET', ATTENDANCE_ENDPOINTS.today),
+  checkIn: () => attendanceFetch('POST', ATTENDANCE_ENDPOINTS.checkin, {}),
+  checkOut: () => attendanceFetch('POST', ATTENDANCE_ENDPOINTS.checkout, {}),
+  getMonth: (year, month, employeeId) => attendanceFetch(
+    'GET',
+    `${ATTENDANCE_ENDPOINTS.month}?year=${year}&month=${month}${employeeId ? `&employeeId=${encodeURIComponent(employeeId)}` : ''}`
+  ),
+  getSummary: (year, month, employeeId) => attendanceFetch(
+    'GET',
+    `${ATTENDANCE_ENDPOINTS.summary}?year=${year}&month=${month}${employeeId ? `&employeeId=${encodeURIComponent(employeeId)}` : ''}`
+  )
+};
+
+window.AttendanceService = {
+  getToday: () => callAttendanceMethod('getToday'),
+  checkIn: () => callAttendanceMethod('checkIn'),
+  checkOut: () => callAttendanceMethod('checkOut'),
+  getMonth: (year, month, employeeId) => callAttendanceMethod('getMonth', year, month, employeeId),
+  getSummary: (year, month, employeeId) => callAttendanceMethod('getSummary', year, month, employeeId)
+};
+
+// A record's status normalizes to one of: 'CHECKED_IN', 'CHECKED_OUT',
+// or anything else (treated as "not started yet today").
+function attendanceButtonState(record) {
+  if (!record) return 'NOT_STARTED';
+  if (record.checkInTime && !record.checkOutTime) return 'CHECKED_IN';
+  if (record.checkInTime && record.checkOutTime) return 'CHECKED_OUT';
+  return 'NOT_STARTED';
+}
+
+function applyAttendanceButtonState(state) {
+  const btn = document.getElementById('attendance-nav-btn');
+  if (!btn) return;
+  const icon = document.getElementById('attendance-nav-icon');
+  const label = document.getElementById('attendance-nav-label');
+  const dot = document.getElementById('attendance-nav-dot');
+
+  btn.classList.remove('state-checkin', 'state-checkout', 'state-done');
+
+  if (state === 'CHECKED_IN') {
+    btn.classList.add('state-checkout');
+    if (icon) icon.textContent = '⏱️';
+    if (label) label.textContent = 'Check Out';
+    if (dot) dot.style.display = 'inline-block';
+    btn.setAttribute('aria-label', 'Checked in — tap to check out');
+    btn.title = 'Checked in — tap to check out';
+  } else if (state === 'CHECKED_OUT') {
+    btn.classList.add('state-done');
+    if (icon) icon.textContent = '✅';
+    if (label) label.textContent = 'Checked Out';
+    if (dot) dot.style.display = 'none';
+    btn.setAttribute('aria-label', 'Checked out for today — view attendance');
+    btn.title = 'Checked out for today — view attendance';
+  } else {
+    btn.classList.add('state-checkin');
+    if (icon) icon.textContent = '🕒';
+    if (label) label.textContent = 'Check In';
+    if (dot) dot.style.display = 'none';
+    btn.setAttribute('aria-label', 'Not checked in — tap to check in');
+    btn.title = 'Not checked in — tap to check in';
+  }
+}
+
+async function refreshAttendanceNavButton() {
+  const btn = document.getElementById('attendance-nav-btn');
+  if (!btn) return;
+  try {
+    const record = await window.AttendanceService.getToday();
+    applyAttendanceButtonState(attendanceButtonState(record));
+  } catch (err) {
+    // Keep the button usable even if the status fetch failed — the
+    // attendance page itself will surface the real error.
+    applyAttendanceButtonState('NOT_STARTED');
+  }
+}
+
+function renderAttendanceNavButton(container) {
+  const wrap = document.createElement('button');
+  wrap.className = 'btn btn-secondary btn-sm attendance-nav-btn state-checkin';
+  wrap.id = 'attendance-nav-btn';
+  wrap.type = 'button';
+  wrap.title = 'Attendance';
+  wrap.setAttribute('aria-label', 'Attendance');
+  wrap.innerHTML = `
+    <span class="attendance-nav-dot" id="attendance-nav-dot" style="display:none;"></span>
+    <span class="navbar-icon" id="attendance-nav-icon">🕒</span>
+    <span class="navbar-label" id="attendance-nav-label">Attendance</span>
+  `;
+  wrap.addEventListener('click', () => {
+    window.location.href = '/pages/attendance.html';
+  });
+  container.appendChild(wrap);
+
+  refreshAttendanceNavButton();
+
+  // Refresh instantly when attendance.html tells us something changed,
+  // and whenever the tab regains focus (covers "checked in on phone,
+  // came back to this tab" without needing a poll timer).
+  window.addEventListener('attendance:changed', refreshAttendanceNavButton);
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refreshAttendanceNavButton();
+  });
+}
+
 function renderNavbar() {
   const user = JSON.parse(localStorage.getItem('user') || '{"name":"Guest","role":"BDM"}');
   const navbarContainer = document.getElementById('navbar-container');
@@ -394,7 +566,7 @@ function renderNavbar() {
         <span class="hbg-line"></span><span class="hbg-line"></span><span class="hbg-line"></span>
       </button>
 
-      <div class="navbar-right">
+      <div class="navbar-right" id="navbar-right">
         <button class="theme-toggle" id="theme-toggle-btn" aria-label="Toggle theme">
           <span class="navbar-icon" id="theme-toggle-icon">🌙</span><span class="navbar-label" id="theme-toggle-label">Dark</span>
         </button>
@@ -418,6 +590,24 @@ function renderNavbar() {
       </div>
     </nav>
   `;
+
+  // Insert the attendance IN/OUT button as the FIRST action in the
+  // navbar-right cluster (before the theme toggle) so it stays in the
+  // same prominent, always-reachable spot as the other icon-only
+  // actions once the ≤576px collapse rules kick in.
+  const navbarRight = document.getElementById('navbar-right');
+  const themeToggleBtn = document.getElementById('theme-toggle-btn');
+  if (navbarRight && themeToggleBtn) {
+    const attendanceHolder = document.createElement('span');
+    navbarRight.insertBefore(attendanceHolder, themeToggleBtn);
+    renderAttendanceNavButton(navbarRight);
+    // renderAttendanceNavButton appends to the end of navbarRight by
+    // default; move the button we just created to right before the
+    // placeholder, then drop the placeholder.
+    const btn = document.getElementById('attendance-nav-btn');
+    if (btn) navbarRight.insertBefore(btn, attendanceHolder);
+    attendanceHolder.remove();
+  }
 
   const toggleBtn = document.getElementById('sidebar-toggle-btn');
   toggleBtn.addEventListener('click', () => {
@@ -536,13 +726,6 @@ function renderFooter() {
 })();
 
 // ── Breakpoint-crossing reset ────────────────────────────────────
-// This is the critical fix: without it, 'collapsed' (desktop rail)
-// and 'mobile-open' (mobile drawer) can end up on the sidebar at the
-// same time, and their conflicting `transform` !important rules
-// leave the mobile drawer permanently hidden — OR, as seen in the
-// bug video, leave the desktop rail permanently visible and pushing
-// content even at mobile widths. Whenever the viewport crosses
-// 768px in either direction, force a clean state.
 MOBILE_QUERY.addEventListener('change', (e) => {
   const sidebar = document.getElementById('app-sidebar');
   const mainContent = document.querySelector('.main-content');
