@@ -15,6 +15,7 @@ const Onboarding = require('./Onboarding');
 const Invoice = require('./Invoice');
 const Employee = require('./Employee');
 const Attendance = require('./Attendance');
+const Holiday = require('./Holiday');
 const Worksheet = require('./Worksheet');
 const Task = require('./Task');
 const Visitor = require('./Visitor');
@@ -42,6 +43,7 @@ module.exports = {
   Invoice,
   Employee,
   Attendance,
+  Holiday,
   Worksheet,
   Task,
   Visitor,

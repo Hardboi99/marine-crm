@@ -1,5 +1,5 @@
 const bcrypt = require("bcryptjs");
-const { Employee, Attendance, User, Worksheet, Task } = require("../models");
+const { Employee, Attendance, Holiday, User, Worksheet, Task } = require("../models");
 const { logActivity } = require("../utils/activityLogger");
 const { generateVerificationToken, sendVerificationEmail } = require("../services/emailService");
 
@@ -11,6 +11,57 @@ const getTodayDateStr = () => new Date().toISOString().split("T")[0];
 // ── Helper: resolve the Employee document for the calling user (BDM) ──────────
 const getMyEmployee = async (userId) => {
   return Employee.findOne({ userId });
+};
+
+// ── Helper: resolve OR auto-provision the calling user's own Employee record ──
+// getMyEmployee() above is a pure lookup and stays that way everywhere else
+// (listEmployees, checkIn/checkOut authorization, dashboard) — unchanged.
+// This variant is used only by the two self-service entry points that were
+// hitting "No employee profile found" for any account that never went
+// through the Admin "Create Employee" flow (which is every seeded account,
+// ADMIN included — seed.js creates Users but no Employee docs at all).
+//   1. Employee.findOne({ userId })              — already linked, use it.
+//   2. Employee.findOne({ email, userId: null })  — a profile exists under
+//      this account's email but isn't linked yet → link it instead of
+//      creating a duplicate.
+//   3. Otherwise auto-create one, using the SAME employeeId-generation
+//      convention as createEmployee() above, sourced from the User doc.
+const getOrCreateMyEmployee = async (req) => {
+  const existing = await Employee.findOne({ userId: req.user.id });
+  if (existing) return existing;
+
+  const email = (req.user.email || "").toLowerCase().trim();
+  if (email) {
+    const unlinked = await Employee.findOne({ email, userId: null });
+    if (unlinked) {
+      unlinked.userId = req.user.id;
+      await unlinked.save();
+      return unlinked;
+    }
+  }
+
+  const userDoc = await User.findById(req.user.id);
+  if (!userDoc) return null; // token valid but the account no longer exists
+
+  const count = await Employee.countDocuments();
+  let candidate = `EMP-${String(count + 1).padStart(3, "0")}`;
+  let attempt = count + 1;
+  while (await Employee.findOne({ employeeId: candidate })) {
+    attempt++;
+    candidate = `EMP-${String(attempt).padStart(3, "0")}`;
+  }
+
+  return Employee.create({
+    name: userDoc.name,
+    employeeId: candidate,
+    phone: userDoc.phone || "N/A",
+    email: email || null,
+    position: userDoc.department || null,
+    joinDate: new Date(),
+    userId: userDoc._id,
+    createdById: userDoc._id,
+    createdByName: userDoc.name,
+  });
 };
 
 // ── Helper: is this an admin/HR request? ────────────────────────────────────
@@ -615,7 +666,7 @@ const resolveEmployeeIdForQuery = async (req) => {
     return { ok: true, employeeId: queryEmployeeId };
   }
 
-  const myEmp = await getMyEmployee(req.user.id);
+  const myEmp = await getOrCreateMyEmployee(req);
   return { ok: true, employeeId: myEmp ? myEmp._id.toString() : null };
 };
 
@@ -624,18 +675,32 @@ const resolveEmployeeIdForQuery = async (req) => {
 // after the employee's join date) a synthesized ABSENT entry — since
 // this project has no absence-marking or holiday system yet, this is
 // the closest reasonable approximation without inventing new storage.
+// Default weekly off — Saturday(6) / Sunday(0). There is no working-days,
+// weekly-off, or HR-settings config anywhere in this project (Employee and
+// User schemas have neither), so this is the standard 5-day-week default,
+// applied explicitly here rather than silently assumed. If the company's
+// actual schedule differs, this is the one place to change it.
+const WEEK_OFF_DAYS = [0, 6]; // Sun, Sat
+
 const buildMonthAttendance = async (employeeId, year, month) => {
   const monthStr = String(month).padStart(2, "0");
   const prefix = `${year}-${monthStr}-`;
 
-  const records = await Attendance.find({
-    employeeId,
-    date: { $gte: `${prefix}01`, $lte: `${prefix}31` },
-  }).sort({ date: 1 });
+  const [records, holidays] = await Promise.all([
+    Attendance.find({
+      employeeId,
+      date: { $gte: `${prefix}01`, $lte: `${prefix}31` },
+    }).sort({ date: 1 }),
+    Holiday.find({ date: { $gte: `${prefix}01`, $lte: `${prefix}31` } }),
+  ]);
 
   const recordMap = {};
   records.forEach((r) => {
     recordMap[r.date] = r;
+  });
+  const holidayMap = {};
+  holidays.forEach((h) => {
+    holidayMap[h.date] = h;
   });
 
   const empDoc = await Employee.findById(employeeId).select("joinDate");
@@ -653,8 +718,28 @@ const buildMonthAttendance = async (employeeId, year, month) => {
     if (joinDateStr && dateStr < joinDateStr) continue; // before they joined
 
     const doc = recordMap[dateStr];
-    if (doc) {
+    const holiday = holidayMap[dateStr];
+    const dayOfWeek = new Date(`${dateStr}T00:00:00`).getDay();
+    const isWeekOff = WEEK_OFF_DAYS.includes(dayOfWeek);
+
+    if (holiday) {
+      // A company holiday always wins for display — it's never Absent —
+      // but if the employee actually checked in that day, keep their times.
+      const base = doc
+        ? normalizeAttendanceRecord(doc)
+        : { date: dateStr, checkInTime: null, checkOutTime: null, totalMinutes: null };
+      result.push({ ...base, date: dateStr, status: "HOLIDAY", holidayName: holiday.name });
+    } else if (doc) {
       result.push(normalizeAttendanceRecord(doc));
+    } else if (isWeekOff) {
+      result.push({
+        date: dateStr,
+        status: "WEEK_OFF",
+        checkInTime: null,
+        checkOutTime: null,
+        totalMinutes: null,
+        holidayName: null,
+      });
     } else if (dateStr !== todayStr) {
       result.push({
         date: dateStr,
@@ -685,9 +770,14 @@ const getMyTodayAttendance = async (req, res, next) => {
     if (!resolved.employeeId) {
       return res.json({ success: true, data: null });
     }
-    const today = getTodayDateStr();
-    const record = await Attendance.findOne({ employeeId: resolved.employeeId, date: today });
-    res.json({ success: true, data: normalizeAttendanceRecord(record) });
+    // Reuse the same day-decision logic (holiday / week-off / present /
+    // absent) the calendar uses, so "today" never disagrees with what
+    // clicking today's cell in the calendar would show.
+    const now = new Date();
+    const monthRecords = await buildMonthAttendance(resolved.employeeId, now.getFullYear(), now.getMonth() + 1);
+    const todayStr = getTodayDateStr();
+    const record = monthRecords.find((r) => r.date === todayStr) || null;
+    res.json({ success: true, data: record });
   } catch (err) {
     next(err);
   }
@@ -745,13 +835,13 @@ const getAttendanceSummary = async (req, res, next) => {
     if (!resolved.employeeId) {
       return res.json({
         success: true,
-        data: { presentDays: 0, absentDays: 0, holidays: 0, totalMinutes: 0, averageMinutes: 0 },
+        data: { presentDays: 0, absentDays: 0, holidays: 0, weekOffs: 0, totalMinutes: 0, averageMinutes: 0 },
       });
     }
 
     const records = await buildMonthAttendance(resolved.employeeId, year, month);
 
-    let presentDays = 0, absentDays = 0, holidays = 0, totalMinutes = 0, presentWithHoursCount = 0;
+    let presentDays = 0, absentDays = 0, holidays = 0, weekOffs = 0, totalMinutes = 0, presentWithHoursCount = 0;
     records.forEach((r) => {
       if (r.status === "PRESENT") {
         presentDays += 1;
@@ -763,6 +853,8 @@ const getAttendanceSummary = async (req, res, next) => {
         absentDays += 1;
       } else if (r.status === "HOLIDAY") {
         holidays += 1;
+      } else if (r.status === "WEEK_OFF") {
+        weekOffs += 1;
       }
     });
     const averageMinutes = presentWithHoursCount
@@ -775,10 +867,121 @@ const getAttendanceSummary = async (req, res, next) => {
         presentDays,
         absentDays,
         holidays,
+        weekOffs,
         totalMinutes: Math.round(totalMinutes),
         averageMinutes,
       },
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HOLIDAYS  /api/employees/holidays
+//   Company-wide calendar facts, deliberately kept separate from the
+//   Attendance model/architecture. Everyone authenticated can read them
+//   (the attendance calendar needs this for every employee viewing their
+//   own month); only ADMIN/HR can create/update/delete, enforced both by
+//   route middleware (requireRole) and again here as a second check.
+// ─────────────────────────────────────────────────────────────────────────────
+const listHolidays = async (req, res, next) => {
+  try {
+    const filter = {};
+    const year = parseInt(req.query.year, 10);
+    const month = parseInt(req.query.month, 10);
+    if (year && month && month >= 1 && month <= 12) {
+      const monthStr = String(month).padStart(2, "0");
+      const prefix = `${year}-${monthStr}-`;
+      filter.date = { $gte: `${prefix}01`, $lte: `${prefix}31` };
+    } else if (year) {
+      filter.date = { $gte: `${year}-01-01`, $lte: `${year}-12-31` };
+    }
+    const holidays = await Holiday.find(filter).sort({ date: 1 });
+    res.json({ success: true, data: holidays });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createHoliday = async (req, res, next) => {
+  try {
+    if (!isManager(req)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Admin/HR can manage holidays.",
+      });
+    }
+    const { date, name, description } = req.body;
+    if (!date || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "Holiday date and name are required.",
+      });
+    }
+    const dateStr = new Date(date).toISOString().split("T")[0];
+    const existing = await Holiday.findOne({ date: dateStr });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: `A holiday is already set for ${dateStr}.`,
+      });
+    }
+    const holiday = await Holiday.create({
+      date: dateStr,
+      name: name.trim(),
+      description: description ? description.trim() : "",
+      createdById: req.user.id,
+      createdByName: req.user.name,
+    });
+    res.status(201).json({ success: true, data: holiday, message: "Holiday added." });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, message: "A holiday already exists for that date." });
+    }
+    next(err);
+  }
+};
+
+const updateHoliday = async (req, res, next) => {
+  try {
+    if (!isManager(req)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Admin/HR can manage holidays.",
+      });
+    }
+    const holiday = await Holiday.findById(req.params.id);
+    if (!holiday) {
+      return res.status(404).json({ success: false, message: "Holiday not found." });
+    }
+    const { date, name, description } = req.body;
+    if (date) holiday.date = new Date(date).toISOString().split("T")[0];
+    if (name) holiday.name = name.trim();
+    if (description !== undefined) holiday.description = description ? description.trim() : "";
+    await holiday.save();
+    res.json({ success: true, data: holiday, message: "Holiday updated." });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, message: "A holiday already exists for that date." });
+    }
+    next(err);
+  }
+};
+
+const deleteHoliday = async (req, res, next) => {
+  try {
+    if (!isManager(req)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Admin/HR can manage holidays.",
+      });
+    }
+    const holiday = await Holiday.findByIdAndDelete(req.params.id);
+    if (!holiday) {
+      return res.status(404).json({ success: false, message: "Holiday not found." });
+    }
+    res.json({ success: true, message: "Holiday removed." });
   } catch (err) {
     next(err);
   }
@@ -950,7 +1153,7 @@ const updateTaskStatus = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const getMyProfile = async (req, res, next) => {
   try {
-    const emp = await getMyEmployee(req.user.id);
+    const emp = await getOrCreateMyEmployee(req);
     if (!emp)
       return res.status(404).json({
         success: false,
@@ -1149,6 +1352,10 @@ module.exports = {
   getAttendanceSummary,
   checkIn,
   checkOut,
+  listHolidays,
+  createHoliday,
+  updateHoliday,
+  deleteHoliday,
   submitWorksheet,
   getWorksheets,
   createTask,
