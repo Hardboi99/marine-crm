@@ -557,6 +557,234 @@ const checkOut = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// ATTENDANCE — helpers shared by the endpoints below
+//
+// These extend the SAME Attendance collection/architecture used by
+// getTodayAttendance/checkIn/checkOut above (no new model, no new
+// router). They exist to power the attendance.html page (today card,
+// monthly calendar, monthly summary) and the navbar IN/OUT button,
+// which need a normalized single-record shape and month/summary
+// views that didn't exist yet.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Shape a raw Attendance doc the way the attendance UI expects.
+// Storage still uses checkIn/checkOut (untouched); this is purely a
+// response-time convenience so the frontend doesn't need its own
+// duplicate time-math.
+const normalizeAttendanceRecord = (doc) => {
+  if (!doc) return null;
+  const checkInTime = doc.checkIn || null;
+  const checkOutTime = doc.checkOut || null;
+  const totalMinutes =
+    checkInTime && checkOutTime
+      ? Math.round((new Date(checkOutTime) - new Date(checkInTime)) / 60000)
+      : null;
+  return {
+    date: doc.date,
+    status: checkInTime ? "PRESENT" : "NOT_MARKED",
+    checkInTime,
+    checkOutTime,
+    totalMinutes,
+    holidayName: null, // no Holiday system exists in this project yet
+  };
+};
+
+// Resolve which employeeId a request is allowed to view.
+//   - No ?employeeId= → always the caller's own Employee record.
+//   - ?employeeId=X   → allowed only for ADMIN/HR (per existing
+//                        isManager permissions); anyone else gets a
+//                        403, even if X happens to equal their own id
+//                        spelled differently — this is the "can't
+//                        view another employee by editing the API
+//                        request" rule enforced server-side.
+const resolveEmployeeIdForQuery = async (req) => {
+  const queryEmployeeId = (req.query.employeeId || "").trim();
+
+  if (queryEmployeeId) {
+    if (isManager(req)) {
+      return { ok: true, employeeId: queryEmployeeId };
+    }
+    const myEmp = await getMyEmployee(req.user.id);
+    if (!myEmp || myEmp._id.toString() !== queryEmployeeId) {
+      return {
+        ok: false,
+        status: 403,
+        message: "You can only view your own attendance.",
+      };
+    }
+    return { ok: true, employeeId: queryEmployeeId };
+  }
+
+  const myEmp = await getMyEmployee(req.user.id);
+  return { ok: true, employeeId: myEmp ? myEmp._id.toString() : null };
+};
+
+// Build a day-by-day view of a month for one employee: real Attendance
+// docs where they exist, and (for past working days with no record,
+// after the employee's join date) a synthesized ABSENT entry — since
+// this project has no absence-marking or holiday system yet, this is
+// the closest reasonable approximation without inventing new storage.
+const buildMonthAttendance = async (employeeId, year, month) => {
+  const monthStr = String(month).padStart(2, "0");
+  const prefix = `${year}-${monthStr}-`;
+
+  const records = await Attendance.find({
+    employeeId,
+    date: { $gte: `${prefix}01`, $lte: `${prefix}31` },
+  }).sort({ date: 1 });
+
+  const recordMap = {};
+  records.forEach((r) => {
+    recordMap[r.date] = r;
+  });
+
+  const empDoc = await Employee.findById(employeeId).select("joinDate");
+  const joinDateStr = empDoc && empDoc.joinDate
+    ? new Date(empDoc.joinDate).toISOString().split("T")[0]
+    : null;
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const todayStr = getTodayDateStr();
+
+  const result = [];
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${monthStr}-${String(day).padStart(2, "0")}`;
+    if (dateStr > todayStr) continue; // future — no data yet
+    if (joinDateStr && dateStr < joinDateStr) continue; // before they joined
+
+    const doc = recordMap[dateStr];
+    if (doc) {
+      result.push(normalizeAttendanceRecord(doc));
+    } else if (dateStr !== todayStr) {
+      result.push({
+        date: dateStr,
+        status: "ABSENT",
+        checkInTime: null,
+        checkOutTime: null,
+        totalMinutes: null,
+        holidayName: null,
+      });
+    }
+    // today with no record yet is intentionally omitted — the
+    // frontend already renders "today, no data" via the live ring.
+  }
+  return result;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MY TODAY ATTENDANCE (normalized)  GET /api/employees/attendance/me/today
+//   Self → own record; Admin/HR may pass ?employeeId= to view another.
+//   Used by the navbar IN/OUT button and the attendance page's "Today" card.
+// ─────────────────────────────────────────────────────────────────────────────
+const getMyTodayAttendance = async (req, res, next) => {
+  try {
+    const resolved = await resolveEmployeeIdForQuery(req);
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({ success: false, message: resolved.message });
+    }
+    if (!resolved.employeeId) {
+      return res.json({ success: true, data: null });
+    }
+    const today = getTodayDateStr();
+    const record = await Attendance.findOne({ employeeId: resolved.employeeId, date: today });
+    res.json({ success: true, data: normalizeAttendanceRecord(record) });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MONTHLY ATTENDANCE  GET /api/employees/attendance/month?year=&month=&employeeId=
+//   Powers the attendance calendar. Same access rules as above.
+// ─────────────────────────────────────────────────────────────────────────────
+const getAttendanceMonth = async (req, res, next) => {
+  try {
+    const year = parseInt(req.query.year, 10);
+    const month = parseInt(req.query.month, 10);
+    if (!year || !month || month < 1 || month > 12) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid year and month query params are required.",
+      });
+    }
+
+    const resolved = await resolveEmployeeIdForQuery(req);
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({ success: false, message: resolved.message });
+    }
+    if (!resolved.employeeId) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const data = await buildMonthAttendance(resolved.employeeId, year, month);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MONTHLY SUMMARY  GET /api/employees/attendance/summary?year=&month=&employeeId=
+//   Powers the present/absent/holiday/hours cards atop the attendance page.
+// ─────────────────────────────────────────────────────────────────────────────
+const getAttendanceSummary = async (req, res, next) => {
+  try {
+    const year = parseInt(req.query.year, 10);
+    const month = parseInt(req.query.month, 10);
+    if (!year || !month || month < 1 || month > 12) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid year and month query params are required.",
+      });
+    }
+
+    const resolved = await resolveEmployeeIdForQuery(req);
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({ success: false, message: resolved.message });
+    }
+    if (!resolved.employeeId) {
+      return res.json({
+        success: true,
+        data: { presentDays: 0, absentDays: 0, holidays: 0, totalMinutes: 0, averageMinutes: 0 },
+      });
+    }
+
+    const records = await buildMonthAttendance(resolved.employeeId, year, month);
+
+    let presentDays = 0, absentDays = 0, holidays = 0, totalMinutes = 0, presentWithHoursCount = 0;
+    records.forEach((r) => {
+      if (r.status === "PRESENT") {
+        presentDays += 1;
+        if (r.totalMinutes) {
+          totalMinutes += r.totalMinutes;
+          presentWithHoursCount += 1;
+        }
+      } else if (r.status === "ABSENT") {
+        absentDays += 1;
+      } else if (r.status === "HOLIDAY") {
+        holidays += 1;
+      }
+    });
+    const averageMinutes = presentWithHoursCount
+      ? Math.round(totalMinutes / presentWithHoursCount)
+      : 0;
+
+    res.json({
+      success: true,
+      data: {
+        presentDays,
+        absentDays,
+        holidays,
+        totalMinutes: Math.round(totalMinutes),
+        averageMinutes,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // WORKSHEETS
 // ─────────────────────────────────────────────────────────────────────────────
 const submitWorksheet = async (req, res, next) => {
@@ -916,6 +1144,9 @@ module.exports = {
   exitEmployee,
   reactivateEmployee,
   getTodayAttendance,
+  getMyTodayAttendance,
+  getAttendanceMonth,
+  getAttendanceSummary,
   checkIn,
   checkOut,
   submitWorksheet,

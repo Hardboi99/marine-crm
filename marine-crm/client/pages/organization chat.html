@@ -269,7 +269,8 @@
 
         /* Click Zoom - Now applied to ALL nodes when clicked */
         .node.zoomed {
-            transform: scale(1.15); /* Slightly bigger */
+            transform: scale(1.15);
+            /* Slightly bigger */
             z-index: 50;
             background: var(--bg-grad-1);
             box-shadow: 0 15px 40px rgba(0, 0, 0, 0.6);
@@ -315,29 +316,87 @@
             cursor: pointer;
         }
 
-        .border-gold { border-color: var(--primary); }
-        .role-gold { background: rgba(246, 179, 80, 0.2); color: var(--primary); }
-        body.light-mode .role-gold { background: var(--primary); color: #fff; }
+        .border-gold {
+            border-color: var(--primary);
+        }
 
-        .border-green { border-color: var(--secondary); }
-        .role-green { background: rgba(125, 211, 192, 0.2); color: var(--secondary); }
-        body.light-mode .role-green { background: var(--secondary); color: #0f172a; }
+        .role-gold {
+            background: rgba(246, 179, 80, 0.2);
+            color: var(--primary);
+        }
 
-        .border-blue { border-color: var(--accent-blue); }
-        .role-blue { background: rgba(56, 189, 248, 0.2); color: var(--accent-blue); }
-        body.light-mode .role-blue { background: var(--accent-blue); color: #fff; }
+        body.light-mode .role-gold {
+            background: var(--primary);
+            color: #fff;
+        }
 
-        .role-docs { background: rgba(251, 191, 36, 0.2); color: #fbbf24; }
-        body.light-mode .role-docs { background: #fbbf24; color: #000; }
+        .border-green {
+            border-color: var(--secondary);
+        }
 
-        .role-bd { background: rgba(167, 139, 250, 0.2); color: var(--accent-purple); }
-        body.light-mode .role-bd { background: var(--accent-purple); color: #fff; }
+        .role-green {
+            background: rgba(125, 211, 192, 0.2);
+            color: var(--secondary);
+        }
 
-        .role-social { background: rgba(244, 114, 182, 0.2); color: var(--accent-pink); }
-        body.light-mode .role-social { background: var(--accent-pink); color: #fff; }
+        body.light-mode .role-green {
+            background: var(--secondary);
+            color: #0f172a;
+        }
 
-        .role-admin { background: rgba(148, 163, 184, 0.2); color: #cbd5e1; }
-        body.light-mode .role-admin { background: var(--accent-grey); color: #fff; }
+        .border-blue {
+            border-color: var(--accent-blue);
+        }
+
+        .role-blue {
+            background: rgba(56, 189, 248, 0.2);
+            color: var(--accent-blue);
+        }
+
+        body.light-mode .role-blue {
+            background: var(--accent-blue);
+            color: #fff;
+        }
+
+        .role-docs {
+            background: rgba(251, 191, 36, 0.2);
+            color: #fbbf24;
+        }
+
+        body.light-mode .role-docs {
+            background: #fbbf24;
+            color: #000;
+        }
+
+        .role-bd {
+            background: rgba(167, 139, 250, 0.2);
+            color: var(--accent-purple);
+        }
+
+        body.light-mode .role-bd {
+            background: var(--accent-purple);
+            color: #fff;
+        }
+
+        .role-social {
+            background: rgba(244, 114, 182, 0.2);
+            color: var(--accent-pink);
+        }
+
+        body.light-mode .role-social {
+            background: var(--accent-pink);
+            color: #fff;
+        }
+
+        .role-admin {
+            background: rgba(148, 163, 184, 0.2);
+            color: #cbd5e1;
+        }
+
+        body.light-mode .role-admin {
+            background: var(--accent-grey);
+            color: #fff;
+        }
 
         .vertical-stack {
             display: flex;
@@ -349,19 +408,22 @@
         /* --- Manager -> Officer (Now Vertically Stacked Everywhere) --- */
         .pair {
             display: flex;
-            flex-direction: column; /* Vertical alignment */
+            flex-direction: column;
+            /* Vertical alignment */
             align-items: center;
             position: relative;
             width: 100%;
         }
 
         .pair .node:last-child {
-            margin-top: 45px; /* Space for the arrow */
+            margin-top: 45px;
+            /* Space for the arrow */
         }
 
         /* Dynamic Downward Arrow for Expandable Pairs */
         .pair .node:first-child::after {
-            content: '↓'; /* Downward pointing arrow */
+            content: '↓';
+            /* Downward pointing arrow */
             position: absolute;
             left: 50%;
             bottom: -32px;
@@ -370,25 +432,30 @@
             font-size: 1.5rem;
             font-weight: bold;
             pointer-events: none;
-            opacity: 0; /* Hidden until expanded */
+            opacity: 0;
+            /* Hidden until expanded */
             transition: opacity 0.3s ease;
         }
 
         .pair .node:first-child.expanded::after {
-            opacity: 1; /* Show arrow when expanded */
+            opacity: 1;
+            /* Show arrow when expanded */
         }
 
         /* --- COLLAPSIBLE CSS ADDITIONS --- */
         .branch {
             display: none !important;
         }
-        ul.branch.show, div.branch.show {
+
+        ul.branch.show,
+        div.branch.show {
             display: flex !important;
         }
+
         .node.branch.show {
             display: inline-flex !important;
         }
-        
+
         .expand-icon {
             position: absolute;
             bottom: -14px;
@@ -402,24 +469,27 @@
             align-items: center;
             justify-content: center;
             font-size: 10px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
             transition: transform 0.3s ease, background 0.3s ease;
             z-index: 10;
         }
+
         body.light-mode .expand-icon {
             background: #ffffff;
             color: #000;
         }
-        .toggler.expanded > .expand-icon {
+
+        .toggler.expanded>.expand-icon {
             transform: rotate(180deg);
         }
-        
+
         .expand-icon-inline {
             display: inline-block;
             margin-left: 8px;
             font-size: 11px;
             transition: transform 0.3s ease;
         }
+
         .toggler.expanded .expand-icon-inline {
             transform: rotate(180deg);
         }
@@ -492,9 +562,10 @@
                 max-width: 320px;
                 min-width: unset;
             }
-            
+
             .node.branch.show {
-                display: flex !important; /* Make full width on mobile */
+                display: flex !important;
+                /* Make full width on mobile */
             }
 
             .tree>ul>li>ul>li {
@@ -539,7 +610,7 @@
 
                     <!-- LEVEL 2 -->
                     <ul class="branch">
-                        
+
                         <!-- Accounts Branch -->
                         <li>
                             <div class="node" style="border-color:#cbd5e1;">
@@ -560,7 +631,7 @@
 
                             <!-- LEVEL 3 -->
                             <ul class="branch">
-                                
+
                                 <!-- DEPARTMENT 1: SOURCING -->
                                 <li>
                                     <div class="dept-title toggler">
@@ -572,54 +643,37 @@
                                                 <div class="avatar">NC</div>
                                                 <span class="name">Nandini C</span>
                                                 <span class="role role-blue">Sourcing Manager</span>
-                                                <div class="expand-icon">▼</div>
                                             </div>
-                                            <div class="node border-blue branch">
-                                                <div class="avatar">UD</div>
-                                                <span class="name">Unnati D</span>
-                                                <span class="role role-blue">Sourcing Officer</span>
+
+                                            <div class="pair">
+                                                <div class="node border-blue toggler">
+                                                    <div class="avatar">PS</div>
+                                                    <span class="name">Puja Shetty</span>
+                                                    <span class="role role-blue">Sourcing Manager</span>
+                                                </div>
+
                                             </div>
-                                        </div>
-                                        <div class="pair">
-                                            <div class="node border-blue toggler">
-                                                <div class="avatar">PS</div>
-                                                <span class="name">Puja Shetty</span>
-                                                <span class="role role-blue">Sourcing Manager</span>
-                                                <div class="expand-icon">▼</div>
-                                            </div>
-                                            <div class="node border-blue branch">
-                                                <div class="avatar">MK</div>
-                                                <span class="name">Monika K</span>
-                                                <span class="role role-blue">Sourcing Officer</span>
-                                            </div>
-                                        </div>
-                                        <div class="pair">
-                                            <div class="node border-blue toggler">
-                                                <div class="avatar">DK</div>
-                                                <span class="name">Dipak Keshari</span>
-                                                <span class="role role-blue">Sourcing Manager</span>
-                                                <div class="expand-icon">▼</div>
-                                            </div>
-                                            <div class="node border-blue branch">
-                                                <div class="avatar">VD</div>
-                                                <span class="name">Vijay Dubey</span>
-                                                <span class="role role-blue">Sourcing Officer</span>
+                                            <div class="pair">
+                                                <div class="node border-blue toggler">
+                                                    <div class="avatar">DK</div>
+                                                    <span class="name">Dipak Keshari</span>
+                                                    <span class="role role-blue">Sourcing Manager</span>
+                                                </div>
+                                                
+                                            <div class="pair">
+                                                <div class="node border-blue toggler">
+                                                    <div class="avatar">AV</div>
+                                                    <span class="name">Aditi Verma</span>
+                                                    <span class="role role-blue">Sourcing Officer</span>
+                                                    <div class="expand-icon">▼</div>
+                                                </div>
+                                                <div class="node border-blue branch">
+                                                    <div class="avatar">HT</div>
+                                                    <span class="name">Hemangi Thakur</span>
+                                                    <span class="role role-blue">Sourcing Officer</span>
+                                                </div>
                                             </div>
                                         </div>
-                                        <div class="pair">
-                                            <div class="node border-blue toggler">
-                                                <div class="avatar">AV</div>
-                                                <span class="name">Aditi Verma</span>
-                                                <span class="role role-blue">Sourcing Manager</span>
-                                                <div class="expand-icon">▼</div>
-                                            </div>
-                                            <div class="node border-blue branch">
-                                                <div class="avatar">HT</div>
-                                                <span class="name">Hemangi Thakur</span>
-                                                <span class="role role-blue">Sourcing Officer</span>
-                                            </div>
-                                        </div>
-                                    </div>
                                 </li>
 
                                 <!-- DEPARTMENT 2: DOCUMENTATION -->
@@ -645,15 +699,21 @@
                                             <div class="node border-blue toggler" style="border-color:#fbbf24;">
                                                 <div class="avatar">SG</div>
                                                 <span class="name">Siddhi G</span>
-                                                <span class="role role-docs">Manager - Docs</span>
+                                                <span class="role role-docs">Officer - Docs</span>
                                                 <div class="expand-icon">▼</div>
                                             </div>
+                                            
                                             <div class="node border-blue branch" style="border-color:#fbbf24;">
                                                 <div class="avatar">HT</div>
                                                 <span class="name">Hemangi Thakur</span>
                                                 <span class="role role-docs">Officer - Docs</span>
                                             </div>
                                         </div>
+                                        <div class="node border-blue toggler" style="border-color:#fbbf24;">
+                                                <div class="avatar">M</div>
+                                                <span class="name"> Manjunathan</span>
+                                                <span class="role role-docs">Officer - Docs</span>
+                                            </div>
                                     </div>
                                 </li>
 
@@ -756,13 +816,13 @@
         // Logic for User Nodes (Zoom + Expand)
         allNodes.forEach(node => {
             node.addEventListener('click', (e) => {
-                e.stopPropagation(); 
-                
+                e.stopPropagation();
+
                 // 1. Handle Zoom Logic
                 const isCurrentlyZoomed = node.classList.contains('zoomed');
                 // Remove zoom from all other nodes
                 allNodes.forEach(n => n.classList.remove('zoomed'));
-                
+
                 // Add zoom to current if it wasn't already zoomed
                 if (!isCurrentlyZoomed) {
                     node.classList.add('zoomed');

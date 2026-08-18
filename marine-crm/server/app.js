@@ -125,6 +125,12 @@ app.use('/api/reception', receptionRoutes);
 app.use('/api/birthdays', birthdayRoutes);
 app.use('/api/recruitment/job-applications', jobApplicationsRoutes);
 app.use('/api/documents', documentsRoutes);
+// NOTE: Attendance is served entirely by the existing /api/employees/*
+// router (employeeController.js) — see checkin/checkout/attendance/*
+// routes in routes/employees.js. Do not add a separate /api/attendance
+// router/model; that duplicate architecture was removed here because
+// it referenced a routes/attendance.routes.js file that didn't exist
+// and was crashing the server on startup.
 
 // Legacy or malformed employee page URLs
 app.get('/pages/employee=', (req, res) => res.redirect('/pages/employee.html'));
