@@ -512,6 +512,71 @@ const getTodayAttendance = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// LOCATION — optional, captured only at check-in/check-out (no background
+// or continuous tracking)
+// ─────────────────────────────────────────────────────────────────────────────
+// ── Helper: validate + resolve an optional check-in/out location ──────────────
+// Location is OPTIONAL at this layer — employee.html's existing admin-driven
+// checkin/checkout (marking attendance for someone else from the directory)
+// never sends coordinates, and must keep working exactly as before. It's
+// only ever populated by the employee's own self-service check-in/out,
+// where the browser Geolocation API supplies real coordinates client-side.
+//
+// This can't stop someone from spoofing GPS at the OS level — no server can
+// — but it does the validation that's actually possible here: reject
+// anything that isn't a real, in-range coordinate pair.
+const https = require("https");
+
+const isValidCoordinate = (lat, lng) =>
+  typeof lat === "number" && typeof lng === "number" &&
+  Number.isFinite(lat) && Number.isFinite(lng) &&
+  lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+// Best-effort reverse geocode via OpenStreetMap's Nominatim (no API key,
+// no new dependency — uses Node's built-in https). If it fails or times
+// out, the check-in/out itself still proceeds with the raw coordinates;
+// only the human-readable address is left null, since the actual GPS
+// fix (already validated above) is the source of truth, not the label.
+const reverseGeocode = (lat, lng) =>
+  new Promise((resolve) => {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
+    const req = https.get(
+      url,
+      { headers: { "User-Agent": "MarineCRM-Attendance/1.0" }, timeout: 4000 },
+      (res) => {
+        let body = "";
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => {
+          try {
+            const parsed = JSON.parse(body);
+            const a = parsed.address || {};
+            const locality = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || null;
+            const city = a.city || a.town || a.county || null;
+            const parts = [locality, city, a.state, a.country].filter(Boolean);
+            resolve(parts.length ? parts.join(", ") : parsed.display_name || null);
+          } catch {
+            resolve(null);
+          }
+        });
+      }
+    );
+    req.on("timeout", () => req.destroy());
+    req.on("error", () => resolve(null));
+  });
+
+const resolveLocationFromBody = async (body) => {
+  if (body == null) return { ok: true, location: null };
+  const lat = typeof body.latitude === "string" ? parseFloat(body.latitude) : body.latitude;
+  const lng = typeof body.longitude === "string" ? parseFloat(body.longitude) : body.longitude;
+  if (lat === undefined && lng === undefined) return { ok: true, location: null };
+  if (!isValidCoordinate(lat, lng)) {
+    return { ok: false };
+  }
+  const address = await reverseGeocode(lat, lng);
+  return { ok: true, location: { latitude: lat, longitude: lng, address, capturedAt: new Date() } };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CHECK-IN  POST /api/employees/checkin/:id
 //   Admin/HR → any employee; BDM → only themselves
 // ─────────────────────────────────────────────────────────────────────────────
@@ -543,12 +608,26 @@ const checkIn = async (req, res, next) => {
       });
     }
 
+    const locationResult = await resolveLocationFromBody(req.body);
+    if (!locationResult.ok) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid location coordinates.",
+      });
+    }
+
     const today = getTodayDateStr();
     let record = await Attendance.findOne({ employeeId, date: today });
     if (!record) {
-      record = new Attendance({ employeeId, date: today, checkIn: new Date() });
+      record = new Attendance({
+        employeeId,
+        date: today,
+        checkIn: new Date(),
+        checkInLocation: locationResult.location,
+      });
     } else if (!record.checkIn) {
       record.checkIn = new Date();
+      record.checkInLocation = locationResult.location;
     } else {
       return res
         .status(400)
@@ -595,7 +674,17 @@ const checkOut = async (req, res, next) => {
         .status(400)
         .json({ success: false, message: "Already checked out today." });
     }
+
+    const locationResult = await resolveLocationFromBody(req.body);
+    if (!locationResult.ok) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid location coordinates.",
+      });
+    }
+
     record.checkOut = new Date();
+    record.checkOutLocation = locationResult.location;
     await record.save();
     res.json({
       success: true,
@@ -637,6 +726,8 @@ const normalizeAttendanceRecord = (doc) => {
     checkOutTime,
     totalMinutes,
     holidayName: null, // no Holiday system exists in this project yet
+    checkInLocation: doc.checkInLocation || null,
+    checkOutLocation: doc.checkOutLocation || null,
   };
 };
 
@@ -727,7 +818,7 @@ const buildMonthAttendance = async (employeeId, year, month) => {
       // but if the employee actually checked in that day, keep their times.
       const base = doc
         ? normalizeAttendanceRecord(doc)
-        : { date: dateStr, checkInTime: null, checkOutTime: null, totalMinutes: null };
+        : { date: dateStr, checkInTime: null, checkOutTime: null, totalMinutes: null, checkInLocation: null, checkOutLocation: null };
       result.push({ ...base, date: dateStr, status: "HOLIDAY", holidayName: holiday.name });
     } else if (doc) {
       result.push(normalizeAttendanceRecord(doc));
@@ -739,6 +830,8 @@ const buildMonthAttendance = async (employeeId, year, month) => {
         checkOutTime: null,
         totalMinutes: null,
         holidayName: null,
+        checkInLocation: null,
+        checkOutLocation: null,
       });
     } else if (dateStr !== todayStr) {
       result.push({
@@ -748,6 +841,8 @@ const buildMonthAttendance = async (employeeId, year, month) => {
         checkOutTime: null,
         totalMinutes: null,
         holidayName: null,
+        checkInLocation: null,
+        checkOutLocation: null,
       });
     }
     // today with no record yet is intentionally omitted — the
