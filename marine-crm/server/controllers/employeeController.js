@@ -564,6 +564,39 @@ const reverseGeocode = (lat, lng) =>
     req.on("error", () => resolve(null));
   });
 
+// ── Office geofence (500m, Haversine) ─────────────────────────────────────────
+// Fixed center point provided by the company. Authoritative check happens
+// here, server-side — the frontend only ever displays the distance for
+// user feedback, never enforces it.
+const OFFICE_LATITUDE = 19.0158689625056;
+const OFFICE_LONGITUDE = 73.03920102540052;
+const OFFICE_RADIUS_METERS = 500;
+
+const haversineDistanceMeters = (lat1, lon1, lat2, lon2) => {
+  const R = 6371000; // Earth radius in meters
+  const toRad = (deg) => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
+// Returns null if inside the geofence (or no coordinates were provided —
+// e.g. employee.html's admin-driven checkin/checkout, which never sends
+// location and must keep working unaffected by this rule), otherwise an
+// object describing exactly how far outside they are for the error message.
+const checkGeofence = (location) => {
+  if (!location) return null; // no coords supplied — nothing to enforce here
+  const distance = haversineDistanceMeters(
+    location.latitude, location.longitude, OFFICE_LATITUDE, OFFICE_LONGITUDE
+  );
+  if (distance <= OFFICE_RADIUS_METERS) return null;
+  return { distance: Math.round(distance) };
+};
+
 const resolveLocationFromBody = async (body) => {
   if (body == null) return { ok: true, location: null };
   const lat = typeof body.latitude === "string" ? parseFloat(body.latitude) : body.latitude;
@@ -593,8 +626,8 @@ const ensureLocationAddress = async (location) => {
 // per-company timezone setting anywhere in this project, so this is the
 // one explicit assumption; change IST_OFFSET_MINUTES if that's wrong.
 const IST_OFFSET_MINUTES = 5 * 60 + 30;
-const DAY_START_MINUTES = 10 * 60;      // 10:00 AM — on-time cutoff
-const HALF_DAY_START_MINUTES = 14 * 60; // 2:00 PM — half-day threshold
+const DAY_START_MINUTES = 10 * 60;      // 10:00 AM — on-time / late-mark cutoff
+const FULL_DAY_MINUTES = 9 * 60;        // 540 minutes — the ONLY thing that decides Full vs Half Day
 
 const getIstMinutesOfDay = (date) => {
   const istMs = date.getTime() + IST_OFFSET_MINUTES * 60 * 1000;
@@ -602,19 +635,19 @@ const getIstMinutesOfDay = (date) => {
   return ist.getUTCHours() * 60 + ist.getUTCMinutes();
 };
 
-// Decided once, at check-in time, from the check-in timestamp alone:
-//   before 10:00 AM IST  → on time, Full Day
-//   10:00 AM–1:59 PM IST → late, but still Full Day (accumulates a Late Mark;
-//                          3 Late Marks convert to 1 Half Day at month end)
-//   2:00 PM IST onward   → Half Day outright (per the Half Day Working Hours
-//                          policy: 2:00 PM–7:00 PM)
-const classifyCheckIn = (checkInDate) => {
-  const minutes = getIstMinutesOfDay(checkInDate);
-  if (minutes >= HALF_DAY_START_MINUTES) {
-    return { dayType: "HALF_DAY", isLate: false };
-  }
-  return { dayType: "FULL_DAY", isLate: minutes > DAY_START_MINUTES };
-};
+// Late Mark is independent of Full/Half Day — it's purely "did they arrive
+// after 10:00 AM IST". 3 Late Marks = 1 Half Day, but that's a MONTH-END
+// derived count (see getAttendanceSummary), never a same-day reclassification.
+const isLateCheckIn = (checkInDate) => getIstMinutesOfDay(checkInDate) > DAY_START_MINUTES;
+
+// Final Full Day / Half Day classification — decided ONLY at checkout, from
+// the ACTUAL worked duration (checkOut − checkIn), never from check-in time
+// alone. This is intentionally the single source of truth used both to
+// pick which worksheet to open and to store the final dayType:
+//   totalWorkingMinutes >= 540 (9h) → FULL_DAY
+//   totalWorkingMinutes <  540      → HALF_DAY
+const classifyByDuration = (totalWorkingMinutes) =>
+  totalWorkingMinutes >= FULL_DAY_MINUTES ? "FULL_DAY" : "HALF_DAY";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CHECK-IN  POST /api/employees/checkin/:id
@@ -655,24 +688,31 @@ const checkIn = async (req, res, next) => {
         message: "Invalid location coordinates.",
       });
     }
+    const geofenceViolation = checkGeofence(locationResult.location);
+    if (geofenceViolation) {
+      return res.status(403).json({
+        success: false,
+        message: `Check In is not allowed. You must be within ${OFFICE_RADIUS_METERS} meters of the office. Distance from office: ${geofenceViolation.distance} meters.`,
+        distanceMeters: geofenceViolation.distance,
+        radiusMeters: OFFICE_RADIUS_METERS,
+      });
+    }
 
     const today = getTodayDateStr();
     let record = await Attendance.findOne({ employeeId, date: today });
     const checkInAt = new Date();
-    const { dayType, isLate } = classifyCheckIn(checkInAt);
+    const isLate = isLateCheckIn(checkInAt);
     if (!record) {
       record = new Attendance({
         employeeId,
         date: today,
         checkIn: checkInAt,
         checkInLocation: locationResult.location,
-        dayType,
         isLate,
       });
     } else if (!record.checkIn) {
       record.checkIn = checkInAt;
       record.checkInLocation = locationResult.location;
-      record.dayType = dayType;
       record.isLate = isLate;
     } else {
       return res
@@ -728,10 +768,28 @@ const checkOut = async (req, res, next) => {
         message: "Invalid location coordinates.",
       });
     }
+    const geofenceViolation = checkGeofence(locationResult.location);
+    if (geofenceViolation) {
+      return res.status(403).json({
+        success: false,
+        message: `Check Out is not allowed. You must be within ${OFFICE_RADIUS_METERS} meters of the office. Distance from office: ${geofenceViolation.distance} meters.`,
+        distanceMeters: geofenceViolation.distance,
+        radiusMeters: OFFICE_RADIUS_METERS,
+      });
+    }
 
-    record.checkOut = new Date();
+    const checkOutAt = new Date();
+    const totalWorkingMinutes = Math.round((checkOutAt - record.checkIn) / 60000);
+    record.checkOut = checkOutAt;
     record.checkOutLocation = locationResult.location;
+    // Final classification — the ONLY moment dayType is decided, based on
+    // actual worked duration, per the 9-hour rule (never check-in time alone).
+    record.dayType = classifyByDuration(totalWorkingMinutes);
     await record.save();
+    await Worksheet.updateMany(
+      { employeeId, date: today },
+      { $set: { dayType: record.dayType } }
+    ).catch(() => {}); // best-effort; never blocks checkout itself
     res.json({
       success: true,
       data: record,
@@ -1209,6 +1267,10 @@ const submitWorksheet = async (req, res, next) => {
       vesselsContacted: vesselsContacted ? Number(vesselsContacted) : 0,
       notes: notes ? notes.trim() : "",
       submittedAt: new Date(),
+      // dayType isn't known yet — checkout (which happens right after this,
+      // per the mandated flow) is what actually decides it from the real
+      // worked duration; checkOut() backfills this field once it does.
+      dayType: null,
     });
 
     res.status(201).json({
@@ -1237,6 +1299,75 @@ const getWorksheets = async (req, res, next) => {
       .populate("employeeId", "name position employeeId")
       .sort({ createdAt: -1 });
     res.json({ success: true, data: worksheets });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── Manager/COO/Admin reply to a worksheet ────────────────────────────────────
+// PATCH /api/employees/worksheets/:id/reply — ADMIN/HR only (same isManager
+// gate as everywhere else in this controller). Changing :id to a worksheet
+// outside their authorized scope isn't a bypass here since isManager
+// already governs the whole review surface the same way it governs
+// listEmployees/attendance — a normal employee can never reach this route
+// (requireRole enforces that at the router level too).
+const replyToWorksheet = async (req, res, next) => {
+  try {
+    if (!isManager(req)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Admin/HR can reply to worksheets.",
+      });
+    }
+    const { reply } = req.body;
+    if (!reply || !reply.trim()) {
+      return res.status(400).json({ success: false, message: "Reply text is required." });
+    }
+    const worksheet = await Worksheet.findById(req.params.id);
+    if (!worksheet) {
+      return res.status(404).json({ success: false, message: "Worksheet not found." });
+    }
+    worksheet.reply = reply.trim();
+    worksheet.repliedById = req.user.id;
+    worksheet.repliedByName = req.user.name;
+    worksheet.repliedAt = new Date();
+    worksheet.status = "REVIEWED";
+    await worksheet.save();
+    res.json({ success: true, data: worksheet, message: "Reply sent." });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ── Employee responds to a manager's reply ────────────────────────────────────
+// PATCH /api/employees/worksheets/:id/response — only the worksheet's own
+// employee may respond. Backend re-verifies ownership from the worksheet's
+// stored employeeId against the caller's own resolved Employee._id — the
+// worksheetId in the URL cannot be used to respond on someone else's
+// worksheet no matter what value is passed.
+const respondToWorksheetReply = async (req, res, next) => {
+  try {
+    const { response } = req.body;
+    if (!response || !response.trim()) {
+      return res.status(400).json({ success: false, message: "Response text is required." });
+    }
+    const worksheet = await Worksheet.findById(req.params.id);
+    if (!worksheet) {
+      return res.status(404).json({ success: false, message: "Worksheet not found." });
+    }
+    if (!isManager(req)) {
+      const myEmp = await getMyEmployee(req.user.id);
+      if (!myEmp || myEmp._id.toString() !== worksheet.employeeId.toString()) {
+        return res.status(403).json({
+          success: false,
+          message: "You can only respond to your own worksheets.",
+        });
+      }
+    }
+    worksheet.employeeResponse = response.trim();
+    worksheet.employeeRespondedAt = new Date();
+    await worksheet.save();
+    res.json({ success: true, data: worksheet, message: "Response saved." });
   } catch (err) {
     next(err);
   }
@@ -1506,7 +1637,7 @@ const getUpcomingBirthdays = async (req, res, next) => {
         diff = Math.ceil((nextYear - now) / (1000 * 60 * 60 * 24));
       }
 
-      if (diff <= 30) { 
+      if (diff <= 30) {
         results.push({
           id: emp.id,
           name: emp.name,
@@ -1545,6 +1676,8 @@ module.exports = {
   deleteHoliday,
   submitWorksheet,
   getWorksheets,
+  replyToWorksheet,
+  respondToWorksheetReply,
   createTask,
   getTasks,
   updateTaskStatus,
