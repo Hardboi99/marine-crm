@@ -113,13 +113,19 @@ function normalizeAttendanceRecordClient(raw) {
   const totalMinutes = (checkInTime && checkOutTime)
     ? Math.round((new Date(checkOutTime) - new Date(checkInTime)) / 60000)
     : (raw.totalMinutes !== undefined ? raw.totalMinutes : null);
+  const dayType = raw.dayType || 'FULL_DAY';
+  const status = raw.status || (checkInTime ? (dayType === 'HALF_DAY' ? 'HALF_DAY' : 'PRESENT') : 'NOT_MARKED');
   return {
     date: raw.date,
-    status: raw.status || (checkInTime ? 'PRESENT' : 'NOT_MARKED'),
+    status,
+    dayType,
+    isLate: !!raw.isLate,
     checkInTime,
     checkOutTime,
     totalMinutes,
     holidayName: raw.holidayName || null,
+    checkInLocation: raw.checkInLocation || null,
+    checkOutLocation: raw.checkOutLocation || null,
   };
 }
 
@@ -354,14 +360,14 @@ const ApiService = {
   // and prefers this namespace over its own placeholder fetch() calls.
   attendance: {
     getToday: () => api.get('/employees/attendance/me/today'),
-    checkIn: async () => {
+    checkIn: async (coords) => {
       const id = await resolveMyEmployeeId();
-      const res = await api.post(`/employees/checkin/${id}`);
+      const res = await api.post(`/employees/checkin/${id}`, coords || {});
       return { success: res.success, data: normalizeAttendanceRecordClient(res.data) };
     },
-    checkOut: async () => {
+    checkOut: async (coords) => {
       const id = await resolveMyEmployeeId();
-      const res = await api.post(`/employees/checkout/${id}`);
+      const res = await api.post(`/employees/checkout/${id}`, coords || {});
       return { success: res.success, data: normalizeAttendanceRecordClient(res.data) };
     },
     getMonth: (year, month, employeeId) => api.get('/employees/attendance/month', {
@@ -373,6 +379,18 @@ const ApiService = {
     // Lets attendance.html check up-front whether this account can
     // check in/out at all, instead of surfacing the failure only on click.
     checkMyEmployeeLink,
+    // Exposes the resolved (and cached) Employee._id for this account —
+    // needed by the checkout worksheet flow, which must submit the
+    // worksheet under the same employeeId before calling checkOut.
+    getMyEmployeeId: () => resolveMyEmployeeId(),
+  },
+
+  // ── Holidays (read: everyone; write: ADMIN/HR — enforced server-side) ──────
+  holidays: {
+    getAll: (params) => api.get('/employees/holidays', { params }),
+    create: (data) => api.post('/employees/holidays', data),
+    update: (id, data) => api.put(`/employees/holidays/${id}`, data),
+    delete: (id) => api.delete(`/employees/holidays/${id}`),
   },
 };
 

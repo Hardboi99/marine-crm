@@ -576,6 +576,46 @@ const resolveLocationFromBody = async (body) => {
   return { ok: true, location: { latitude: lat, longitude: lng, address, capturedAt: new Date() } };
 };
 
+// If a saved location has coordinates but no address yet (e.g. Nominatim
+// was briefly unreachable when it was first captured), look it up now and
+// persist it so it's cached for next time. Returns the (possibly updated)
+// location object; never throws.
+const ensureLocationAddress = async (location) => {
+  if (!location || location.address) return location;
+  const address = await reverseGeocode(location.latitude, location.longitude);
+  if (address) location.address = address;
+  return location;
+};
+
+// ── Company attendance policy (Working Days: Mon–Sat, 10:00 AM start) ────────
+// All times are interpreted in IST (UTC+5:30) — the whole app/company
+// context (Marine CRM, Belapur/Navi Mumbai) is India-based and there is no
+// per-company timezone setting anywhere in this project, so this is the
+// one explicit assumption; change IST_OFFSET_MINUTES if that's wrong.
+const IST_OFFSET_MINUTES = 5 * 60 + 30;
+const DAY_START_MINUTES = 10 * 60;      // 10:00 AM — on-time cutoff
+const HALF_DAY_START_MINUTES = 14 * 60; // 2:00 PM — half-day threshold
+
+const getIstMinutesOfDay = (date) => {
+  const istMs = date.getTime() + IST_OFFSET_MINUTES * 60 * 1000;
+  const ist = new Date(istMs);
+  return ist.getUTCHours() * 60 + ist.getUTCMinutes();
+};
+
+// Decided once, at check-in time, from the check-in timestamp alone:
+//   before 10:00 AM IST  → on time, Full Day
+//   10:00 AM–1:59 PM IST → late, but still Full Day (accumulates a Late Mark;
+//                          3 Late Marks convert to 1 Half Day at month end)
+//   2:00 PM IST onward   → Half Day outright (per the Half Day Working Hours
+//                          policy: 2:00 PM–7:00 PM)
+const classifyCheckIn = (checkInDate) => {
+  const minutes = getIstMinutesOfDay(checkInDate);
+  if (minutes >= HALF_DAY_START_MINUTES) {
+    return { dayType: "HALF_DAY", isLate: false };
+  }
+  return { dayType: "FULL_DAY", isLate: minutes > DAY_START_MINUTES };
+};
+
 // ─────────────────────────────────────────────────────────────────────────────
 // CHECK-IN  POST /api/employees/checkin/:id
 //   Admin/HR → any employee; BDM → only themselves
@@ -618,16 +658,22 @@ const checkIn = async (req, res, next) => {
 
     const today = getTodayDateStr();
     let record = await Attendance.findOne({ employeeId, date: today });
+    const checkInAt = new Date();
+    const { dayType, isLate } = classifyCheckIn(checkInAt);
     if (!record) {
       record = new Attendance({
         employeeId,
         date: today,
-        checkIn: new Date(),
+        checkIn: checkInAt,
         checkInLocation: locationResult.location,
+        dayType,
+        isLate,
       });
     } else if (!record.checkIn) {
-      record.checkIn = new Date();
+      record.checkIn = checkInAt;
       record.checkInLocation = locationResult.location;
+      record.dayType = dayType;
+      record.isLate = isLate;
     } else {
       return res
         .status(400)
@@ -711,7 +757,12 @@ const checkOut = async (req, res, next) => {
 // Storage still uses checkIn/checkOut (untouched); this is purely a
 // response-time convenience so the frontend doesn't need its own
 // duplicate time-math.
-const normalizeAttendanceRecord = (doc) => {
+// Shape a raw Attendance doc the way the attendance UI expects.
+// Storage still uses checkIn/checkOut (untouched); this is purely a
+// response-time convenience so the frontend doesn't need its own
+// duplicate time-math. Async because it opportunistically backfills a
+// missing reverse-geocoded address (see ensureLocationAddress above).
+const normalizeAttendanceRecord = async (doc) => {
   if (!doc) return null;
   const checkInTime = doc.checkIn || null;
   const checkOutTime = doc.checkOut || null;
@@ -719,15 +770,39 @@ const normalizeAttendanceRecord = (doc) => {
     checkInTime && checkOutTime
       ? Math.round((new Date(checkOutTime) - new Date(checkInTime)) / 60000)
       : null;
+
+  let checkInLocation = doc.checkInLocation || null;
+  let checkOutLocation = doc.checkOutLocation || null;
+  let addressBackfilled = false;
+  if (checkInLocation && !checkInLocation.address) {
+    checkInLocation = await ensureLocationAddress({ ...checkInLocation });
+    if (checkInLocation.address) addressBackfilled = true;
+  }
+  if (checkOutLocation && !checkOutLocation.address) {
+    checkOutLocation = await ensureLocationAddress({ ...checkOutLocation });
+    if (checkOutLocation.address) addressBackfilled = true;
+  }
+  // Persist the backfilled address so we don't re-geocode on every read.
+  if (addressBackfilled && doc.save) {
+    doc.checkInLocation = checkInLocation;
+    doc.checkOutLocation = checkOutLocation;
+    doc.save().catch(() => {}); // best-effort cache write; never blocks the response
+  }
+
+  const dayType = doc.dayType || "FULL_DAY";
+  const status = checkInTime ? (dayType === "HALF_DAY" ? "HALF_DAY" : "PRESENT") : "NOT_MARKED";
+
   return {
     date: doc.date,
-    status: checkInTime ? "PRESENT" : "NOT_MARKED",
+    status,
+    dayType,
+    isLate: !!doc.isLate,
     checkInTime,
     checkOutTime,
     totalMinutes,
     holidayName: null, // no Holiday system exists in this project yet
-    checkInLocation: doc.checkInLocation || null,
-    checkOutLocation: doc.checkOutLocation || null,
+    checkInLocation,
+    checkOutLocation,
   };
 };
 
@@ -771,7 +846,10 @@ const resolveEmployeeIdForQuery = async (req) => {
 // User schemas have neither), so this is the standard 5-day-week default,
 // applied explicitly here rather than silently assumed. If the company's
 // actual schedule differs, this is the one place to change it.
-const WEEK_OFF_DAYS = [0, 6]; // Sun, Sat
+// Company policy: Working Days are Monday → Saturday, so Sunday is the
+// only weekly off. (Was Saturday+Sunday before the company policy was
+// provided — updated to match.)
+const WEEK_OFF_DAYS = [0]; // Sun only
 
 const buildMonthAttendance = async (employeeId, year, month) => {
   const monthStr = String(month).padStart(2, "0");
@@ -817,11 +895,11 @@ const buildMonthAttendance = async (employeeId, year, month) => {
       // A company holiday always wins for display — it's never Absent —
       // but if the employee actually checked in that day, keep their times.
       const base = doc
-        ? normalizeAttendanceRecord(doc)
+        ? await normalizeAttendanceRecord(doc)
         : { date: dateStr, checkInTime: null, checkOutTime: null, totalMinutes: null, checkInLocation: null, checkOutLocation: null };
       result.push({ ...base, date: dateStr, status: "HOLIDAY", holidayName: holiday.name });
     } else if (doc) {
-      result.push(normalizeAttendanceRecord(doc));
+      result.push(await normalizeAttendanceRecord(doc));
     } else if (isWeekOff) {
       result.push({
         date: dateStr,
@@ -930,16 +1008,21 @@ const getAttendanceSummary = async (req, res, next) => {
     if (!resolved.employeeId) {
       return res.json({
         success: true,
-        data: { presentDays: 0, absentDays: 0, holidays: 0, weekOffs: 0, totalMinutes: 0, averageMinutes: 0 },
+        data: {
+          presentDays: 0, absentDays: 0, holidays: 0, weekOffs: 0,
+          halfDays: 0, lateMarks: 0, halfDaysFromLateMarks: 0,
+          totalMinutes: 0, averageMinutes: 0,
+        },
       });
     }
 
     const records = await buildMonthAttendance(resolved.employeeId, year, month);
 
-    let presentDays = 0, absentDays = 0, holidays = 0, weekOffs = 0, totalMinutes = 0, presentWithHoursCount = 0;
+    let presentDays = 0, absentDays = 0, holidays = 0, weekOffs = 0, halfDays = 0, lateMarks = 0, totalMinutes = 0, presentWithHoursCount = 0;
     records.forEach((r) => {
-      if (r.status === "PRESENT") {
+      if (r.status === "PRESENT" || r.status === "HALF_DAY") {
         presentDays += 1;
+        if (r.status === "HALF_DAY") halfDays += 1;
         if (r.totalMinutes) {
           totalMinutes += r.totalMinutes;
           presentWithHoursCount += 1;
@@ -951,10 +1034,16 @@ const getAttendanceSummary = async (req, res, next) => {
       } else if (r.status === "WEEK_OFF") {
         weekOffs += 1;
       }
+      if (r.isLate) lateMarks += 1;
     });
     const averageMinutes = presentWithHoursCount
       ? Math.round(totalMinutes / presentWithHoursCount)
       : 0;
+    // Company policy: 3 Late Marks = 1 Half Day, calculated at month end.
+    // This is a derived/informational count — it does NOT retroactively
+    // rewrite any day's actual status; it's surfaced so HR can apply it
+    // during payroll/month-end review.
+    const halfDaysFromLateMarks = Math.floor(lateMarks / 3);
 
     res.json({
       success: true,
@@ -963,6 +1052,9 @@ const getAttendanceSummary = async (req, res, next) => {
         absentDays,
         holidays,
         weekOffs,
+        halfDays,
+        lateMarks,
+        halfDaysFromLateMarks,
         totalMinutes: Math.round(totalMinutes),
         averageMinutes,
       },
@@ -1414,7 +1506,7 @@ const getUpcomingBirthdays = async (req, res, next) => {
         diff = Math.ceil((nextYear - now) / (1000 * 60 * 60 * 24));
       }
 
-      if (diff <= 30) {
+      if (diff <= 30) { 
         results.push({
           id: emp.id,
           name: emp.name,

@@ -24,7 +24,14 @@ const attendanceSchema = new mongoose.Schema({
   checkIn: Date,
   checkOut: Date,
   checkInLocation: { type: locationPointSchema, default: null },
-  checkOutLocation: { type: locationPointSchema, default: null }
+  checkOutLocation: { type: locationPointSchema, default: null },
+  // Company policy fields (Working Days Mon-Sat, 10:00 AM start):
+  //   isLate  — checkIn was after the configured day-start (10:00 AM IST)
+  //             but still within the Full Day window (before 2:00 PM).
+  //   dayType — FULL_DAY (checked in before 2:00 PM) or HALF_DAY (checked
+  //             in at/after 2:00 PM). Decided once at check-in time.
+  isLate: { type: Boolean, default: false },
+  dayType: { type: String, enum: ['FULL_DAY', 'HALF_DAY'], default: 'FULL_DAY' }
 }, { timestamps: true });
 
 // Ensure employeeId is always serialized as a plain string
@@ -38,4 +45,3 @@ attendanceSchema.set('toJSON', {
 });
 
 module.exports = mongoose.model('Attendance', attendanceSchema);
-    
