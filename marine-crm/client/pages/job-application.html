@@ -1,17 +1,21 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Seafarer Job Application — Join Our Fleet</title>
-<meta name="description" content="Apply for a seafaring position — submit your details, certificates and resume in one guided form.">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Seafarer Job Application — Join Our Fleet</title>
+  <meta name="description"
+    content="Apply for a seafaring position — submit your details, certificates and resume in one guided form." />
 
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Poppins:wght@600;700;800&display=swap"
+    rel="stylesheet" />
 
-<style>
-/* ===================================================================
+  <style>
+    /* ===================================================================
    JOB APPLICATION — "Job Call" walk-in / online recruitment form
    Theme: derived from the Marine BDM CRM design tokens (navy/teal,
    RYG status colors, card system). Ships with a light theme by
@@ -19,36 +23,36 @@
    variant toggled in-memory via the header switch.
    =================================================================== */
 
-:root{
-  --bg-primary:#EAF6F3;
-  --bg-shell:#F5FBF9;
-  --card-bg:#FFFFFF;
-  --card-bg-soft:#F3FAF8;
-  --text-primary:#0B2942;
-  --text-secondary:#5B7285;
-  --text-muted:#93A8B3;
-  --border-color:rgba(11,41,66,0.10);
-  --border-strong:rgba(11,41,66,0.18);
-  --accent-primary:#0EA5E9;
-  --accent-secondary:#22D3EE;
-  --accent-teal:#0D9488;
-  --accent-teal-soft:#CCF3EC;
-  --green:#22C55E;
-  --green-soft:#DCFCE7;
-  --yellow:#EAB308;
-  --yellow-soft:#FEF9C3;
-  --red:#EF4444;
-  --red-soft:#FEE2E2;
-  --shadow-sm:0 1px 2px rgba(11,41,66,0.06);
-  --shadow-md:0 8px 24px rgba(11,41,66,0.08);
-  --shadow-lg:0 20px 48px rgba(11,41,66,0.14);
-  --radius-sm:8px;
-  --radius-md:14px;
-  --radius-lg:22px;
-  --font-display:'Poppins', 'Segoe UI', sans-serif;
-  --font-body:'Inter', 'Segoe UI', sans-serif;
+    :root {
+      --bg-primary: #eaf6f3;
+      --bg-shell: #f5fbf9;
+      --card-bg: #ffffff;
+      --card-bg-soft: #f3faf8;
+      --text-primary: #0b2942;
+      --text-secondary: #5b7285;
+      --text-muted: #93a8b3;
+      --border-color: rgba(11, 41, 66, 0.1);
+      --border-strong: rgba(11, 41, 66, 0.18);
+      --accent-primary: #0ea5e9;
+      --accent-secondary: #22d3ee;
+      --accent-teal: #0d9488;
+      --accent-teal-soft: #ccf3ec;
+      --green: #22c55e;
+      --green-soft: #dcfce7;
+      --yellow: #eab308;
+      --yellow-soft: #fef9c3;
+      --red: #ef4444;
+      --red-soft: #fee2e2;
+      --shadow-sm: 0 1px 2px rgba(11, 41, 66, 0.06);
+      --shadow-md: 0 8px 24px rgba(11, 41, 66, 0.08);
+      --shadow-lg: 0 20px 48px rgba(11, 41, 66, 0.14);
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --font-display: "Poppins", "Segoe UI", sans-serif;
+      --font-body: "Inter", "Segoe UI", sans-serif;
 
-  /* ============================================================
+      /* ============================================================
      FIX 1 — "Day mode" text/controls staying dark & unreadable.
      Without this, the browser infers native-control theming
      (dropdown/select popups, <input type="date"> calendar
@@ -60,425 +64,1326 @@
      Declaring color-scheme explicitly forces native controls to
      match whichever theme is actually active on the page.
      ============================================================ */
-  color-scheme: light;
-}
+      color-scheme: light;
+    }
 
-html[data-theme="dark"]{
-  --bg-primary:#0A192F;
-  --bg-shell:#0A192F;
-  --card-bg:#112240;
-  --card-bg-soft:#0F1F38;
-  --text-primary:#E6F1FF;
-  --text-secondary:#94A3B8;
-  --text-muted:#64788F;
-  --border-color:rgba(255,255,255,0.08);
-  --border-strong:rgba(255,255,255,0.16);
-  --accent-teal-soft:#0F3A38;
-  --green-soft:#0F3323;
-  --yellow-soft:#3A2F0B;
-  --red-soft:#3A1414;
-  --shadow-sm:0 1px 2px rgba(0,0,0,0.3);
-  --shadow-md:0 8px 24px rgba(0,0,0,0.35);
-  --shadow-lg:0 24px 60px rgba(0,0,0,0.45);
+    html[data-theme="dark"] {
+      --bg-primary: #0a192f;
+      --bg-shell: #0a192f;
+      --card-bg: #112240;
+      --card-bg-soft: #0f1f38;
+      --text-primary: #e6f1ff;
+      --text-secondary: #94a3b8;
+      --text-muted: #64788f;
+      --border-color: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.16);
+      --accent-teal-soft: #0f3a38;
+      --green-soft: #0f3323;
+      --yellow-soft: #3a2f0b;
+      --red-soft: #3a1414;
+      --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+      --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.35);
+      --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
 
-  /* FIX 1 (continued) — flip native controls to dark only when
+      /* FIX 1 (continued) — flip native controls to dark only when
      the page itself is actually in dark mode. */
-  color-scheme: dark;
-}
+      color-scheme: dark;
+    }
 
-*{box-sizing:border-box;}
-html,body{margin:0;padding:0;}
-body{
-  font-family:var(--font-body);
-  background:var(--bg-primary);
-  color:var(--text-primary);
-  min-height:100vh;
-  -webkit-font-smoothing:antialiased;
-  transition:background .3s ease, color .3s ease;
-  position:relative;
-  overflow-x:hidden;
-}
+    * {
+      box-sizing: border-box;
+    }
 
-@media (prefers-reduced-motion: reduce){
-  *{animation-duration:0.001ms !important; animation-iteration-count:1 !important; transition-duration:0.001ms !important;}
-}
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
 
-/* ---------- decorative ocean backdrop ---------- */
-.ocean-decor{position:fixed; inset:0; pointer-events:none; z-index:0; overflow:hidden;}
-.ocean-decor svg{position:absolute; bottom:-2px; left:0; width:200%; height:auto; opacity:.55;}
-.ocean-decor .wave-back{animation:driftBack 34s linear infinite; opacity:.35;}
-.ocean-decor .wave-front{animation:driftFront 22s linear infinite;}
-@keyframes driftBack{ from{transform:translateX(0);} to{transform:translateX(-50%);} }
-@keyframes driftFront{ from{transform:translateX(-50%);} to{transform:translateX(0);} }
+    body {
+      font-family: var(--font-body);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      -webkit-font-smoothing: antialiased;
+      transition:
+        background 0.3s ease,
+        color 0.3s ease;
+      position: relative;
+      overflow-x: hidden;
+    }
 
-.app-shell{position:relative; z-index:1; max-width:880px; margin:0 auto; padding:28px 20px 80px;}
+    @media (prefers-reduced-motion: reduce) {
+      * {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
+    }
 
-/* ---------- header / brand ---------- */
-.jc-header{display:flex; align-items:center; justify-content:space-between; gap:16px; margin-bottom:22px;}
-.jc-brand{display:flex; align-items:center; gap:12px;}
-.jc-brand-mark{
-  width:44px; height:44px; border-radius:12px;
-  background:linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  display:flex; align-items:center; justify-content:center; font-size:22px;
-  box-shadow:var(--shadow-md); flex-shrink:0;
-}
-.jc-brand-text .jc-brand-title{font-family:var(--font-display); font-weight:700; font-size:1.05rem; line-height:1.2;}
-.jc-brand-text .jc-brand-sub{font-size:.78rem; color:var(--text-secondary);}
-.theme-toggle{
-  border:1px solid var(--border-color); background:var(--card-bg); color:var(--text-secondary);
-  padding:8px 14px; border-radius:999px; font-size:.82rem; cursor:pointer; display:flex; gap:6px; align-items:center;
-  transition:all .2s ease; font-family:var(--font-body); font-weight:500;
-}
-.theme-toggle:hover{border-color:var(--accent-teal); color:var(--accent-teal);}
+    /* ---------- decorative ocean backdrop ---------- */
+    .ocean-decor {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      z-index: 0;
+      overflow: hidden;
+    }
 
-/* ---------- hero / intro screen ---------- */
-.hero-card{
-  background:var(--card-bg); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg);
-  padding:44px 36px; text-align:center; border:1px solid var(--border-color); position:relative; overflow:hidden;
-}
-.hero-eyebrow{
-  display:inline-flex; align-items:center; gap:6px; background:var(--accent-teal-soft); color:var(--accent-teal);
-  padding:6px 14px; border-radius:999px; font-size:.78rem; font-weight:600; letter-spacing:.02em; margin-bottom:18px;
-}
-.hero-eyebrow .dot{width:6px; height:6px; border-radius:50%; background:var(--accent-teal); animation:pulseDot 1.8s ease-in-out infinite;}
-@keyframes pulseDot{0%,100%{opacity:1;} 50%{opacity:.3;}}
-.hero-card h1{font-family:var(--font-display); font-size:clamp(1.6rem, 4vw, 2.3rem); font-weight:700; margin:0 0 12px; line-height:1.2;}
-.hero-card p.lead{color:var(--text-secondary); font-size:1rem; max-width:520px; margin:0 auto 26px; line-height:1.6;}
-.hero-meta{display:flex; flex-wrap:wrap; gap:12px; justify-content:center; margin-bottom:30px;}
-.hero-meta-item{
-  display:flex; align-items:center; gap:8px; background:var(--card-bg-soft); border:1px solid var(--border-color);
-  padding:10px 16px; border-radius:12px; font-size:.85rem; color:var(--text-secondary);
-}
-.hero-meta-item b{color:var(--text-primary); font-weight:600;}
-.hero-checklist{
-  text-align:left; max-width:420px; margin:0 auto 30px; background:var(--card-bg-soft);
-  border:1px dashed var(--border-strong); border-radius:var(--radius-md); padding:18px 20px;
-}
-.hero-checklist p{margin:0 0 10px; font-weight:600; font-size:.88rem; color:var(--text-primary);}
-.hero-checklist ul{margin:0; padding-left:0; list-style:none; display:flex; flex-direction:column; gap:8px;}
-.hero-checklist li{font-size:.85rem; color:var(--text-secondary); display:flex; gap:8px; align-items:flex-start;}
-.hero-checklist li::before{content:"⚓"; font-size:.8rem; flex-shrink:0; margin-top:1px;}
-.btn-start{
-  font-family:var(--font-body); font-weight:600; font-size:1rem; color:#fff; border:none; cursor:pointer;
-  background:linear-gradient(135deg, var(--accent-primary), var(--accent-secondary));
-  padding:15px 34px; border-radius:12px; box-shadow:0 12px 28px rgba(14,165,233,0.32);
-  transition:transform .15s ease, box-shadow .15s ease; display:inline-flex; align-items:center; gap:10px;
-}
-.btn-start:hover{transform:translateY(-2px); box-shadow:0 16px 34px rgba(14,165,233,0.4);}
-.btn-start:active{transform:translateY(0);}
+    .ocean-decor svg {
+      position: absolute;
+      bottom: -2px;
+      left: 0;
+      width: 200%;
+      height: auto;
+      opacity: 0.55;
+    }
 
-/* ---------- application shell ---------- */
-.jc-app{display:none;}
-.jc-app.active{display:block;}
-.hero-wrap.hidden{display:none;}
+    .ocean-decor .wave-back {
+      animation: driftBack 34s linear infinite;
+      opacity: 0.35;
+    }
 
-/* ---------- voyage stepper (signature element) ---------- */
-.voyage-wrap{
-  background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--radius-lg);
-  padding:22px 26px 18px; margin-bottom:20px; box-shadow:var(--shadow-md); position:sticky; top:14px; z-index:20;
-}
-.voyage-top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; gap:12px; flex-wrap:wrap;}
-.voyage-step-label{font-family:var(--font-display); font-weight:600; font-size:.92rem; color:var(--text-primary);}
-.voyage-step-count{font-size:.78rem; color:var(--text-muted); font-weight:500;}
-.voyage-track{position:relative; height:44px; margin:0 6px;}
-.voyage-line{position:absolute; top:15px; left:0; right:0; height:3px; background:var(--border-color); border-radius:3px; overflow:visible;}
-.voyage-line-fill{
-  position:absolute; top:0; left:0; height:100%; border-radius:3px; width:0%;
-  background:linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-  transition:width .5s cubic-bezier(.65,0,.35,1);
-  background-image:repeating-linear-gradient(90deg, rgba(255,255,255,.55) 0 6px, transparent 6px 14px), linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
-}
-.voyage-ship{
-  position:absolute; top:-11px; left:0%; transform:translateX(-50%); font-size:20px; line-height:1;
-  transition:left .5s cubic-bezier(.65,0,.35,1); filter:drop-shadow(0 3px 4px rgba(11,41,66,.25));
-}
-.voyage-points{position:absolute; top:0; left:0; right:0; height:100%; display:flex; justify-content:space-between;}
-.voyage-point{display:flex; flex-direction:column; align-items:center; gap:6px; width:30px;}
-.vp-dot{
-  width:16px; height:16px; border-radius:50%; background:var(--card-bg); border:2px solid var(--border-strong);
-  display:flex; align-items:center; justify-content:center; font-size:0; transition:all .3s ease; margin-top:8px;
-}
-.voyage-point.done .vp-dot{background:var(--accent-teal); border-color:var(--accent-teal);}
-.voyage-point.active .vp-dot{background:var(--accent-primary); border-color:var(--accent-primary); box-shadow:0 0 0 4px rgba(14,165,233,.18);}
-.vp-label{font-size:.62rem; color:var(--text-muted); text-align:center; white-space:nowrap; font-weight:500;}
-.voyage-point.active .vp-label{color:var(--accent-primary); font-weight:700;}
-@media (max-width:640px){ .vp-label{display:none;} }
+    .ocean-decor .wave-front {
+      animation: driftFront 22s linear infinite;
+    }
 
-/* ---------- form card / steps ---------- */
-.form-card{
-  background:var(--card-bg); border:1px solid var(--border-color); border-radius:var(--radius-lg);
-  box-shadow:var(--shadow-md); padding:32px 30px 28px; margin-bottom:18px;
-}
-.form-step{display:none; animation:stepIn .35s ease;}
-.form-step.active{display:block;}
-@keyframes stepIn{ from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);} }
+    @keyframes driftBack {
+      from {
+        transform: translateX(0);
+      }
 
-.step-head{margin-bottom:22px;}
-.step-head .step-icon{font-size:1.6rem; margin-bottom:6px; display:block;}
-.step-head h2{font-family:var(--font-display); font-size:1.3rem; font-weight:700; margin:0 0 6px;}
-.step-head p{color:var(--text-secondary); font-size:.88rem; margin:0; line-height:1.5;}
+      to {
+        transform: translateX(-50%);
+      }
+    }
 
-.field-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px 18px;}
-.field-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
-@media (max-width:640px){ .field-grid, .field-grid.cols-3{grid-template-columns:1fr;} }
-.field{display:flex; flex-direction:column; gap:6px; margin-bottom:16px;}
-.field.span-2{grid-column:span 2;}
-@media (max-width:640px){ .field.span-2{grid-column:span 1;} }
-.field label{font-size:.82rem; font-weight:600; color:var(--text-primary);}
-.field label .opt{font-weight:400; color:var(--text-muted); font-size:.76rem;}
-.field label .req{color:var(--red); margin-left:2px;}
-.field .hint{font-size:.74rem; color:var(--text-muted); margin-top:-2px;}
-.field input[type="text"],
-.field input[type="tel"],
-.field input[type="email"],
-.field input[type="number"],
-.field input[type="date"],
-.field select,
-.field textarea{
-  font-family:var(--font-body); font-size:.9rem; color:var(--text-primary); background:var(--card-bg-soft);
-  border:1.5px solid var(--border-color); border-radius:var(--radius-sm); padding:11px 13px; outline:none;
-  transition:border-color .15s ease, box-shadow .15s ease; width:100%;
-}
-.field textarea{resize:vertical; min-height:80px; font-family:var(--font-body);}
-.field input:focus, .field select:focus, .field textarea:focus{
-  border-color:var(--accent-primary); box-shadow:0 0 0 3px rgba(14,165,233,.14); background:var(--card-bg);
-}
-.field.invalid input, .field.invalid select, .field.invalid textarea{border-color:var(--red); background:var(--red-soft);}
-.field .err-msg{font-size:.74rem; color:var(--red); display:none; font-weight:500;}
-.field.invalid .err-msg{display:block;}
-.field-note{grid-column:1/-1; background:var(--accent-teal-soft); color:var(--accent-teal); border-radius:var(--radius-sm); padding:10px 14px; font-size:.8rem; margin:2px 0 6px; display:flex; gap:8px; align-items:flex-start;}
+    @keyframes driftFront {
+      from {
+        transform: translateX(-50%);
+      }
 
-fieldset.field-set{border:none; padding:0; margin:0 0 18px; grid-column:1/-1;}
-fieldset.field-set legend{font-size:.82rem; font-weight:600; color:var(--text-primary); padding:0 0 8px; width:100%;}
-fieldset.field-set.invalid legend{color:var(--red);}
-.chip-group{display:flex; flex-wrap:wrap; gap:8px;}
-.chip{
-  position:relative; display:inline-flex; align-items:center;
-}
-.chip input{position:absolute; opacity:0; width:100%; height:100%; margin:0; cursor:pointer;}
-.chip span{
-  padding:9px 14px; border-radius:999px; border:1.5px solid var(--border-color); background:var(--card-bg-soft);
-  font-size:.82rem; color:var(--text-secondary); cursor:pointer; transition:all .15s ease; user-select:none;
-}
-.chip input:checked + span{background:var(--accent-primary); border-color:var(--accent-primary); color:#fff; font-weight:600;}
-.chip input:focus-visible + span{outline:2px solid var(--accent-primary); outline-offset:2px;}
+      to {
+        transform: translateX(0);
+      }
+    }
 
-.radio-row{display:flex; flex-wrap:wrap; gap:10px;}
-.radio-pill{position:relative;}
-.radio-pill input{position:absolute; opacity:0; width:100%; height:100%; cursor:pointer;}
-.radio-pill span{
-  display:inline-block; padding:9px 16px; border-radius:var(--radius-sm); border:1.5px solid var(--border-color);
-  background:var(--card-bg-soft); font-size:.85rem; color:var(--text-secondary); cursor:pointer; transition:all .15s ease;
-}
-.radio-pill input:checked + span{background:var(--accent-primary); border-color:var(--accent-primary); color:#fff; font-weight:600;}
+    .app-shell {
+      position: relative;
+      z-index: 1;
+      max-width: 880px;
+      margin: 0 auto;
+      padding: 28px 20px 80px;
+    }
 
-/* ---------- file upload zones ---------- */
-.upload-grid{display:grid; grid-template-columns:1fr 1fr; gap:16px;}
-@media (max-width:640px){ .upload-grid{grid-template-columns:1fr;} }
-.upload-zone{
-  border:2px dashed var(--border-strong); border-radius:var(--radius-md); padding:20px; text-align:center;
-  background:var(--card-bg-soft); cursor:pointer; transition:all .18s ease; position:relative;
-}
-.upload-zone.required-zone{border-color:rgba(14,165,233,.4);}
-.upload-zone:hover, .upload-zone.dragover{border-color:var(--accent-primary); background:rgba(14,165,233,.06);}
-.upload-zone input[type="file"]{position:absolute; inset:0; opacity:0; cursor:pointer; width:100%; height:100%;}
-.upload-zone .uz-icon{font-size:1.6rem; margin-bottom:6px;}
-.upload-zone .uz-title{font-weight:600; font-size:.86rem; color:var(--text-primary); margin-bottom:2px;}
-.upload-zone .uz-sub{font-size:.72rem; color:var(--text-muted);}
-.upload-zone.has-file{border-style:solid; border-color:var(--green); background:var(--green-soft);}
-.upload-zone .uz-filename{font-size:.78rem; font-weight:600; color:var(--text-primary); margin-top:4px; word-break:break-word;}
-.upload-zone .uz-remove{
-  display:none; margin-top:8px; font-size:.72rem; color:var(--red); font-weight:600; background:none; border:none;
-  cursor:pointer; text-decoration:underline; position:relative; z-index:2;
-}
-.upload-zone.has-file .uz-remove{display:inline-block;}
-.upload-zone.invalid{border-color:var(--red); background:var(--red-soft);}
+    /* ---------- header / brand ---------- */
+    .jc-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 22px;
+    }
 
-/* ---------- review step ---------- */
-.review-section{margin-bottom:20px; border:1px solid var(--border-color); border-radius:var(--radius-md); overflow:hidden;}
-.review-section-head{
-  background:var(--card-bg-soft); padding:12px 16px; display:flex; justify-content:space-between; align-items:center;
-}
-.review-section-head b{font-size:.86rem; color:var(--text-primary);}
-.review-edit-link{font-size:.76rem; color:var(--accent-primary); font-weight:600; cursor:pointer; background:none; border:none;}
-.review-rows{padding:6px 16px;}
-.review-row{display:flex; justify-content:space-between; gap:12px; padding:9px 0; border-bottom:1px solid var(--border-color); font-size:.84rem;}
-.review-row:last-child{border-bottom:none;}
-.review-row .rk{color:var(--text-secondary);}
-.review-row .rv{color:var(--text-primary); font-weight:600; text-align:right; max-width:60%;}
-.declaration-box{
-  background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:var(--radius-md);
-  padding:16px 18px; display:flex; gap:12px; align-items:flex-start; margin-top:10px; transition:border-color .15s ease, background .15s ease;
-}
-.declaration-box.invalid{border-color:var(--red); background:var(--red-soft);}
-.declaration-box input{margin-top:3px; width:18px; height:18px; accent-color:var(--accent-primary); flex-shrink:0; cursor:pointer;}
-.declaration-box label{font-size:.82rem; color:var(--text-secondary); line-height:1.5; cursor:pointer;}
+    .jc-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-/* ---------- nav buttons ---------- */
-.step-nav{display:flex; justify-content:space-between; align-items:center; gap:12px; margin-top:8px;}
-.btn{
-  font-family:var(--font-body); font-weight:600; font-size:.88rem; border-radius:11px; padding:12px 24px;
-  cursor:pointer; border:none; transition:all .15s ease; display:inline-flex; align-items:center; gap:8px;
-}
-.btn-primary{background:linear-gradient(135deg, var(--accent-primary), var(--accent-secondary)); color:#fff; box-shadow:0 8px 20px rgba(14,165,233,.28);}
-.btn-primary:hover{transform:translateY(-1px); box-shadow:0 10px 24px rgba(14,165,233,.35);}
-.btn-primary:disabled{opacity:.6; cursor:not-allowed; transform:none;}
-.btn-ghost{background:transparent; color:var(--text-secondary); border:1.5px solid var(--border-color);}
-.btn-ghost:hover{border-color:var(--accent-teal); color:var(--accent-teal);}
-.btn-ghost:disabled{opacity:.35; cursor:not-allowed;}
-.spinner{width:15px; height:15px; border:2px solid rgba(255,255,255,.4); border-top-color:#fff; border-radius:50%; animation:spin .7s linear infinite; display:none;}
-.btn-primary.loading .spinner{display:inline-block;}
-.btn-primary.loading .btn-txt{opacity:.85;}
-@keyframes spin{to{transform:rotate(360deg);}}
+    .jc-brand-mark {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      background: linear-gradient(135deg,
+          var(--accent-primary),
+          var(--accent-secondary));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      box-shadow: var(--shadow-md);
+      flex-shrink: 0;
+    }
 
-/* ---------- honeypot (bot trap, invisible to humans) ---------- */
-.hp-field{position:absolute; left:-9999px; top:-9999px; opacity:0; height:0; width:0; overflow:hidden;}
+    .jc-brand-text .jc-brand-title {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.05rem;
+      line-height: 1.2;
+    }
 
-/* ---------- toast / banner ---------- */
-.jc-toast{
-  position:fixed; bottom:22px; left:50%; transform:translateX(-50%) translateY(120%); z-index:100;
-  background:var(--text-primary); color:#fff; padding:14px 22px; border-radius:12px; font-size:.85rem;
-  box-shadow:var(--shadow-lg); transition:transform .3s ease; max-width:90vw; display:flex; align-items:center; gap:10px;
-}
-.jc-toast.show{transform:translateX(-50%) translateY(0);}
-.jc-toast.error{background:var(--red);}
-.jc-toast.success{background:var(--green);}
+    .jc-brand-text .jc-brand-sub {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+    }
 
-/* ---------- success screen ---------- */
-.success-card{
-  background:var(--card-bg); border-radius:var(--radius-lg); box-shadow:var(--shadow-lg); padding:50px 36px;
-  text-align:center; border:1px solid var(--border-color);
-}
-.success-badge{
-  width:74px; height:74px; border-radius:50%; background:var(--green-soft); color:var(--green);
-  display:flex; align-items:center; justify-content:center; font-size:2.1rem; margin:0 auto 20px;
-  animation:popIn .5s cubic-bezier(.34,1.56,.64,1);
-}
-@keyframes popIn{ from{transform:scale(0); opacity:0;} to{transform:scale(1); opacity:1;} }
-.success-card h2{font-family:var(--font-display); font-size:1.6rem; margin:0 0 10px;}
-.success-card p{color:var(--text-secondary); max-width:440px; margin:0 auto 22px; line-height:1.6;}
-.ref-box{
-  display:inline-flex; flex-direction:column; gap:2px; background:var(--card-bg-soft); border:1px dashed var(--border-strong);
-  border-radius:var(--radius-md); padding:14px 26px; margin-bottom:26px;
-}
-.ref-box .ref-label{font-size:.72rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em;}
-.ref-box .ref-value{font-family:var(--font-display); font-weight:700; font-size:1.15rem; color:var(--accent-teal);}
-.success-actions{display:flex; gap:12px; justify-content:center; flex-wrap:wrap;}
+    .theme-toggle {
+      border: 1px solid var(--border-color);
+      background: var(--card-bg);
+      color: var(--text-secondary);
+      padding: 8px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      display: flex;
+      gap: 6px;
+      align-items: center;
+      transition: all 0.2s ease;
+      font-family: var(--font-body);
+      font-weight: 500;
+    }
 
-.logo-icon-for-job-application {
-  width: 44px;
-  height: 44px;
-  display: grid;
-  place-items: center;
-  flex: 0 0 44px;
-  position: relative;
-  overflow: hidden;
-  border-radius: 12px;
-  background: linear-gradient(135deg, #19b9df 0%, #0aa6d5 100%);
-  box-shadow: 0 6px 14px rgba(8, 166, 211, 0.22);
-}
+    .theme-toggle:hover {
+      border-color: var(--accent-teal);
+      color: var(--accent-teal);
+    }
 
-.logo-icon-for-job-application::before {
-  content: "";
-  width: 27px;
-  height: 27px;
-  border-radius: 7px;
-  background: #ffffff;
-  box-shadow: inset 0 0 0 1px rgba(8, 47, 73, 0.08);
-}
+    /* ---------- hero / intro screen ---------- */
+    .hero-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 44px 36px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+      position: relative;
+      overflow: hidden;
+    }
 
-.logo-icon-for-job-application::after {
-  content: "⚓";
-  position: absolute;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  color: #1685b5;
-  font-size: 16px;
-  line-height: 1;
-}
+    .hero-eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--accent-teal-soft);
+      color: var(--accent-teal);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.78rem;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+      margin-bottom: 18px;
+    }
 
+    .hero-eyebrow .dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      background: var(--accent-teal);
+      animation: pulseDot 1.8s ease-in-out infinite;
+    }
 
-footer.jc-footer{text-align:center; color:var(--text-muted); font-size:.76rem; margin-top:26px; line-height:1.7;}
-</style>
+    @keyframes pulseDot {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.3;
+      }
+    }
+
+    .hero-card h1 {
+      font-family: var(--font-display);
+      font-size: clamp(1.6rem, 4vw, 2.3rem);
+      font-weight: 700;
+      margin: 0 0 12px;
+      line-height: 1.2;
+    }
+
+    .hero-card p.lead {
+      color: var(--text-secondary);
+      font-size: 1rem;
+      max-width: 520px;
+      margin: 0 auto 26px;
+      line-height: 1.6;
+    }
+
+    .hero-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 30px;
+    }
+
+    .hero-meta-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--card-bg-soft);
+      border: 1px solid var(--border-color);
+      padding: 10px 16px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+    }
+
+    .hero-meta-item b {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .hero-checklist {
+      text-align: left;
+      max-width: 420px;
+      margin: 0 auto 30px;
+      background: var(--card-bg-soft);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 18px 20px;
+    }
+
+    .hero-checklist p {
+      margin: 0 0 10px;
+      font-weight: 600;
+      font-size: 0.88rem;
+      color: var(--text-primary);
+    }
+
+    .hero-checklist ul {
+      margin: 0;
+      padding-left: 0;
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .hero-checklist li {
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    .hero-checklist li::before {
+      content: "⚓";
+      font-size: 0.8rem;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .btn-start {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 1rem;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      background: linear-gradient(135deg,
+          var(--accent-primary),
+          var(--accent-secondary));
+      padding: 15px 34px;
+      border-radius: 12px;
+      box-shadow: 0 12px 28px rgba(14, 165, 233, 0.32);
+      transition:
+        transform 0.15s ease,
+        box-shadow 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-start:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 16px 34px rgba(14, 165, 233, 0.4);
+    }
+
+    .btn-start:active {
+      transform: translateY(0);
+    }
+
+    /* ---------- application shell ---------- */
+    .jc-app {
+      display: none;
+    }
+
+    .jc-app.active {
+      display: block;
+    }
+
+    .hero-wrap.hidden {
+      display: none;
+    }
+
+    /* ---------- voyage stepper (signature element) ---------- */
+    .voyage-wrap {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 22px 26px 18px;
+      margin-bottom: 20px;
+      box-shadow: var(--shadow-md);
+      position: sticky;
+      top: 14px;
+      z-index: 20;
+    }
+
+    .voyage-top {
+      display: flex;
+      justify-content: space-between;
+      align-items: baseline;
+      margin-bottom: 14px;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+
+    .voyage-step-label {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: 0.92rem;
+      color: var(--text-primary);
+    }
+
+    .voyage-step-count {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    .voyage-track {
+      position: relative;
+      height: 44px;
+      margin: 0 6px;
+    }
+
+    .voyage-line {
+      position: absolute;
+      top: 15px;
+      left: 0;
+      right: 0;
+      height: 3px;
+      background: var(--border-color);
+      border-radius: 3px;
+      overflow: visible;
+    }
+
+    .voyage-line-fill {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      border-radius: 3px;
+      width: 0%;
+      background: linear-gradient(90deg,
+          var(--accent-primary),
+          var(--accent-secondary));
+      transition: width 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+      background-image:
+        repeating-linear-gradient(90deg,
+          rgba(255, 255, 255, 0.55) 0 6px,
+          transparent 6px 14px),
+        linear-gradient(90deg, var(--accent-primary), var(--accent-secondary));
+    }
+
+    .voyage-ship {
+      position: absolute;
+      top: -11px;
+      left: 0%;
+      transform: translateX(-50%);
+      font-size: 20px;
+      line-height: 1;
+      transition: left 0.5s cubic-bezier(0.65, 0, 0.35, 1);
+      filter: drop-shadow(0 3px 4px rgba(11, 41, 66, 0.25));
+    }
+
+    .voyage-points {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 100%;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .voyage-point {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      width: 30px;
+    }
+
+    .vp-dot {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      background: var(--card-bg);
+      border: 2px solid var(--border-strong);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0;
+      transition: all 0.3s ease;
+      margin-top: 8px;
+    }
+
+    .voyage-point.done .vp-dot {
+      background: var(--accent-teal);
+      border-color: var(--accent-teal);
+    }
+
+    .voyage-point.active .vp-dot {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.18);
+    }
+
+    .vp-label {
+      font-size: 0.62rem;
+      color: var(--text-muted);
+      text-align: center;
+      white-space: nowrap;
+      font-weight: 500;
+    }
+
+    .voyage-point.active .vp-label {
+      color: var(--accent-primary);
+      font-weight: 700;
+    }
+
+    @media (max-width: 640px) {
+      .vp-label {
+        display: none;
+      }
+    }
+
+    /* ---------- form card / steps ---------- */
+    .form-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-md);
+      padding: 32px 30px 28px;
+      margin-bottom: 18px;
+    }
+
+    .form-step {
+      display: none;
+      animation: stepIn 0.35s ease;
+    }
+
+    .form-step.active {
+      display: block;
+    }
+
+    @keyframes stepIn {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .step-head {
+      margin-bottom: 22px;
+    }
+
+    .step-head .step-icon {
+      font-size: 1.6rem;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .step-head h2 {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin: 0 0 6px;
+    }
+
+    .step-head p {
+      color: var(--text-secondary);
+      font-size: 0.88rem;
+      margin: 0;
+      line-height: 1.5;
+    }
+
+    .field-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 18px;
+    }
+
+    .field-grid.cols-3 {
+      grid-template-columns: 1fr 1fr 1fr;
+    }
+
+    @media (max-width: 640px) {
+
+      .field-grid,
+      .field-grid.cols-3 {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 16px;
+    }
+
+    .field.span-2 {
+      grid-column: span 2;
+    }
+
+    @media (max-width: 640px) {
+      .field.span-2 {
+        grid-column: span 1;
+      }
+    }
+
+    .field label {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+
+    .field label .opt {
+      font-weight: 400;
+      color: var(--text-muted);
+      font-size: 0.76rem;
+    }
+
+    .field label .req {
+      color: var(--red);
+      margin-left: 2px;
+    }
+
+    .field .hint {
+      font-size: 0.74rem;
+      color: var(--text-muted);
+      margin-top: -2px;
+    }
+
+    .field input[type="text"],
+    .field input[type="tel"],
+    .field input[type="email"],
+    .field input[type="number"],
+    .field input[type="date"],
+    .field select,
+    .field textarea {
+      font-family: var(--font-body);
+      font-size: 0.9rem;
+      color: var(--text-primary);
+      background: var(--card-bg-soft);
+      border: 1.5px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      padding: 11px 13px;
+      outline: none;
+      transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+      width: 100%;
+    }
+
+    .field textarea {
+      resize: vertical;
+      min-height: 80px;
+      font-family: var(--font-body);
+    }
+
+    .field input:focus,
+    .field select:focus,
+    .field textarea:focus {
+      border-color: var(--accent-primary);
+      box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.14);
+      background: var(--card-bg);
+    }
+
+    .field.invalid input,
+    .field.invalid select,
+    .field.invalid textarea {
+      border-color: var(--red);
+      background: var(--red-soft);
+    }
+
+    .field .err-msg {
+      font-size: 0.74rem;
+      color: var(--red);
+      display: none;
+      font-weight: 500;
+    }
+
+    .field.invalid .err-msg {
+      display: block;
+    }
+
+    .field-note {
+      grid-column: 1/-1;
+      background: var(--accent-teal-soft);
+      color: var(--accent-teal);
+      border-radius: var(--radius-sm);
+      padding: 10px 14px;
+      font-size: 0.8rem;
+      margin: 2px 0 6px;
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+    }
+
+    fieldset.field-set {
+      border: none;
+      padding: 0;
+      margin: 0 0 18px;
+      grid-column: 1/-1;
+    }
+
+    fieldset.field-set legend {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      padding: 0 0 8px;
+      width: 100%;
+    }
+
+    fieldset.field-set.invalid legend {
+      color: var(--red);
+    }
+
+    .chip-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .chip {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .chip input {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      margin: 0;
+      cursor: pointer;
+    }
+
+    .chip span {
+      padding: 9px 14px;
+      border-radius: 999px;
+      border: 1.5px solid var(--border-color);
+      background: var(--card-bg-soft);
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      user-select: none;
+    }
+
+    .chip input:checked+span {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    .chip input:focus-visible+span {
+      outline: 2px solid var(--accent-primary);
+      outline-offset: 2px;
+    }
+
+    .radio-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .radio-pill {
+      position: relative;
+    }
+
+    .radio-pill input {
+      position: absolute;
+      opacity: 0;
+      width: 100%;
+      height: 100%;
+      cursor: pointer;
+    }
+
+    .radio-pill span {
+      display: inline-block;
+      padding: 9px 16px;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border-color);
+      background: var(--card-bg-soft);
+      font-size: 0.85rem;
+      color: var(--text-secondary);
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .radio-pill input:checked+span {
+      background: var(--accent-primary);
+      border-color: var(--accent-primary);
+      color: #fff;
+      font-weight: 600;
+    }
+
+    /* ---------- file upload zones ---------- */
+    .upload-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+
+    @media (max-width: 640px) {
+      .upload-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .upload-zone {
+      border: 2px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 20px;
+      text-align: center;
+      background: var(--card-bg-soft);
+      cursor: pointer;
+      transition: all 0.18s ease;
+      position: relative;
+    }
+
+    .upload-zone.required-zone {
+      border-color: rgba(14, 165, 233, 0.4);
+    }
+
+    .upload-zone:hover,
+    .upload-zone.dragover {
+      border-color: var(--accent-primary);
+      background: rgba(14, 165, 233, 0.06);
+    }
+
+    .upload-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .upload-zone .uz-icon {
+      font-size: 1.6rem;
+      margin-bottom: 6px;
+    }
+
+    .upload-zone .uz-title {
+      font-weight: 600;
+      font-size: 0.86rem;
+      color: var(--text-primary);
+      margin-bottom: 2px;
+    }
+
+    .upload-zone .uz-sub {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+    }
+
+    .upload-zone.has-file {
+      border-style: solid;
+      border-color: var(--green);
+      background: var(--green-soft);
+    }
+
+    .upload-zone .uz-filename {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-top: 4px;
+      word-break: break-word;
+    }
+
+    .upload-zone .uz-remove {
+      display: none;
+      margin-top: 8px;
+      font-size: 0.72rem;
+      color: var(--red);
+      font-weight: 600;
+      background: none;
+      border: none;
+      cursor: pointer;
+      text-decoration: underline;
+      position: relative;
+      z-index: 2;
+    }
+
+    .upload-zone.has-file .uz-remove {
+      display: inline-block;
+    }
+
+    .upload-zone.invalid {
+      border-color: var(--red);
+      background: var(--red-soft);
+    }
+
+    /* ---------- review step ---------- */
+    .review-section {
+      margin-bottom: 20px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      overflow: hidden;
+    }
+
+    .review-section-head {
+      background: var(--card-bg-soft);
+      padding: 12px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .review-section-head b {
+      font-size: 0.86rem;
+      color: var(--text-primary);
+    }
+
+    .review-edit-link {
+      font-size: 0.76rem;
+      color: var(--accent-primary);
+      font-weight: 600;
+      cursor: pointer;
+      background: none;
+      border: none;
+    }
+
+    .review-rows {
+      padding: 6px 16px;
+    }
+
+    .review-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.84rem;
+    }
+
+    .review-row:last-child {
+      border-bottom: none;
+    }
+
+    .review-row .rk {
+      color: var(--text-secondary);
+    }
+
+    .review-row .rv {
+      color: var(--text-primary);
+      font-weight: 600;
+      text-align: right;
+      max-width: 60%;
+    }
+
+    .declaration-box {
+      background: var(--card-bg-soft);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 16px 18px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+      margin-top: 10px;
+      transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+    }
+
+    .declaration-box.invalid {
+      border-color: var(--red);
+      background: var(--red-soft);
+    }
+
+    .declaration-box input {
+      margin-top: 3px;
+      width: 18px;
+      height: 18px;
+      accent-color: var(--accent-primary);
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+
+    .declaration-box label {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      cursor: pointer;
+    }
+
+    /* ---------- nav buttons ---------- */
+    .step-nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-top: 8px;
+    }
+
+    .btn {
+      font-family: var(--font-body);
+      font-weight: 600;
+      font-size: 0.88rem;
+      border-radius: 11px;
+      padding: 12px 24px;
+      cursor: pointer;
+      border: none;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg,
+          var(--accent-primary),
+          var(--accent-secondary));
+      color: #fff;
+      box-shadow: 0 8px 20px rgba(14, 165, 233, 0.28);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 10px 24px rgba(14, 165, 233, 0.35);
+    }
+
+    .btn-primary:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--text-secondary);
+      border: 1.5px solid var(--border-color);
+    }
+
+    .btn-ghost:hover {
+      border-color: var(--accent-teal);
+      color: var(--accent-teal);
+    }
+
+    .btn-ghost:disabled {
+      opacity: 0.35;
+      cursor: not-allowed;
+    }
+
+    .spinner {
+      width: 15px;
+      height: 15px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      display: none;
+    }
+
+    .btn-primary.loading .spinner {
+      display: inline-block;
+    }
+
+    .btn-primary.loading .btn-txt {
+      opacity: 0.85;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* ---------- honeypot (bot trap, invisible to humans) ---------- */
+    .hp-field {
+      position: absolute;
+      left: -9999px;
+      top: -9999px;
+      opacity: 0;
+      height: 0;
+      width: 0;
+      overflow: hidden;
+    }
+
+    /* ---------- toast / banner ---------- */
+    .jc-toast {
+      position: fixed;
+      bottom: 22px;
+      left: 50%;
+      transform: translateX(-50%) translateY(120%);
+      z-index: 100;
+      background: var(--text-primary);
+      color: #fff;
+      padding: 14px 22px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      box-shadow: var(--shadow-lg);
+      transition: transform 0.3s ease;
+      max-width: 90vw;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .jc-toast.show {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .jc-toast.error {
+      background: var(--red);
+    }
+
+    .jc-toast.success {
+      background: var(--green);
+    }
+
+    /* ---------- success screen ---------- */
+    .success-card {
+      background: var(--card-bg);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg);
+      padding: 50px 36px;
+      text-align: center;
+      border: 1px solid var(--border-color);
+    }
+
+    .success-badge {
+      width: 74px;
+      height: 74px;
+      border-radius: 50%;
+      background: var(--green-soft);
+      color: var(--green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.1rem;
+      margin: 0 auto 20px;
+      animation: popIn 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+
+    @keyframes popIn {
+      from {
+        transform: scale(0);
+        opacity: 0;
+      }
+
+      to {
+        transform: scale(1);
+        opacity: 1;
+      }
+    }
+
+    .success-card h2 {
+      font-family: var(--font-display);
+      font-size: 1.6rem;
+      margin: 0 0 10px;
+    }
+
+    .success-card p {
+      color: var(--text-secondary);
+      max-width: 440px;
+      margin: 0 auto 22px;
+      line-height: 1.6;
+    }
+
+    .ref-box {
+      display: inline-flex;
+      flex-direction: column;
+      gap: 2px;
+      background: var(--card-bg-soft);
+      border: 1px dashed var(--border-strong);
+      border-radius: var(--radius-md);
+      padding: 14px 26px;
+      margin-bottom: 26px;
+    }
+
+    .ref-box .ref-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .ref-box .ref-value {
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: 1.15rem;
+      color: var(--accent-teal);
+    }
+
+    .success-actions {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .logo-icon-for-job-application {
+      width: 44px;
+      height: 44px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 44px;
+      position: relative;
+      overflow: hidden;
+      border-radius: 12px;
+      background: linear-gradient(135deg, #19b9df 0%, #0aa6d5 100%);
+      box-shadow: 0 6px 14px rgba(8, 166, 211, 0.22);
+    }
+
+    .logo-icon-for-job-application::before {
+      content: "";
+      width: 27px;
+      height: 27px;
+      border-radius: 7px;
+      background: #ffffff;
+      box-shadow: inset 0 0 0 1px rgba(8, 47, 73, 0.08);
+    }
+
+    .logo-icon-for-job-application::after {
+      content: "⚓";
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+      color: #1685b5;
+      font-size: 16px;
+      line-height: 1;
+    }
+
+    footer.jc-footer {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.76rem;
+      margin-top: 26px;
+      line-height: 1.7;
+    }
+  </style>
 </head>
+
 <body>
-
-<div class="ocean-decor" aria-hidden="true">
-  <svg class="wave-back" viewBox="0 0 1440 120" preserveAspectRatio="none"><path fill="var(--accent-teal)" d="M0,60 C240,110 480,10 720,50 C960,90 1200,20 1440,60 L1440,120 L0,120 Z"></path></svg>
-  <svg class="wave-front" viewBox="0 0 1440 100" preserveAspectRatio="none"><path fill="var(--accent-primary)" d="M0,40 C240,90 480,0 720,40 C960,80 1200,10 1440,40 L1440,100 L0,100 Z" opacity="0.18"></path></svg>
-</div>
-
-<div class="app-shell">
-
-  <div class="jc-header">
-    <div class="jc-brand">
-      <div class="jc-brand-mark">
-      <img src="/public/assets/logo.png.png" alt="Marine BDM CRM" class="logo-icon-for-job-application" width="28" height="28">
-      </div>
-      <div class="jc-brand-text">
-        <div class="jc-brand-title">Crew Recruitment</div>
-        <div class="jc-brand-sub">Seafarer Job Application</div>
-      </div>
-    </div>
-    <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
-      <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
-    </button>
+  <div class="ocean-decor" aria-hidden="true">
+    <svg class="wave-back" viewBox="0 0 1440 120" preserveAspectRatio="none">
+      <path fill="var(--accent-teal)" d="M0,60 C240,110 480,10 720,50 C960,90 1200,20 1440,60 L1440,120 L0,120 Z">
+      </path>
+    </svg>
+    <svg class="wave-front" viewBox="0 0 1440 100" preserveAspectRatio="none">
+      <path fill="var(--accent-primary)" d="M0,40 C240,90 480,0 720,40 C960,80 1200,10 1440,40 L1440,100 L0,100 Z"
+        opacity="0.18"></path>
+    </svg>
   </div>
 
-  <!-- ============ INTRO / HERO ============ -->
-  <div class="hero-wrap" id="heroWrap">
-    <div class="hero-card">
-      <span class="hero-eyebrow"><span class="dot"></span> Now Hiring — All Ranks</span>
-      <h1>Apply for Your Next Voyage</h1>
-      <p class="lead">Tell us about your rank, certificates and sailing experience. Our sourcing team reviews every application and will reach out about matching vacancies.</p>
-
-      <div class="hero-meta">
-        <div class="hero-meta-item">⏱️ <b>~8 minutes</b> to complete</div>
-        <div class="hero-meta-item">📋 <b>7 short steps</b>, save-as-you-go</div>
-        <div class="hero-meta-item">🔒 <b>Confidential</b> — reviewed by recruiters only</div>
-      </div>
-
-      <div class="hero-checklist">
-        <p>Have these ready before you start:</p>
-        <ul>
-          <li>Passport &amp; CDC (Continuous Discharge Certificate) numbers</li>
-          <li>Details of your COC / STCW certificates and expiry dates</li>
-          <li>Your resume / CV file (PDF or Word, under 5 MB)</li>
-          <li>A passport-size photo (optional, but recommended)</li>
-        </ul>
-      </div>
-
-      <button class="btn-start" id="btnStartApp" type="button">Start Application <span aria-hidden="true">→</span></button>
-    </div>
-  </div>
-
-  <!-- ============ APPLICATION FORM ============ -->
-  <div class="jc-app" id="jcApp">
-
-    <div class="voyage-wrap">
-      <div class="voyage-top">
-        <div class="voyage-step-label" id="voyageStepLabel">Personal &amp; Contact</div>
-        <div class="voyage-step-count" id="voyageStepCount">Step 1 of 7</div>
-      </div>
-      <div class="voyage-track">
-        <div class="voyage-line"><div class="voyage-line-fill" id="voyageFill"></div></div>
-        <div class="voyage-ship" id="voyageShip" aria-hidden="true">⛵</div>
-        <div class="voyage-points" id="voyagePoints">
-          <div class="voyage-point" data-step="1"><span class="vp-dot"></span><span class="vp-label">Personal</span></div>
-          <div class="voyage-point" data-step="2"><span class="vp-dot"></span><span class="vp-label">Documents</span></div>
-          <div class="voyage-point" data-step="3"><span class="vp-dot"></span><span class="vp-label">Experience</span></div>
-          <div class="voyage-point" data-step="4"><span class="vp-dot"></span><span class="vp-label">Certificates</span></div>
-          <div class="voyage-point" data-step="5"><span class="vp-dot"></span><span class="vp-label">Availability</span></div>
-          <div class="voyage-point" data-step="6"><span class="vp-dot"></span><span class="vp-label">Uploads</span></div>
-          <div class="voyage-point" data-step="7"><span class="vp-dot"></span><span class="vp-label">Review</span></div>
+  <div class="app-shell">
+    <div class="jc-header">
+      <div class="jc-brand">
+        <div class="jc-brand-mark">
+          <img src="/public/assets/logo.png.png" alt="Marine BDM CRM" class="logo-icon-for-job-application" width="28"
+            height="28" />
+        </div>
+        <div class="jc-brand-text">
+          <div class="jc-brand-title">Crew Recruitment</div>
+          <div class="jc-brand-sub">Seafarer Job Application</div>
         </div>
       </div>
+      <button class="theme-toggle" id="themeToggle" type="button" aria-label="Toggle dark mode">
+        <span id="themeIcon">🌙</span> <span id="themeText">Dark</span>
+      </button>
     </div>
 
-    <form id="applicationForm" class="form-card" novalidate>
+    <!-- ============ INTRO / HERO ============ -->
+    <div class="hero-wrap" id="heroWrap">
+      <div class="hero-card">
+        <span class="hero-eyebrow"><span class="dot"></span> Now Hiring — All Ranks</span>
+        <h1>Apply for Your Next Voyage</h1>
+        <p class="lead">
+          Tell us about your rank, certificates and sailing experience. Our
+          sourcing team reviews every application and will reach out about
+          matching vacancies.
+        </p>
 
-      <!-- ============================================================
+        <div class="hero-meta">
+          <div class="hero-meta-item">⏱️ <b>~8 minutes</b> to complete</div>
+          <div class="hero-meta-item">
+            📋 <b>7 short steps</b>, save-as-you-go
+          </div>
+          <div class="hero-meta-item">
+            🔒 <b>Confidential</b> — reviewed by recruiters only
+          </div>
+        </div>
+
+        <div class="hero-checklist">
+          <p>Have these ready before you start:</p>
+          <ul>
+            <li>
+              Passport &amp; CDC (Continuous Discharge Certificate) numbers
+            </li>
+            <li>Details of your COC / STCW certificates and expiry dates</li>
+            <li>Your resume / CV file (PDF or Word, under 5 MB)</li>
+            <li>A passport-size photo (optional, but recommended)</li>
+          </ul>
+        </div>
+
+        <button class="btn-start" id="btnStartApp" type="button">
+          Start Application <span aria-hidden="true">→</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- ============ APPLICATION FORM ============ -->
+    <div class="jc-app" id="jcApp">
+      <div class="voyage-wrap">
+        <div class="voyage-top">
+          <div class="voyage-step-label" id="voyageStepLabel">
+            Personal &amp; Contact
+          </div>
+          <div class="voyage-step-count" id="voyageStepCount">
+            Step 1 of 7
+          </div>
+        </div>
+        <div class="voyage-track">
+          <div class="voyage-line">
+            <div class="voyage-line-fill" id="voyageFill"></div>
+          </div>
+          <div class="voyage-ship" id="voyageShip" aria-hidden="true">⛵</div>
+          <div class="voyage-points" id="voyagePoints">
+            <div class="voyage-point" data-step="1">
+              <span class="vp-dot"></span><span class="vp-label">Personal</span>
+            </div>
+            <div class="voyage-point" data-step="2">
+              <span class="vp-dot"></span><span class="vp-label">Documents</span>
+            </div>
+            <div class="voyage-point" data-step="3">
+              <span class="vp-dot"></span><span class="vp-label">Experience</span>
+            </div>
+            <div class="voyage-point" data-step="4">
+              <span class="vp-dot"></span><span class="vp-label">Certificates</span>
+            </div>
+            <div class="voyage-point" data-step="5">
+              <span class="vp-dot"></span><span class="vp-label">Availability</span>
+            </div>
+            <div class="voyage-point" data-step="6">
+              <span class="vp-dot"></span><span class="vp-label">Uploads</span>
+            </div>
+            <div class="voyage-point" data-step="7">
+              <span class="vp-dot"></span><span class="vp-label">Review</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <form id="applicationForm" class="form-card" novalidate>
+        <!-- ============================================================
            FIX 2 — Submit form glitch: honeypot autofill collision.
            The old field was named/labeled "companyWebsite" /
            "Company Website" — a name+label combo that Chrome's
@@ -494,1017 +1399,1470 @@ footer.jc-footer{text-align:center; color:var(--text-muted); font-size:.76rem; m
            autocapitalize/spellcheck off, which stops browsers from
            pattern-matching it to any saved profile field.
            ============================================================ -->
-      <div class="hp-field" aria-hidden="true">
-        <label for="hpConfirmField">Leave this field empty</label>
-        <input type="text" id="hpConfirmField" name="hp_confirm_field" tabindex="-1" autocomplete="off" autocapitalize="off" spellcheck="false">
-      </div>
-
-      <!-- ===== STEP 1 — Personal & Contact ===== -->
-      <section class="form-step active" data-step="1">
-        <div class="step-head">
-          <span class="step-icon">👤</span>
-          <h2>Personal &amp; Contact Details</h2>
-          <p>Enter your name exactly as it appears on your passport / CDC.</p>
+        <div class="hp-field" aria-hidden="true">
+          <label for="hpConfirmField">Leave this field empty</label>
+          <input type="text" id="hpConfirmField" name="hp_confirm_field" tabindex="-1" autocomplete="off"
+            autocapitalize="off" spellcheck="false" />
         </div>
-        <div class="field-grid">
-          <div class="field span-2">
-            <label for="fullName">Full Name <span class="req">*</span></label>
-            <input type="text" id="fullName" name="fullName" required placeholder="As per Passport / CDC">
-            <div class="err-msg">Please enter your full name.</div>
+
+        <!-- ===== STEP 1 — Personal & Contact ===== -->
+        <section class="form-step active" data-step="1">
+          <div class="step-head">
+            <span class="step-icon">👤</span>
+            <h2>Personal &amp; Contact Details</h2>
+            <p>
+              Enter your name exactly as it appears on your passport / CDC.
+            </p>
           </div>
-          <div class="field">
-            <label for="dob">Date of Birth <span class="req">*</span></label>
-            <input type="date" id="dob" name="dob" required>
-            <div class="err-msg">Please enter your date of birth.</div>
+          <div class="field-grid">
+            <div class="field span-2">
+              <label for="fullName">Full Name <span class="req">*</span></label>
+              <input type="text" id="fullName" name="fullName" required placeholder="As per Passport / CDC" />
+              <div class="err-msg">Please enter your full name.</div>
+            </div>
+            <div class="field">
+              <label for="dob">Date of Birth <span class="req">*</span></label>
+              <input type="date" id="dob" name="dob" required />
+              <div class="err-msg">Please enter your date of birth.</div>
+            </div>
+            <div class="field">
+              <label for="gender">Gender <span class="req">*</span></label>
+              <select id="gender" name="gender" required>
+                <option value="">Select…</option>
+                <option>Male</option>
+                <option>Female</option>
+                <option>Other</option>
+                <option>Prefer not to say</option>
+              </select>
+              <div class="err-msg">Please select your gender.</div>
+            </div>
+            <div class="field">
+              <label for="nationality">Nationality <span class="req">*</span></label>
+              <input type="text" id="nationality" name="nationality" list="nationalityList" required
+                placeholder="e.g., Indian" />
+              <datalist id="nationalityList">
+                <option value="Indian"></option>
+                <option value="Filipino"></option>
+                <option value="Indonesian"></option>
+                <option value="Ukrainian"></option>
+                <option value="Russian"></option>
+                <option value="Chinese"></option>
+                <option value="Sri Lankan"></option>
+                <option value="Bangladeshi"></option>
+                <option value="Myanmar"></option>
+                <option value="Polish"></option>
+                <option value="Romanian"></option>
+                <option value="Croatian"></option>
+              </datalist>
+              <div class="err-msg">Please enter your nationality.</div>
+            </div>
+            <div class="field">
+              <label for="maritalStatus">Marital Status <span class="opt">(optional)</span></label>
+              <select id="maritalStatus" name="maritalStatus">
+                <option value="">Select…</option>
+                <option>Single</option>
+                <option>Married</option>
+                <option>Other</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="mobileNumber">Mobile Number <span class="req">*</span></label>
+              <input type="tel" id="mobileNumber" name="mobileNumber" required placeholder="+91 98765 43210" />
+              <div class="err-msg">Please enter a valid mobile number.</div>
+            </div>
+            <div class="field" style="justify-content: center">
+              <label style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-weight: 500;
+                    cursor: pointer;
+                  ">
+                <input type="checkbox" id="isWhatsapp" name="isWhatsapp" style="
+                      width: 16px;
+                      height: 16px;
+                      accent-color: var(--accent-primary);
+                    " />
+                This number is on WhatsApp
+              </label>
+            </div>
+            <div class="field">
+              <label for="altNumber">Alternate Number <span class="opt">(optional)</span></label>
+              <input type="tel" id="altNumber" name="altNumber" placeholder="Alternate / family contact" />
+            </div>
+            <div class="field">
+              <label for="email">Email Address <span class="req">*</span></label>
+              <input type="email" id="email" name="email" required placeholder="you@example.com" />
+              <div class="err-msg">Please enter a valid email address.</div>
+            </div>
+            <div class="field span-2">
+              <label for="currentAddress">Current Address <span class="req">*</span></label>
+              <textarea id="currentAddress" name="currentAddress" required
+                placeholder="House / street, city, state, PIN / postal code, country"></textarea>
+              <div class="err-msg">Please enter your current address.</div>
+            </div>
+            <div class="field">
+              <label for="emergencyContactName">Emergency Contact Name <span class="req">*</span></label>
+              <input type="text" id="emergencyContactName" name="emergencyContactName" required />
+              <div class="err-msg">Required.</div>
+            </div>
+            <div class="field">
+              <label for="emergencyContactRelation">Relationship <span class="req">*</span></label>
+              <input type="text" id="emergencyContactRelation" name="emergencyContactRelation" required
+                placeholder="e.g., Spouse, Father" />
+              <div class="err-msg">Required.</div>
+            </div>
+            <div class="field">
+              <label for="emergencyContactNumber">Emergency Contact Number <span class="req">*</span></label>
+              <input type="tel" id="emergencyContactNumber" name="emergencyContactNumber" required />
+              <div class="err-msg">Required.</div>
+            </div>
           </div>
-          <div class="field">
-            <label for="gender">Gender <span class="req">*</span></label>
-            <select id="gender" name="gender" required>
-              <option value="">Select…</option>
-              <option>Male</option>
-              <option>Female</option>
-              <option>Other</option>
-              <option>Prefer not to say</option>
-            </select>
-            <div class="err-msg">Please select your gender.</div>
+        </section>
+
+        <!-- ===== STEP 2 — Identity & Travel Documents ===== -->
+        <section class="form-step" data-step="2">
+          <div class="step-head">
+            <span class="step-icon">🛂</span>
+            <h2>Identity &amp; Travel Documents</h2>
+            <p>
+              If you're a fresher without a CDC yet, leave those fields blank.
+            </p>
           </div>
-          <div class="field">
-            <label for="nationality">Nationality <span class="req">*</span></label>
-            <input type="text" id="nationality" name="nationality" list="nationalityList" required placeholder="e.g., Indian">
-            <datalist id="nationalityList">
-              <option value="Indian"><option value="Filipino"><option value="Indonesian"><option value="Ukrainian">
-              <option value="Russian"><option value="Chinese"><option value="Sri Lankan"><option value="Bangladeshi">
-              <option value="Myanmar"><option value="Polish"><option value="Romanian"><option value="Croatian">
-            </datalist>
-            <div class="err-msg">Please enter your nationality.</div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="passportNumber">Passport Number <span class="req">*</span></label>
+              <input type="text" id="passportNumber" name="passportNumber" required />
+              <div class="err-msg">Please enter your passport number.</div>
+            </div>
+            <div class="field">
+              <label for="passportIssuePlace">Place of Issue <span class="opt">(optional)</span></label>
+              <input type="text" id="passportIssuePlace" name="passportIssuePlace" />
+            </div>
+            <div class="field">
+              <label for="passportIssueDate">Passport Issue Date
+                <span class="opt">(optional)</span></label>
+              <input type="date" id="passportIssueDate" name="passportIssueDate" />
+            </div>
+            <div class="field">
+              <label for="passportExpiryDate">Passport Expiry Date <span class="req">*</span></label>
+              <input type="date" id="passportExpiryDate" name="passportExpiryDate" required />
+              <div class="err-msg">
+                Please enter your passport expiry date.
+              </div>
+            </div>
+            <div class="field">
+              <label for="cdcNumber">CDC Number <span class="opt">(if held)</span></label>
+              <input type="text" id="cdcNumber" name="cdcNumber" />
+            </div>
+            <div class="field">
+              <label for="indosNumber">INDoS / National Seafarer Reg. No.
+                <span class="opt">(if applicable)</span></label>
+              <input type="text" id="indosNumber" name="indosNumber" />
+            </div>
+            <div class="field">
+              <label for="cdcIssueDate">CDC Issue Date <span class="opt">(optional)</span></label>
+              <input type="date" id="cdcIssueDate" name="cdcIssueDate" />
+            </div>
+            <div class="field">
+              <label for="cdcExpiryDate">CDC Expiry Date <span class="opt">(optional)</span></label>
+              <input type="date" id="cdcExpiryDate" name="cdcExpiryDate" />
+            </div>
+            <div class="field">
+              <label for="usVisaStatus">US C1/D Visa Status
+                <span class="opt">(optional)</span></label>
+              <select id="usVisaStatus" name="usVisaStatus">
+                <option value="">Not applicable</option>
+                <option>Valid</option>
+                <option>Applied / In process</option>
+                <option>Expired</option>
+              </select>
+            </div>
+            <div class="field" id="usVisaExpiryField" style="display: none">
+              <label for="usVisaExpiry">US Visa Expiry Date</label>
+              <input type="date" id="usVisaExpiry" name="usVisaExpiry" />
+            </div>
           </div>
-          <div class="field">
-            <label for="maritalStatus">Marital Status <span class="opt">(optional)</span></label>
-            <select id="maritalStatus" name="maritalStatus">
-              <option value="">Select…</option>
-              <option>Single</option><option>Married</option><option>Other</option>
-            </select>
+        </section>
+
+        <!-- ===== STEP 3 — Rank & Sailing Experience ===== -->
+        <section class="form-step" data-step="3">
+          <div class="step-head">
+            <span class="step-icon">⚙️</span>
+            <h2>Rank &amp; Sailing Experience</h2>
+            <p>
+              Tell us the rank you're applying for and your sea-service
+              background.
+            </p>
           </div>
-          <div class="field">
-            <label for="mobileNumber">Mobile Number <span class="req">*</span></label>
-            <input type="tel" id="mobileNumber" name="mobileNumber" required placeholder="+91 98765 43210">
-            <div class="err-msg">Please enter a valid mobile number.</div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="department">Department <span class="req">*</span></label>
+              <select id="department" name="department" required>
+                <option value="">Select…</option>
+                <option>Deck</option>
+                <option>Engine</option>
+                <option>Electrical (ETO)</option>
+                <option>Catering</option>
+                <option>Other</option>
+              </select>
+              <div class="err-msg">Please select a department.</div>
+            </div>
+            <div class="field">
+              <label for="rankAppliedFor">Rank Applying For <span class="req">*</span></label>
+              <select id="rankAppliedFor" name="rankAppliedFor" required>
+                <option value="">Select…</option>
+                <optgroup label="Deck">
+                  <option>Master</option>
+                  <option>Chief Officer</option>
+                  <option>2nd Officer</option>
+                  <option>3rd Officer</option>
+                  <option>Deck Cadet</option>
+                  <option>Bosun</option>
+                  <option>Able Seaman (AB)</option>
+                  <option>Ordinary Seaman (OS)</option>
+                </optgroup>
+                <optgroup label="Engine">
+                  <option>Chief Engineer</option>
+                  <option>2nd Engineer</option>
+                  <option>3rd Engineer</option>
+                  <option>4th Engineer</option>
+                  <option>Engine Cadet</option>
+                  <option>Fitter</option>
+                  <option>Motorman</option>
+                  <option>Oiler</option>
+                  <option>Wiper</option>
+                  <option>Pumpman</option>
+                </optgroup>
+                <optgroup label="Electrical">
+                  <option>ETO / Electrical Officer</option>
+                </optgroup>
+                <optgroup label="Catering">
+                  <option>Chief Cook</option>
+                  <option>Cook</option>
+                  <option>Steward</option>
+                  <option>Messman</option>
+                </optgroup>
+                <option>Other</option>
+              </select>
+              <div class="err-msg">
+                Please select the rank you're applying for.
+              </div>
+            </div>
+            <div class="field">
+              <label for="currentRank">Current / Last Held Rank
+                <span class="opt">(if different)</span></label>
+              <input type="text" id="currentRank" name="currentRank" />
+            </div>
+            <div class="field" id="engineTypeField" style="display: none">
+              <label for="engineTypeExperience">Engine Type Experience
+                <span class="opt">(optional)</span></label>
+              <input type="text" id="engineTypeExperience" name="engineTypeExperience"
+                placeholder="e.g., MAN B&amp;W 2-stroke, Wärtsilä" />
+            </div>
+            <div class="field">
+              <label>Total Sea Experience <span class="req">*</span></label>
+              <div style="display: flex; gap: 8px">
+                <input type="number" id="totalSeaExpYears" name="totalSeaExpYears" min="0" max="60" placeholder="Years"
+                  required style="width: 50%" />
+                <input type="number" id="totalSeaExpMonths" name="totalSeaExpMonths" min="0" max="11"
+                  placeholder="Months" style="width: 50%" />
+              </div>
+              <div class="err-msg">
+                Please enter your total sea experience.
+              </div>
+            </div>
+            <div class="field">
+              <label>Experience in Rank Applied For
+                <span class="opt">(optional)</span></label>
+              <div style="display: flex; gap: 8px">
+                <input type="number" id="rankExpYears" name="rankExpYears" min="0" max="60" placeholder="Years"
+                  style="width: 50%" />
+                <input type="number" id="rankExpMonths" name="rankExpMonths" min="0" max="11" placeholder="Months"
+                  style="width: 50%" />
+              </div>
+            </div>
+
+            <fieldset class="field-set" id="vesselTypesFieldset">
+              <legend>
+                Preferred Vessel Types <span class="req">*</span>
+                <span class="opt">(select all that apply)</span>
+              </legend>
+              <div class="chip-group">
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Bulk Carrier" /><span>Bulk
+                    Carrier</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Oil Tanker" /><span>Oil
+                    Tanker</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
+                    value="Chemical Tanker" /><span>Chemical Tanker</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
+                    value="Gas Carrier (LPG/LNG)" /><span>Gas Carrier (LPG/LNG)</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
+                    value="Container" /><span>Container</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
+                    value="General Cargo" /><span>General Cargo</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
+                    value="RoRo" /><span>Ro-Ro</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
+                    value="Offshore / OSV" /><span>Offshore / OSV</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
+                    value="Passenger / Cruise" /><span>Passenger / Cruise</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
+                    value="Reefer" /><span>Reefer</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Tug / Dredger" /><span>Tug
+                    / Dredger</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Tug / Dredger" /><span>Cruise</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
+                    value="Other" /><span>Other</span></label>
+              </div>
+              <div class="err-msg" style="display: none; margin-top: 8px">
+                Please select at least one vessel type.
+              </div>
+            </fieldset>
+
+            <div class="field">
+              <label for="lastVesselName">Last Vessel Name <span class="opt">(optional)</span></label>
+              <input type="text" id="lastVesselName" name="lastVesselName" />
+            </div>
+            <div class="field">
+              <label for="lastVesselType">Last Vessel Type <span class="opt">(optional)</span></label>
+              <input type="text" id="lastVesselType" name="lastVesselType" />
+            </div>
+            <div class="field">
+              <label for="lastCompany">Last Manning Company / Employer
+                <span class="opt">(optional)</span></label>
+              <input type="text" id="lastCompany" name="lastCompany" />
+            </div>
+            <div class="field">
+              <label for="lastSignOffDate">Last Sign-off Date <span class="opt">(optional)</span></label>
+              <input type="date" id="lastSignOffDate" name="lastSignOffDate" />
+            </div>
+            <div class="field span-2">
+              <label for="signOffReason">Reason for Sign-off
+                <span class="opt">(optional)</span></label>
+              <input type="text" id="signOffReason" name="signOffReason" placeholder="e.g., End of contract" />
+            </div>
           </div>
-          <div class="field" style="justify-content:center;">
-            <label style="display:flex; align-items:center; gap:8px; font-weight:500; cursor:pointer;">
-              <input type="checkbox" id="isWhatsapp" name="isWhatsapp" style="width:16px;height:16px;accent-color:var(--accent-primary);">
-              This number is on WhatsApp
+        </section>
+
+        <!-- ===== STEP 4 — Certificates & Endorsements ===== -->
+        <section class="form-step" data-step="4">
+          <div class="step-head">
+            <span class="step-icon">📜</span>
+            <h2>Certificates &amp; Endorsements</h2>
+            <p>
+              Officers: add your Certificate of Competency details. Everyone:
+              tick the STCW certificates you currently hold.
+            </p>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="cocClass">COC Class / Grade <span class="opt">(officers)</span></label>
+              <input type="text" id="cocClass" name="cocClass" placeholder="e.g., Chief Mate FG, MEO Class II" />
+            </div>
+            <div class="field">
+              <label for="cocNumber">COC Number <span class="opt">(optional)</span></label>
+              <input type="text" id="cocNumber" name="cocNumber" />
+            </div>
+            <div class="field">
+              <label for="cocIssuingAuthority">Issuing Authority / Flag State
+                <span class="opt">(optional)</span></label>
+              <input type="text" id="cocIssuingAuthority" name="cocIssuingAuthority" />
+            </div>
+            <div class="field">
+              <label for="cocExpiryDate">COC Expiry Date <span class="opt">(optional)</span></label>
+              <input type="date" id="cocExpiryDate" name="cocExpiryDate" />
+            </div>
+            <div class="field">
+              <label for="coeNumber">COE Number <span class="opt">(optional)</span></label>
+              <input type="text" id="coeNumber" name="coeNumber" />
+            </div>
+            <div class="field">
+              <label for="coeExpiryDate">COE Expiry Date <span class="opt">(optional)</span></label>
+              <input type="date" id="coeExpiryDate" name="coeExpiryDate" />
+            </div>
+
+            <fieldset class="field-set">
+              <legend>
+                STCW / Other Certificates Held
+                <span class="opt">(select all that apply)</span>
+              </legend>
+              <div class="chip-group">
+                <label class="chip"><input type="checkbox" name="certificatesHeld"
+                    value="Basic Safety Training (BST)" /><span>Basic Safety Training (BST)</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld"
+                    value="Advanced Fire Fighting" /><span>Advanced Fire Fighting</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld"
+                    value="Proficiency in Survival Craft (PSCRB)" /><span>Proficiency in Survival Craft
+                    (PSCRB)</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld"
+                    value="Medical First Aid" /><span>Medical First Aid</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld" value="Medical Care" /><span>Medical
+                    Care</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld" value="GMDSS GOC" /><span>GMDSS
+                    GOC</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld"
+                    value="Tanker Familiarization (Basic)" /><span>Tanker Familiarization (Basic)</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld"
+                    value="Tanker Familiarization (Advanced)" /><span>Tanker Familiarization (Advanced)</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld"
+                    value="ECDIS" /><span>ECDIS</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld"
+                    value="Dynamic Positioning (DP)" /><span>Dynamic Positioning (DP)</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld" value="H2S / BOSIET" /><span>H2S /
+                    BOSIET</span></label>
+                <label class="chip"><input type="checkbox" name="certificatesHeld"
+                    value="Ship Security Officer (SSO)" /><span>Ship Security Officer (SSO)</span></label>
+              </div>
+            </fieldset>
+
+            <div class="field span-2">
+              <label for="otherCertificates">Other Certificates / Qualifications
+                <span class="opt">(optional)</span></label>
+              <textarea id="otherCertificates" name="otherCertificates"
+                placeholder="List any other certificates, expiry dates, or qualifications not covered above"></textarea>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== STEP 5 — Medical, Availability & Preferences ===== -->
+        <section class="form-step" data-step="5">
+          <div class="step-head">
+            <span class="step-icon">📅</span>
+            <h2>Medical, Availability &amp; Preferences</h2>
+            <p>
+              Let us know when you can join and how you'd like us to reach
+              you.
+            </p>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="medicalCertStatus">Medical Fitness Certificate <span class="req">*</span></label>
+              <select id="medicalCertStatus" name="medicalCertStatus" required>
+                <option value="">Select…</option>
+                <option>Valid</option>
+                <option>Expired</option>
+                <option>Not yet done</option>
+              </select>
+              <div class="err-msg">
+                Please select your medical certificate status.
+              </div>
+            </div>
+            <div class="field" id="medicalExpiryField" style="display: none">
+              <label for="medicalCertExpiry">Medical Certificate Expiry Date</label>
+              <input type="date" id="medicalCertExpiry" name="medicalCertExpiry" />
+            </div>
+            <div class="field">
+              <label for="currentStatus">Current Availability Status <span class="req">*</span></label>
+              <select id="currentStatus" name="currentStatus" required>
+                <option value="">Select…</option>
+                <option>Available Immediately</option>
+                <option>Currently Sailing</option>
+                <option>On Leave</option>
+                <option>Serving Notice Period</option>
+              </select>
+              <div class="err-msg">Please select your current status.</div>
+            </div>
+            <div class="field" id="availableFromField">
+              <label for="availableFromDate">Available From
+                <span class="opt">(if not immediate)</span></label>
+              <input type="date" id="availableFromDate" name="availableFromDate" />
+            </div>
+            <div class="field">
+              <label for="preferredJoiningDate">Preferred Joining Date
+                <span class="opt">(optional)</span></label>
+              <input type="date" id="preferredJoiningDate" name="preferredJoiningDate" />
+            </div>
+            <div class="field">
+              <label for="expectedSalary">Expected Salary <span class="opt">(optional)</span></label>
+              <input type="text" id="expectedSalary" name="expectedSalary" placeholder="e.g., USD 2,500 / month" />
+            </div>
+            <div class="field span-2">
+              <label for="referralSource">How did you hear about us? <span class="req">*</span></label>
+              <select id="referralSource" name="referralSource" required>
+                <option value="">Select…</option>
+                <option>Walk-in at Office</option>
+                <option>Referral from Seafarer</option>
+                <option>Company Website</option>
+                <option>Social Media</option>
+                <option>Newspaper / Print Ad</option>
+                <option>Agency Partner</option>
+                <option>Other</option>
+              </select>
+              <div class="err-msg">Please select an option.</div>
+            </div>
+            <div class="field span-2" id="referralOtherField" style="display: none">
+              <label for="referralOther">Please specify</label>
+              <input type="text" id="referralOther" name="referralOther" />
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== STEP 6 — Upload Documents ===== -->
+        <section class="form-step" data-step="6">
+          <div class="step-head">
+            <span class="step-icon">📎</span>
+            <h2>Upload Documents</h2>
+            <p>
+              Your resume is required. Everything else is optional but speeds
+              up your review.
+            </p>
+          </div>
+
+          <div class="upload-grid">
+            <label class="upload-zone required-zone" id="uz-resume" for="fileResume">
+              <input type="file" id="fileResume" name="resume" accept=".pdf,.doc,.docx" required />
+              <div class="uz-icon">📄</div>
+              <div class="uz-title">
+                Resume / CV <span class="req">*</span>
+              </div>
+              <div class="uz-sub">PDF or Word, up to 5&nbsp;MB</div>
+              <div class="uz-filename"></div>
+              <button type="button" class="uz-remove" data-target="fileResume">
+                Remove
+              </button>
+            </label>
+
+            <label class="upload-zone" id="uz-photo" for="filePhoto">
+              <input type="file" id="filePhoto" name="photo" accept=".jpg,.jpeg,.png" />
+              <div class="uz-icon">🧑‍✈️</div>
+              <div class="uz-title">Passport-size Photo</div>
+              <div class="uz-sub">JPG or PNG, up to 3&nbsp;MB</div>
+              <div class="uz-filename"></div>
+              <button type="button" class="uz-remove" data-target="filePhoto">
+                Remove
+              </button>
+            </label>
+
+            <label class="upload-zone" id="uz-passport" for="filePassportCopy">
+              <input type="file" id="filePassportCopy" name="passportCopy" accept=".pdf,.jpg,.jpeg,.png" />
+              <div class="uz-icon">🛂</div>
+              <div class="uz-title">Passport Copy</div>
+              <div class="uz-sub">PDF, JPG or PNG, up to 5&nbsp;MB</div>
+              <div class="uz-filename"></div>
+              <button type="button" class="uz-remove" data-target="filePassportCopy">
+                Remove
+              </button>
+            </label>
+
+            <label class="upload-zone" id="uz-cdc" for="fileCdcCopy">
+              <input type="file" id="fileCdcCopy" name="cdcCopy" accept=".pdf,.jpg,.jpeg,.png" />
+              <div class="uz-icon">🪪</div>
+              <div class="uz-title">CDC Copy</div>
+              <div class="uz-sub">PDF, JPG or PNG, up to 5&nbsp;MB</div>
+              <div class="uz-filename"></div>
+              <button type="button" class="uz-remove" data-target="fileCdcCopy">
+                Remove
+              </button>
+            </label>
+
+            <label class="upload-zone" id="uz-certs" for="fileCertificates" style="grid-column: 1/-1">
+              <input type="file" id="fileCertificates" name="certificatesFile" accept=".pdf" />
+              <div class="uz-icon">📚</div>
+              <div class="uz-title">Combined Certificates (COC / STCW)</div>
+              <div class="uz-sub">Single PDF, up to 5&nbsp;MB</div>
+              <div class="uz-filename"></div>
+              <button type="button" class="uz-remove" data-target="fileCertificates">
+                Remove
+              </button>
             </label>
           </div>
-          <div class="field">
-            <label for="altNumber">Alternate Number <span class="opt">(optional)</span></label>
-            <input type="tel" id="altNumber" name="altNumber" placeholder="Alternate / family contact">
-          </div>
-          <div class="field">
-            <label for="email">Email Address <span class="req">*</span></label>
-            <input type="email" id="email" name="email" required placeholder="you@example.com">
-            <div class="err-msg">Please enter a valid email address.</div>
-          </div>
-          <div class="field span-2">
-            <label for="currentAddress">Current Address <span class="req">*</span></label>
-            <textarea id="currentAddress" name="currentAddress" required placeholder="House / street, city, state, PIN / postal code, country"></textarea>
-            <div class="err-msg">Please enter your current address.</div>
-          </div>
-          <div class="field">
-            <label for="emergencyContactName">Emergency Contact Name <span class="req">*</span></label>
-            <input type="text" id="emergencyContactName" name="emergencyContactName" required>
-            <div class="err-msg">Required.</div>
-          </div>
-          <div class="field">
-            <label for="emergencyContactRelation">Relationship <span class="req">*</span></label>
-            <input type="text" id="emergencyContactRelation" name="emergencyContactRelation" required placeholder="e.g., Spouse, Father">
-            <div class="err-msg">Required.</div>
-          </div>
-          <div class="field">
-            <label for="emergencyContactNumber">Emergency Contact Number <span class="req">*</span></label>
-            <input type="tel" id="emergencyContactNumber" name="emergencyContactNumber" required>
-            <div class="err-msg">Required.</div>
-          </div>
-        </div>
-      </section>
+        </section>
 
-      <!-- ===== STEP 2 — Identity & Travel Documents ===== -->
-      <section class="form-step" data-step="2">
-        <div class="step-head">
-          <span class="step-icon">🛂</span>
-          <h2>Identity &amp; Travel Documents</h2>
-          <p>If you're a fresher without a CDC yet, leave those fields blank.</p>
-        </div>
-        <div class="field-grid">
-          <div class="field">
-            <label for="passportNumber">Passport Number <span class="req">*</span></label>
-            <input type="text" id="passportNumber" name="passportNumber" required>
-            <div class="err-msg">Please enter your passport number.</div>
+        <!-- ===== STEP 7 — Review & Submit ===== -->
+        <section class="form-step" data-step="7">
+          <div class="step-head">
+            <span class="step-icon">✅</span>
+            <h2>Review &amp; Submit</h2>
+            <p>Please check your details below before submitting.</p>
           </div>
-          <div class="field">
-            <label for="passportIssuePlace">Place of Issue <span class="opt">(optional)</span></label>
-            <input type="text" id="passportIssuePlace" name="passportIssuePlace">
-          </div>
-          <div class="field">
-            <label for="passportIssueDate">Passport Issue Date <span class="opt">(optional)</span></label>
-            <input type="date" id="passportIssueDate" name="passportIssueDate">
-          </div>
-          <div class="field">
-            <label for="passportExpiryDate">Passport Expiry Date <span class="req">*</span></label>
-            <input type="date" id="passportExpiryDate" name="passportExpiryDate" required>
-            <div class="err-msg">Please enter your passport expiry date.</div>
-          </div>
-          <div class="field">
-            <label for="cdcNumber">CDC Number <span class="opt">(if held)</span></label>
-            <input type="text" id="cdcNumber" name="cdcNumber">
-          </div>
-          <div class="field">
-            <label for="indosNumber">INDoS / National Seafarer Reg. No. <span class="opt">(if applicable)</span></label>
-            <input type="text" id="indosNumber" name="indosNumber">
-          </div>
-          <div class="field">
-            <label for="cdcIssueDate">CDC Issue Date <span class="opt">(optional)</span></label>
-            <input type="date" id="cdcIssueDate" name="cdcIssueDate">
-          </div>
-          <div class="field">
-            <label for="cdcExpiryDate">CDC Expiry Date <span class="opt">(optional)</span></label>
-            <input type="date" id="cdcExpiryDate" name="cdcExpiryDate">
-          </div>
-          <div class="field">
-            <label for="usVisaStatus">US C1/D Visa Status <span class="opt">(optional)</span></label>
-            <select id="usVisaStatus" name="usVisaStatus">
-              <option value="">Not applicable</option>
-              <option>Valid</option><option>Applied / In process</option><option>Expired</option>
-            </select>
-          </div>
-          <div class="field" id="usVisaExpiryField" style="display:none;">
-            <label for="usVisaExpiry">US Visa Expiry Date</label>
-            <input type="date" id="usVisaExpiry" name="usVisaExpiry">
-          </div>
-        </div>
-      </section>
+          <div id="reviewContainer"></div>
 
-      <!-- ===== STEP 3 — Rank & Sailing Experience ===== -->
-      <section class="form-step" data-step="3">
-        <div class="step-head">
-          <span class="step-icon">⚙️</span>
-          <h2>Rank &amp; Sailing Experience</h2>
-          <p>Tell us the rank you're applying for and your sea-service background.</p>
+          <div class="declaration-box">
+            <input type="checkbox" id="declarationConsent" name="declarationConsent" required />
+            <label for="declarationConsent">I declare that the information provided in this application is
+              true and accurate to the best of my knowledge. I consent to this
+              agency storing and processing my details, including uploaded
+              documents, for the purpose of crew recruitment and placement.
+              <span class="req">*</span></label>
+          </div>
+        </section>
+
+        <div class="step-nav">
+          <button type="button" class="btn btn-ghost" id="btnBack">
+            ← Back
+          </button>
+          <button type="button" class="btn btn-primary" id="btnNext">
+            Continue <span aria-hidden="true">→</span>
+          </button>
+          <button type="submit" class="btn btn-primary" id="btnSubmit" style="display: none">
+            <span class="spinner"></span><span class="btn-txt">Submit Application ⚓</span>
+          </button>
         </div>
-        <div class="field-grid">
-          <div class="field">
-            <label for="department">Department <span class="req">*</span></label>
-            <select id="department" name="department" required>
-              <option value="">Select…</option>
-              <option>Deck</option><option>Engine</option><option>Electrical (ETO)</option>
-              <option>Catering</option><option>Other</option>
-            </select>
-            <div class="err-msg">Please select a department.</div>
-          </div>
-          <div class="field">
-            <label for="rankAppliedFor">Rank Applying For <span class="req">*</span></label>
-            <select id="rankAppliedFor" name="rankAppliedFor" required>
-              <option value="">Select…</option>
-              <optgroup label="Deck">
-                <option>Master</option><option>Chief Officer</option><option>2nd Officer</option>
-                <option>3rd Officer</option><option>Deck Cadet</option><option>Bosun</option>
-                <option>Able Seaman (AB)</option><option>Ordinary Seaman (OS)</option>
-              </optgroup>
-              <optgroup label="Engine">
-                <option>Chief Engineer</option><option>2nd Engineer</option><option>3rd Engineer</option>
-                <option>4th Engineer</option><option>Engine Cadet</option><option>Fitter</option>
-                <option>Motorman</option><option>Oiler</option><option>Wiper</option><option>Pumpman</option>
-              </optgroup>
-              <optgroup label="Electrical">
-                <option>ETO / Electrical Officer</option>
-              </optgroup>
-              <optgroup label="Catering">
-                <option>Chief Cook</option><option>Cook</option><option>Steward</option><option>Messman</option>
-              </optgroup>
-              <option>Other</option>
-            </select>
-            <div class="err-msg">Please select the rank you're applying for.</div>
-          </div>
-          <div class="field">
-            <label for="currentRank">Current / Last Held Rank <span class="opt">(if different)</span></label>
-            <input type="text" id="currentRank" name="currentRank">
-          </div>
-          <div class="field" id="engineTypeField" style="display:none;">
-            <label for="engineTypeExperience">Engine Type Experience <span class="opt">(optional)</span></label>
-            <input type="text" id="engineTypeExperience" name="engineTypeExperience" placeholder="e.g., MAN B&amp;W 2-stroke, Wärtsilä">
-          </div>
-          <div class="field">
-            <label>Total Sea Experience <span class="req">*</span></label>
-            <div style="display:flex; gap:8px;">
-              <input type="number" id="totalSeaExpYears" name="totalSeaExpYears" min="0" max="60" placeholder="Years" required style="width:50%;">
-              <input type="number" id="totalSeaExpMonths" name="totalSeaExpMonths" min="0" max="11" placeholder="Months" style="width:50%;">
-            </div>
-            <div class="err-msg">Please enter your total sea experience.</div>
-          </div>
-          <div class="field">
-            <label>Experience in Rank Applied For <span class="opt">(optional)</span></label>
-            <div style="display:flex; gap:8px;">
-              <input type="number" id="rankExpYears" name="rankExpYears" min="0" max="60" placeholder="Years" style="width:50%;">
-              <input type="number" id="rankExpMonths" name="rankExpMonths" min="0" max="11" placeholder="Months" style="width:50%;">
-            </div>
-          </div>
+      </form>
 
-          <fieldset class="field-set" id="vesselTypesFieldset">
-            <legend>Preferred Vessel Types <span class="req">*</span> <span class="opt">(select all that apply)</span></legend>
-            <div class="chip-group">
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Bulk Carrier"><span>Bulk Carrier</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Oil Tanker"><span>Oil Tanker</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Chemical Tanker"><span>Chemical Tanker</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Gas Carrier (LPG/LNG)"><span>Gas Carrier (LPG/LNG)</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Container"><span>Container</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="General Cargo"><span>General Cargo</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="RoRo"><span>RoRo</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Offshore / OSV"><span>Offshore / OSV</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Passenger / Cruise"><span>Passenger / Cruise</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Reefer"><span>Reefer</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Tug / Dredger"><span>Tug / Dredger</span></label>
-              <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Other"><span>Other</span></label>
-            </div>
-            <div class="err-msg" style="display:none; margin-top:8px;">Please select at least one vessel type.</div>
-          </fieldset>
+      <footer class="jc-footer">
+        In line with the Maritime Labour Convention, genuine crewing agencies
+        never charge seafarers a fee to find them work.<br />
+        Your information is kept confidential and used only for recruitment
+        purposes.
+      </footer>
+    </div>
 
-          <div class="field">
-            <label for="lastVesselName">Last Vessel Name <span class="opt">(optional)</span></label>
-            <input type="text" id="lastVesselName" name="lastVesselName">
-          </div>
-          <div class="field">
-            <label for="lastVesselType">Last Vessel Type <span class="opt">(optional)</span></label>
-            <input type="text" id="lastVesselType" name="lastVesselType">
-          </div>
-          <div class="field">
-            <label for="lastCompany">Last Manning Company / Employer <span class="opt">(optional)</span></label>
-            <input type="text" id="lastCompany" name="lastCompany">
-          </div>
-          <div class="field">
-            <label for="lastSignOffDate">Last Sign-off Date <span class="opt">(optional)</span></label>
-            <input type="date" id="lastSignOffDate" name="lastSignOffDate">
-          </div>
-          <div class="field span-2">
-            <label for="signOffReason">Reason for Sign-off <span class="opt">(optional)</span></label>
-            <input type="text" id="signOffReason" name="signOffReason" placeholder="e.g., End of contract">
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== STEP 4 — Certificates & Endorsements ===== -->
-      <section class="form-step" data-step="4">
-        <div class="step-head">
-          <span class="step-icon">📜</span>
-          <h2>Certificates &amp; Endorsements</h2>
-          <p>Officers: add your Certificate of Competency details. Everyone: tick the STCW certificates you currently hold.</p>
-        </div>
-        <div class="field-grid">
-          <div class="field">
-            <label for="cocClass">COC Class / Grade <span class="opt">(officers)</span></label>
-            <input type="text" id="cocClass" name="cocClass" placeholder="e.g., Chief Mate FG, MEO Class II">
-          </div>
-          <div class="field">
-            <label for="cocNumber">COC Number <span class="opt">(optional)</span></label>
-            <input type="text" id="cocNumber" name="cocNumber">
-          </div>
-          <div class="field">
-            <label for="cocIssuingAuthority">Issuing Authority / Flag State <span class="opt">(optional)</span></label>
-            <input type="text" id="cocIssuingAuthority" name="cocIssuingAuthority">
-          </div>
-          <div class="field">
-            <label for="cocExpiryDate">COC Expiry Date <span class="opt">(optional)</span></label>
-            <input type="date" id="cocExpiryDate" name="cocExpiryDate">
-          </div>
-          <div class="field">
-            <label for="coeNumber">COE Number <span class="opt">(optional)</span></label>
-            <input type="text" id="coeNumber" name="coeNumber">
-          </div>
-          <div class="field">
-            <label for="coeExpiryDate">COE Expiry Date <span class="opt">(optional)</span></label>
-            <input type="date" id="coeExpiryDate" name="coeExpiryDate">
-          </div>
-
-          <fieldset class="field-set">
-            <legend>STCW / Other Certificates Held <span class="opt">(select all that apply)</span></legend>
-            <div class="chip-group">
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="Basic Safety Training (BST)"><span>Basic Safety Training (BST)</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="Advanced Fire Fighting"><span>Advanced Fire Fighting</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="Proficiency in Survival Craft (PSCRB)"><span>Proficiency in Survival Craft (PSCRB)</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="Medical First Aid"><span>Medical First Aid</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="Medical Care"><span>Medical Care</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="GMDSS GOC"><span>GMDSS GOC</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="Tanker Familiarization (Basic)"><span>Tanker Familiarization (Basic)</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="Tanker Familiarization (Advanced)"><span>Tanker Familiarization (Advanced)</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="ECDIS"><span>ECDIS</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="Dynamic Positioning (DP)"><span>Dynamic Positioning (DP)</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="H2S / BOSIET"><span>H2S / BOSIET</span></label>
-              <label class="chip"><input type="checkbox" name="certificatesHeld" value="Ship Security Officer (SSO)"><span>Ship Security Officer (SSO)</span></label>
-            </div>
-          </fieldset>
-
-          <div class="field span-2">
-            <label for="otherCertificates">Other Certificates / Qualifications <span class="opt">(optional)</span></label>
-            <textarea id="otherCertificates" name="otherCertificates" placeholder="List any other certificates, expiry dates, or qualifications not covered above"></textarea>
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== STEP 5 — Medical, Availability & Preferences ===== -->
-      <section class="form-step" data-step="5">
-        <div class="step-head">
-          <span class="step-icon">📅</span>
-          <h2>Medical, Availability &amp; Preferences</h2>
-          <p>Let us know when you can join and how you'd like us to reach you.</p>
-        </div>
-        <div class="field-grid">
-          <div class="field">
-            <label for="medicalCertStatus">Medical Fitness Certificate <span class="req">*</span></label>
-            <select id="medicalCertStatus" name="medicalCertStatus" required>
-              <option value="">Select…</option>
-              <option>Valid</option><option>Expired</option><option>Not yet done</option>
-            </select>
-            <div class="err-msg">Please select your medical certificate status.</div>
-          </div>
-          <div class="field" id="medicalExpiryField" style="display:none;">
-            <label for="medicalCertExpiry">Medical Certificate Expiry Date</label>
-            <input type="date" id="medicalCertExpiry" name="medicalCertExpiry">
-          </div>
-          <div class="field">
-            <label for="currentStatus">Current Availability Status <span class="req">*</span></label>
-            <select id="currentStatus" name="currentStatus" required>
-              <option value="">Select…</option>
-              <option>Available Immediately</option>
-              <option>Currently Sailing</option>
-              <option>On Leave</option>
-              <option>Serving Notice Period</option>
-            </select>
-            <div class="err-msg">Please select your current status.</div>
-          </div>
-          <div class="field" id="availableFromField">
-            <label for="availableFromDate">Available From <span class="opt">(if not immediate)</span></label>
-            <input type="date" id="availableFromDate" name="availableFromDate">
-          </div>
-          <div class="field">
-            <label for="preferredJoiningDate">Preferred Joining Date <span class="opt">(optional)</span></label>
-            <input type="date" id="preferredJoiningDate" name="preferredJoiningDate">
-          </div>
-          <div class="field">
-            <label for="expectedSalary">Expected Salary <span class="opt">(optional)</span></label>
-            <input type="text" id="expectedSalary" name="expectedSalary" placeholder="e.g., USD 2,500 / month">
-          </div>
-          <div class="field span-2">
-            <label for="referralSource">How did you hear about us? <span class="req">*</span></label>
-            <select id="referralSource" name="referralSource" required>
-              <option value="">Select…</option>
-              <option>Walk-in at Office</option>
-              <option>Referral from Seafarer</option>
-              <option>Company Website</option>
-              <option>Social Media</option>
-              <option>Newspaper / Print Ad</option>
-              <option>Agency Partner</option>
-              <option>Other</option>
-            </select>
-            <div class="err-msg">Please select an option.</div>
-          </div>
-          <div class="field span-2" id="referralOtherField" style="display:none;">
-            <label for="referralOther">Please specify</label>
-            <input type="text" id="referralOther" name="referralOther">
-          </div>
-        </div>
-      </section>
-
-      <!-- ===== STEP 6 — Upload Documents ===== -->
-      <section class="form-step" data-step="6">
-        <div class="step-head">
-          <span class="step-icon">📎</span>
-          <h2>Upload Documents</h2>
-          <p>Your resume is required. Everything else is optional but speeds up your review.</p>
+    <!-- ============ SUCCESS SCREEN ============ -->
+    <div class="jc-app" id="jcSuccess">
+      <div class="success-card" style="max-width: 840px; margin: 0 auto">
+        <div class="success-badge">✓</div>
+        <h2>Application Submitted!</h2>
+        <p>
+          Thank you for applying. Our sourcing team will review your profile
+          and reach out via phone, WhatsApp or email when a matching vacancy
+          comes up.
+        </p>
+        <div class="ref-box">
+          <span class="ref-label">Application Reference</span>
+          <span class="ref-value" id="refValue">—</span>
         </div>
 
-        <div class="upload-grid">
-          <label class="upload-zone required-zone" id="uz-resume" for="fileResume">
-            <input type="file" id="fileResume" name="resume" accept=".pdf,.doc,.docx" required>
-            <div class="uz-icon">📄</div>
-            <div class="uz-title">Resume / CV <span class="req">*</span></div>
-            <div class="uz-sub">PDF or Word, up to 5&nbsp;MB</div>
-            <div class="uz-filename"></div>
-            <button type="button" class="uz-remove" data-target="fileResume">Remove</button>
-          </label>
+        <!-- Applicant Profile View Container -->
+        <div id="submittedProfileContainer" style="margin-top: 24px; text-align: left"></div>
 
-          <label class="upload-zone" id="uz-photo" for="filePhoto">
-            <input type="file" id="filePhoto" name="photo" accept=".jpg,.jpeg,.png">
-            <div class="uz-icon">🧑‍✈️</div>
-            <div class="uz-title">Passport-size Photo</div>
-            <div class="uz-sub">JPG or PNG, up to 3&nbsp;MB</div>
-            <div class="uz-filename"></div>
-            <button type="button" class="uz-remove" data-target="filePhoto">Remove</button>
-          </label>
-
-          <label class="upload-zone" id="uz-passport" for="filePassportCopy">
-            <input type="file" id="filePassportCopy" name="passportCopy" accept=".pdf,.jpg,.jpeg,.png">
-            <div class="uz-icon">🛂</div>
-            <div class="uz-title">Passport Copy</div>
-            <div class="uz-sub">PDF, JPG or PNG, up to 5&nbsp;MB</div>
-            <div class="uz-filename"></div>
-            <button type="button" class="uz-remove" data-target="filePassportCopy">Remove</button>
-          </label>
-
-          <label class="upload-zone" id="uz-cdc" for="fileCdcCopy">
-            <input type="file" id="fileCdcCopy" name="cdcCopy" accept=".pdf,.jpg,.jpeg,.png">
-            <div class="uz-icon">🪪</div>
-            <div class="uz-title">CDC Copy</div>
-            <div class="uz-sub">PDF, JPG or PNG, up to 5&nbsp;MB</div>
-            <div class="uz-filename"></div>
-            <button type="button" class="uz-remove" data-target="fileCdcCopy">Remove</button>
-          </label>
-
-          <label class="upload-zone" id="uz-certs" for="fileCertificates" style="grid-column:1/-1;">
-            <input type="file" id="fileCertificates" name="certificatesFile" accept=".pdf">
-            <div class="uz-icon">📚</div>
-            <div class="uz-title">Combined Certificates (COC / STCW)</div>
-            <div class="uz-sub">Single PDF, up to 5&nbsp;MB</div>
-            <div class="uz-filename"></div>
-            <button type="button" class="uz-remove" data-target="fileCertificates">Remove</button>
-          </label>
+        <div class="success-actions" style="margin-top: 24px">
+          <button class="btn btn-primary" id="btnNewApp" type="button">
+            Submit Another Application
+          </button>
         </div>
-      </section>
-
-      <!-- ===== STEP 7 — Review & Submit ===== -->
-      <section class="form-step" data-step="7">
-        <div class="step-head">
-          <span class="step-icon">✅</span>
-          <h2>Review &amp; Submit</h2>
-          <p>Please check your details below before submitting.</p>
-        </div>
-        <div id="reviewContainer"></div>
-
-        <div class="declaration-box">
-          <input type="checkbox" id="declarationConsent" name="declarationConsent" required>
-          <label for="declarationConsent">I declare that the information provided in this application is true and accurate to the best of my knowledge. I consent to this agency storing and processing my details, including uploaded documents, for the purpose of crew recruitment and placement. <span class="req">*</span></label>
-        </div>
-      </section>
-
-      <div class="step-nav">
-        <button type="button" class="btn btn-ghost" id="btnBack">← Back</button>
-        <button type="button" class="btn btn-primary" id="btnNext">Continue <span aria-hidden="true">→</span></button>
-        <button type="submit" class="btn btn-primary" id="btnSubmit" style="display:none;">
-          <span class="spinner"></span><span class="btn-txt">Submit Application ⚓</span>
-        </button>
-      </div>
-    </form>
-
-    <footer class="jc-footer">
-      In line with the Maritime Labour Convention, genuine crewing agencies never charge seafarers a fee to find them work.<br>
-      Your information is kept confidential and used only for recruitment purposes.
-    </footer>
-  </div>
-
-  <!-- ============ SUCCESS SCREEN ============ -->
-  <div class="jc-app" id="jcSuccess">
-    <div class="success-card" style="max-width:840px; margin:0 auto;">
-      <div class="success-badge">✓</div>
-      <h2>Application Submitted!</h2>
-      <p>Thank you for applying. Our sourcing team will review your profile and reach out via phone, WhatsApp or email when a matching vacancy comes up.</p>
-      <div class="ref-box">
-        <span class="ref-label">Application Reference</span>
-        <span class="ref-value" id="refValue">—</span>
-      </div>
-     
-      <!-- Applicant Profile View Container -->
-      <div id="submittedProfileContainer" style="margin-top: 24px; text-align: left;"></div>
-
-      <div class="success-actions" style="margin-top: 24px;">
-        <button class="btn btn-primary" id="btnNewApp" type="button">Submit Another Application</button>
       </div>
     </div>
   </div>
 
-</div>
+  <div class="jc-toast" id="jcToast"></div>
 
-<div class="jc-toast" id="jcToast"></div>
+  <script>
+    (function () {
+      "use strict";
 
-<script>
-(function(){
-  'use strict';
+      /* =========================================================
+   CONFIG — point this at your backend's job-application
+   endpoint. See jobApplications.routes.js for the matching
+   Express route.
+========================================================= */
+      var SUBMIT_URL = "/api/recruitment/job-applications";
 
-  /* =========================================================
-     CONFIG — point this at your backend's job-application
-     endpoint. See jobApplications.routes.js for the matching
-     Express route.
-  ========================================================= */
-  var SUBMIT_URL = '/api/recruitment/job-applications';
+      var TOTAL_STEPS = 7;
+      var currentStep = 1;
+      var started = false;
 
-  var TOTAL_STEPS = 7;
-  var currentStep = 1;
-  var started = false;
+      var stepLabels = [
+        "",
+        "Personal & Contact",
+        "Identity & Travel Documents",
+        "Rank & Sailing Experience",
+        "Certificates & Endorsements",
+        "Medical, Availability & Preferences",
+        "Upload Documents",
+        "Review & Submit",
+      ];
 
-  var stepLabels = ['', 'Personal & Contact', 'Identity & Travel Documents', 'Rank & Sailing Experience',
-    'Certificates & Endorsements', 'Medical, Availability & Preferences', 'Upload Documents', 'Review & Submit'];
+      var form = document.getElementById("applicationForm");
+      var heroWrap = document.getElementById("heroWrap");
+      var jcApp = document.getElementById("jcApp");
+      var jcSuccess = document.getElementById("jcSuccess");
+      var btnStart = document.getElementById("btnStartApp");
+      var btnNext = document.getElementById("btnNext");
+      var btnBack = document.getElementById("btnBack");
+      var btnSubmit = document.getElementById("btnSubmit");
+      var btnNewApp = document.getElementById("btnNewApp");
+      var toastEl = document.getElementById("jcToast");
 
-  var form = document.getElementById('applicationForm');
-  var heroWrap = document.getElementById('heroWrap');
-  var jcApp = document.getElementById('jcApp');
-  var jcSuccess = document.getElementById('jcSuccess');
-  var btnStart = document.getElementById('btnStartApp');
-  var btnNext = document.getElementById('btnNext');
-  var btnBack = document.getElementById('btnBack');
-  var btnSubmit = document.getElementById('btnSubmit');
-  var btnNewApp = document.getElementById('btnNewApp');
-  var toastEl = document.getElementById('jcToast');
+      /* ---------------- theme toggle (in-memory only) ---------------- */
+      var themeToggle = document.getElementById("themeToggle");
+      var themeIcon = document.getElementById("themeIcon");
+      var themeText = document.getElementById("themeText");
+      var isDark = false;
+      themeToggle.addEventListener("click", function () {
+        isDark = !isDark;
+        document.documentElement.setAttribute(
+          "data-theme",
+          isDark ? "dark" : "light",
+        );
+        themeIcon.textContent = isDark ? "☀️" : "🌙";
+        themeText.textContent = isDark ? "Light" : "Dark";
+      });
 
-  /* ---------------- theme toggle (in-memory only) ---------------- */
-  var themeToggle = document.getElementById('themeToggle');
-  var themeIcon = document.getElementById('themeIcon');
-  var themeText = document.getElementById('themeText');
-  var isDark = false;
-  themeToggle.addEventListener('click', function(){
-    isDark = !isDark;
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    themeIcon.textContent = isDark ? '☀️' : '🌙';
-    themeText.textContent = isDark ? 'Light' : 'Dark';
-  });
-
-  /* ---------------- toast ---------------- */
-  var toastTimer;
-  function showToast(msg, type){
-    toastEl.textContent = msg;
-    toastEl.className = 'jc-toast show' + (type ? (' ' + type) : '');
-    clearTimeout(toastTimer);
-    toastTimer = setTimeout(function(){ toastEl.classList.remove('show'); }, 4200);
-  }
-
-  /* ---------------- start application ---------------- */
-  btnStart.addEventListener('click', function(){
-    heroWrap.classList.add('hidden');
-    jcApp.classList.add('active');
-    started = true;
-    window.scrollTo({top:0, behavior:'smooth'});
-  });
-
-  btnNewApp.addEventListener('click', function(){
-    window.location.reload();
-  });
-
-  /* ---------------- voyage stepper ---------------- */
-  var voyageFill = document.getElementById('voyageFill');
-  var voyageShip = document.getElementById('voyageShip');
-  var voyagePoints = document.querySelectorAll('.voyage-point');
-  var voyageStepLabel = document.getElementById('voyageStepLabel');
-  var voyageStepCount = document.getElementById('voyageStepCount');
-
-  function updateVoyage(){
-    var pct = ((currentStep - 1) / (TOTAL_STEPS - 1)) * 100;
-    voyageFill.style.width = pct + '%';
-    voyageShip.style.left = pct + '%';
-    voyagePoints.forEach(function(p){
-      var s = parseInt(p.getAttribute('data-step'), 10);
-      p.classList.toggle('active', s === currentStep);
-      p.classList.toggle('done', s < currentStep);
-    });
-    voyageStepLabel.textContent = stepLabels[currentStep];
-    voyageStepCount.textContent = 'Step ' + currentStep + ' of ' + TOTAL_STEPS;
-  }
-
-  /* ---------------- step visibility ---------------- */
-  var stepPanels = Array.prototype.slice.call(document.querySelectorAll('.form-step'));
-  function showStep(n){
-    stepPanels.forEach(function(panel){
-      panel.classList.toggle('active', parseInt(panel.getAttribute('data-step'), 10) === n);
-    });
-    btnBack.disabled = (n === 1);
-    btnNext.style.display = (n === TOTAL_STEPS) ? 'none' : 'inline-flex';
-    btnSubmit.style.display = (n === TOTAL_STEPS) ? 'inline-flex' : 'none';
-    if (n === TOTAL_STEPS) buildReview();
-    updateVoyage();
-    jcApp.scrollIntoView({behavior:'smooth', block:'start'});
-  }
-
-  /* ---------------- conditional fields ---------------- */
-  document.getElementById('usVisaStatus').addEventListener('change', function(){
-    document.getElementById('usVisaExpiryField').style.display = (this.value === 'Valid') ? 'flex' : 'none';
-  });
-  document.getElementById('department').addEventListener('change', function(){
-    document.getElementById('engineTypeField').style.display = (this.value === 'Engine') ? 'flex' : 'none';
-  });
-  document.getElementById('medicalCertStatus').addEventListener('change', function(){
-    document.getElementById('medicalExpiryField').style.display = (this.value === 'Valid') ? 'flex' : 'none';
-  });
-  document.getElementById('currentStatus').addEventListener('change', function(){
-    document.getElementById('availableFromField').style.display = (this.value === 'Available Immediately') ? 'none' : 'flex';
-  });
-  document.getElementById('referralSource').addEventListener('change', function(){
-    document.getElementById('referralOtherField').style.display = (this.value === 'Other') ? 'flex' : 'none';
-  });
-
-  /* ---------------- validation ---------------- */
-  function markInvalid(fieldEl, invalid){
-    if (!fieldEl) return;
-    fieldEl.classList.toggle('invalid', invalid);
-  }
-
-  function validateStep(n){
-    var panel = document.querySelector('.form-step[data-step="' + n + '"]');
-    var valid = true;
-    var firstInvalid = null;
-
-    var inputs = panel.querySelectorAll('input[required], select[required], textarea[required]');
-    inputs.forEach(function(el){
-      var fieldWrap = el.closest('.field') || el.closest('.declaration-box');
-      var ok = el.type === 'checkbox' ? el.checked : el.value.trim() !== '';
-      if (el.type === 'email' && ok) { ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim()); }
-      if (!ok) {
-        valid = false;
-        markInvalid(fieldWrap, true);
-        if (!firstInvalid) firstInvalid = el;
-      } else {
-        markInvalid(fieldWrap, false);
-      }
-    });
-
-    // Step 3 — vessel type chip group needs at least one checked
-    if (n === 3) {
-      var vesselChecked = panel.querySelectorAll('input[name="preferredVesselTypes"]:checked').length > 0;
-      var fs = document.getElementById('vesselTypesFieldset');
-      fs.classList.toggle('invalid', !vesselChecked);
-      fs.querySelector('.err-msg').style.display = vesselChecked ? 'none' : 'block';
-      if (!vesselChecked) { valid = false; if (!firstInvalid) firstInvalid = fs; }
-    }
-
-    // Step 6 — resume required
-    if (n === 6) {
-      var resumeInput = document.getElementById('fileResume');
-      var uzResume = document.getElementById('uz-resume');
-      var resumeOk = resumeInput.files && resumeInput.files.length > 0;
-      uzResume.classList.toggle('invalid', !resumeOk);
-      if (!resumeOk) { valid = false; if (!firstInvalid) firstInvalid = uzResume; }
-    }
-
-    if (!valid && firstInvalid) {
-      firstInvalid.scrollIntoView({behavior:'smooth', block:'center'});
-      showToast('Please complete the highlighted fields before continuing.', 'error');
-    }
-    return valid;
-  }
-
-  btnNext.addEventListener('click', function(){
-    if (validateStep(currentStep)) {
-      currentStep = Math.min(currentStep + 1, TOTAL_STEPS);
-      showStep(currentStep);
-    }
-  });
-  btnBack.addEventListener('click', function(){
-    currentStep = Math.max(currentStep - 1, 1);
-    showStep(currentStep);
-  });
-
-  // jump back to a step from the review screen
-  document.addEventListener('click', function(e){
-    var editBtn = e.target.closest('[data-jump]');
-    if (editBtn) {
-      currentStep = parseInt(editBtn.getAttribute('data-jump'), 10);
-      showStep(currentStep);
-    }
-  });
-
-  /* ---------------- file upload zones ---------------- */
-  var MAX_DOC_MB = 5, MAX_IMG_MB = 3;
-  function bytesToNiceSize(bytes){
-    if (bytes < 1024*1024) return Math.round(bytes/1024) + ' KB';
-    return (bytes/(1024*1024)).toFixed(1) + ' MB';
-  }
-  function wireUploadZone(zoneId, inputId, maxMB){
-    var zone = document.getElementById(zoneId);
-    var input = document.getElementById(inputId);
-    var nameEl = zone.querySelector('.uz-filename');
-    var removeBtn = zone.querySelector('.uz-remove');
-
-    input.addEventListener('change', function(){
-      if (!input.files || !input.files[0]) { return; }
-      var f = input.files[0];
-      var maxBytes = maxMB * 1024 * 1024;
-      if (f.size > maxBytes) {
-        showToast(f.name + ' is too large — max ' + maxMB + ' MB.', 'error');
-        input.value = '';
-        zone.classList.remove('has-file');
-        nameEl.textContent = '';
-        return;
-      }
-      zone.classList.add('has-file');
-      zone.classList.remove('invalid');
-      nameEl.textContent = f.name + ' (' + bytesToNiceSize(f.size) + ')';
-    });
-
-    ['dragenter','dragover'].forEach(function(evt){
-      zone.addEventListener(evt, function(e){ e.preventDefault(); zone.classList.add('dragover'); });
-    });
-    ['dragleave','drop'].forEach(function(evt){
-      zone.addEventListener(evt, function(e){ e.preventDefault(); zone.classList.remove('dragover'); });
-    });
-    zone.addEventListener('drop', function(e){
-      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-        input.files = e.dataTransfer.files;
-        input.dispatchEvent(new Event('change'));
-      }
-    });
-
-    removeBtn.addEventListener('click', function(e){
-      e.preventDefault(); e.stopPropagation();
-      input.value = '';
-      zone.classList.remove('has-file');
-      nameEl.textContent = '';
-    });
-  }
-  wireUploadZone('uz-resume', 'fileResume', MAX_DOC_MB);
-  wireUploadZone('uz-photo', 'filePhoto', MAX_IMG_MB);
-  wireUploadZone('uz-passport', 'filePassportCopy', MAX_DOC_MB);
-  wireUploadZone('uz-cdc', 'fileCdcCopy', MAX_DOC_MB);
-  wireUploadZone('uz-certs', 'fileCertificates', MAX_DOC_MB);
-
-  /* ---------------- review summary ---------------- */
-  function val(id){
-    var el = document.getElementById(id);
-    if (!el) return '';
-    return el.value ? el.value.trim() : '';
-  }
-  function checkedList(name){
-    return Array.prototype.slice.call(document.querySelectorAll('input[name="' + name + '"]:checked')).map(function(el){ return el.value; });
-  }
-  function fmtDate(v){
-    if (!v) return '—';
-    var d = new Date(v + 'T00:00:00');
-    if (isNaN(d.getTime())) return v;
-    return d.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'});
-  }
-  function row(label, value){
-    return '<div class="review-row"><span class="rk">' + label + '</span><span class="rv">' + (value || '—') + '</span></div>';
-  }
-  function section(title, jumpStep, rowsHtml){
-    return '<div class="review-section"><div class="review-section-head"><b>' + title + '</b>' +
-      '<button type="button" class="review-edit-link" data-jump="' + jumpStep + '">Edit</button></div>' +
-      '<div class="review-rows">' + rowsHtml + '</div></div>';
-  }
-
-  function buildReview(){
-    var html = '';
-
-    html += section('Personal &amp; Contact', 1,
-      row('Full Name', val('fullName')) +
-      row('Date of Birth', fmtDate(val('dob'))) +
-      row('Gender', val('gender')) +
-      row('Nationality', val('nationality')) +
-      row('Mobile', val('mobileNumber') + (document.getElementById('isWhatsapp').checked ? ' (WhatsApp)' : '')) +
-      row('Email', val('email')) +
-      row('Emergency Contact', val('emergencyContactName') + (val('emergencyContactRelation') ? ' — ' + val('emergencyContactRelation') : ''))
-    );
-
-    html += section('Identity &amp; Travel Documents', 2,
-      row('Passport No.', val('passportNumber')) +
-      row('Passport Expiry', fmtDate(val('passportExpiryDate'))) +
-      row('CDC No.', val('cdcNumber')) +
-      row('INDoS No.', val('indosNumber'))
-    );
-
-    html += section('Rank &amp; Experience', 3,
-      row('Department', val('department')) +
-      row('Rank Applying For', val('rankAppliedFor')) +
-      row('Total Sea Experience', (val('totalSeaExpYears') || '0') + 'y ' + (val('totalSeaExpMonths') || '0') + 'm') +
-      row('Preferred Vessel Types', checkedList('preferredVesselTypes').join(', ')) +
-      row('Last Vessel', val('lastVesselName'))
-    );
-
-    html += section('Certificates', 4,
-      row('COC Class', val('cocClass')) +
-      row('Certificates Held', checkedList('certificatesHeld').join(', '))
-    );
-
-    html += section('Availability', 5,
-      row('Medical Certificate', val('medicalCertStatus')) +
-      row('Current Status', val('currentStatus')) +
-      row('Preferred Joining', fmtDate(val('preferredJoiningDate'))) +
-      row('Heard About Us Via', val('referralSource'))
-    );
-
-    var resumeFile = document.getElementById('fileResume').files[0];
-    html += section('Documents', 6,
-      row('Resume / CV', resumeFile ? resumeFile.name : 'Not attached') +
-      row('Photo', document.getElementById('filePhoto').files[0] ? document.getElementById('filePhoto').files[0].name : '—') +
-      row('Passport Copy', document.getElementById('filePassportCopy').files[0] ? document.getElementById('filePassportCopy').files[0].name : '—') +
-      row('CDC Copy', document.getElementById('fileCdcCopy').files[0] ? document.getElementById('fileCdcCopy').files[0].name : '—')
-    );
-
-    document.getElementById('reviewContainer').innerHTML = html;
-  }
-
-  /* ---------------- submit ---------------- */
-  form.addEventListener('submit', async function(e){
-    e.preventDefault();
-
-    if (!validateStep(TOTAL_STEPS)) return;
-
-    var consent = document.getElementById('declarationConsent');
-    if (!consent.checked) {
-      markInvalid(consent.closest('.declaration-box'), true);
-      showToast('Please confirm the declaration to submit.', 'error');
-      return;
-    }
-
-    // honeypot check — if filled, silently treat as spam.
-    // FIX 2 (continued): reads the renamed field/id so it no longer
-    // collides with browser autofill for "Company"/organization data.
-    var hp = document.getElementById('hpConfirmField');
-    if (hp && hp.value.trim() !== '') {
-      showToast('Something went wrong. Please try again.', 'error');
-      return;
-    }
-
-    btnSubmit.classList.add('loading');
-    btnSubmit.disabled = true;
-
-    try {
-      var fd = new FormData(form);
-      // remove the honeypot before sending
-      fd.delete('hp_confirm_field');
-
-      var res = await fetch(SUBMIT_URL, { method: 'POST', body: fd });
-
-      if (!res.ok) {
-        var errBody = null;
-        try { errBody = await res.json(); } catch (_) {}
-        throw new Error((errBody && errBody.message) || ('Server responded with ' + res.status));
+      /* ---------------- toast ---------------- */
+      var toastTimer;
+      function showToast(msg, type) {
+        toastEl.textContent = msg;
+        toastEl.className = "jc-toast show" + (type ? " " + type : "");
+        clearTimeout(toastTimer);
+        toastTimer = setTimeout(function () {
+          toastEl.classList.remove("show");
+        }, 4200);
       }
 
-      // FIX 2 (continued) — response-parsing glitch: if the server
-      // responds 2xx but with an empty/non-JSON body, the old code
-      // let res.json() throw, which fell into the catch block below
-      // and showed an error toast even though the application had
-      // already been saved server-side. Parsing defensively here
-      // means a successful submit always reaches the success screen.
-      var data = null;
-      try { data = await res.json(); } catch (_) { data = null; }
+      /* ---------------- start application ---------------- */
+      btnStart.addEventListener("click", function () {
+        heroWrap.classList.add("hidden");
+        jcApp.classList.add("active");
+        started = true;
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      });
 
-      var refId = (data && (data.applicationId || (data.data && data.data.applicationId))) || ('JA-' + Date.now());
-      var docId = (data && (data.id || (data.data && data.data._id))) || refId;
-      document.getElementById('refValue').textContent = refId;
+      btnNewApp.addEventListener("click", function () {
+        window.location.reload();
+      });
 
-      jcApp.classList.remove('active');
-      jcSuccess.classList.add('active');
-      window.scrollTo({top:0, behavior:'smooth'});
+      /* ---------------- voyage stepper ---------------- */
+      var voyageFill = document.getElementById("voyageFill");
+      var voyageShip = document.getElementById("voyageShip");
+      var voyagePoints = document.querySelectorAll(".voyage-point");
+      var voyageStepLabel = document.getElementById("voyageStepLabel");
+      var voyageStepCount = document.getElementById("voyageStepCount");
 
-      renderSubmittedProfile(docId);
-
-    } catch (err) {
-      console.error('Job application submit failed:', err);
-      showToast('Could not submit — ' + (err.message || 'check your connection and try again.'), 'error');
-    } finally {
-      btnSubmit.classList.remove('loading');
-      btnSubmit.disabled = false;
-    }
-  });
-
-  /* ---------------- Applicant Profile Fetch & View ---------------- */
-  async function renderSubmittedProfile(idParam) {
-    var container = document.getElementById('submittedProfileContainer');
-    if (!container) return;
-    container.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-secondary);"><span class="spinner" style="display:inline-block; margin-right:8px;"></span> Loading complete applicant profile record...</div>';
-
-    try {
-      var res = await fetch(SUBMIT_URL + '/' + encodeURIComponent(idParam));
-      if (!res.ok) throw new Error('Could not fetch applicant record');
-      var json = await res.json();
-      var app = json.data;
-      if (!app) throw new Error('Applicant record not found');
-
-      container.innerHTML = buildApplicantProfileHtml(app);
-    } catch (err) {
-      console.error('Error fetching profile:', err);
-      container.innerHTML = '<div style="padding:16px; color:var(--red); background:var(--red-soft); border-radius:8px; text-align:center;">Unable to load applicant profile preview. Application ID: ' + idParam + '</div>';
-    }
-  }
-
-  function buildApplicantProfileHtml(app) {
-    function esc(s){ return s ? String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;') : ''; }
-    function dt(v){ return v ? new Date(v).toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}) : '—'; }
-
-    var fileBase = SUBMIT_URL + '/' + (app._id || app.applicationId) + '/files/';
-
-    function docLink(label, fileObj, field) {
-      if (!fileObj || !fileObj.originalName) {
-        return '<div style="background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:8px; padding:10px; font-size:.82rem; color:var(--text-muted);">' +
-               '<b>' + label + '</b><br><span style="font-size:.75rem;">Not Uploaded</span></div>';
+      function updateVoyage() {
+        var pct = ((currentStep - 1) / (TOTAL_STEPS - 1)) * 100;
+        voyageFill.style.width = pct + "%";
+        voyageShip.style.left = pct + "%";
+        voyagePoints.forEach(function (p) {
+          var s = parseInt(p.getAttribute("data-step"), 10);
+          p.classList.toggle("active", s === currentStep);
+          p.classList.toggle("done", s < currentStep);
+        });
+        voyageStepLabel.textContent = stepLabels[currentStep];
+        voyageStepCount.textContent =
+          "Step " + currentStep + " of " + TOTAL_STEPS;
       }
-      return '<div style="background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:8px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; gap:6px;">' +
-             '<div><b style="font-size:.82rem; color:var(--text-primary);">' + label + '</b>' +
-             '<div style="font-size:.74rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' + esc(fileObj.originalName) + '">' + esc(fileObj.originalName) + '</div></div>' +
-             '<a href="' + fileBase + field + '" target="_blank" class="btn btn-ghost" style="font-size:.75rem; padding:4px 8px; text-align:center; font-weight:600; border:1px solid var(--border-strong);">' +
-             '📄 View Document</a></div>';
-    }
 
-    var html = '';
-    html += '<div style="background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:12px; padding:16px 18px; margin-bottom:18px;">' +
-            '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">' +
-            '<div><h3 style="margin:0 0 4px; font-family:var(--font-display); font-size:1.15rem;">' + esc(app.fullName) + '</h3>' +
-            '<div style="font-size:.82rem; color:var(--text-secondary); display:flex; gap:12px; flex-wrap:wrap;">' +
-            '<span><b>ID:</b> ' + esc(app.applicationId || app._id) + '</span>' +
-            '<span><b>Rank:</b> ' + esc(app.rankAppliedFor) + ' (' + esc(app.department) + ')</span>' +
-            '<span><b>Submitted:</b> ' + dt(app.createdAt) + '</span>' +
-            '</div></div>' +
-            '<span style="background:var(--accent-teal-soft); color:var(--accent-teal); font-weight:700; font-size:.78rem; padding:4px 10px; border-radius:999px;">STATUS: ' + esc(app.status || 'NEW') + '</span>' +
-            '</div></div>';
-
-    // 1. Personal & Contact
-    html += '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">1. Personal &amp; Contact Details</h4>' +
-            '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">FULL NAME</span><b>' + esc(app.fullName) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">DATE OF BIRTH</span><b>' + dt(app.dob) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">NATIONALITY</span><b>' + esc(app.nationality) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">MOBILE</span><b>' + esc(app.mobileNumber) + (app.isWhatsapp ? ' (WhatsApp)' : '') + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">EMAIL</span><b>' + esc(app.email) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">EMERGENCY CONTACT</span><b>' + esc(app.emergencyContact?.name || '—') + ' (' + esc(app.emergencyContact?.relation || '') + ')</b></div>' +
-            '<div style="grid-column:1/-1;"><span style="font-size:.7rem; color:var(--text-muted); display:block;">CURRENT ADDRESS</span><b>' + esc(app.currentAddress) + '</b></div>' +
-            '</div></div>';
-
-    // 2. Identity & Documents
-    html += '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">2. Identity &amp; Travel Documents</h4>' +
-            '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">PASSPORT NO.</span><b>' + esc(app.passportNumber) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">PASSPORT EXPIRY</span><b>' + dt(app.passportExpiryDate) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CDC NO.</span><b>' + esc(app.cdcNumber || '—') + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CDC EXPIRY</span><b>' + dt(app.cdcExpiryDate) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">INDOS NO.</span><b>' + esc(app.indosNumber || '—') + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">US VISA STATUS</span><b>' + esc(app.usVisaStatus || '—') + '</b></div>' +
-            '</div></div>';
-
-    // 3. Rank & Sea Experience
-    html += '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">3. Rank &amp; Sea Experience</h4>' +
-            '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">DEPARTMENT</span><b>' + esc(app.department) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">RANK APPLIED</span><b>' + esc(app.rankAppliedFor) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">TOTAL SEA EXP</span><b>' + (app.totalSeaExperience?.years || 0) + 'y ' + (app.totalSeaExperience?.months || 0) + 'm</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">LAST VESSEL</span><b>' + esc(app.lastVesselName || '—') + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">LAST COMPANY</span><b>' + esc(app.lastCompany || '—') + '</b></div>' +
-            '<div style="grid-column:1/-1;"><span style="font-size:.7rem; color:var(--text-muted); display:block;">PREFERRED VESSEL TYPES</span><b>' + ((app.preferredVesselTypes && app.preferredVesselTypes.length) ? app.preferredVesselTypes.join(', ') : '—') + '</b></div>' +
-            '</div></div>';
-
-    // 4. Certificates
-    html += '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">4. Certificates &amp; Endorsements</h4>' +
-            '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">COC CLASS</span><b>' + esc(app.coc?.class || '—') + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">COC NUMBER</span><b>' + esc(app.coc?.number || '—') + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">COC EXPIRY</span><b>' + dt(app.coc?.expiryDate) + '</b></div>' +
-            '<div style="grid-column:1/-1;"><span style="font-size:.7rem; color:var(--text-muted); display:block;">CERTIFICATES HELD</span><b>' + ((app.certificatesHeld && app.certificatesHeld.length) ? app.certificatesHeld.join(', ') : 'None specified') + '</b></div>' +
-            '</div></div>';
-
-    // 5. Availability & Preferences
-    html += '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">5. Availability &amp; Preferences</h4>' +
-            '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">MEDICAL CERT</span><b>' + esc(app.medicalCertStatus || '—') + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CURRENT STATUS</span><b>' + esc(app.currentStatus || '—') + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">AVAILABLE FROM</span><b>' + dt(app.availableFromDate) + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">EXPECTED SALARY</span><b>' + esc(app.expectedSalary || '—') + '</b></div>' +
-            '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">REFERRAL SOURCE</span><b>' + esc(app.referralSource || '—') + '</b></div>' +
-            '</div></div>';
-
-    // 6. Uploaded Documents
-    html += '<div><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">6. Uploaded Documents</h4>' +
-            '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px;">' +
-            docLink('Resume / CV', app.resume, 'resume') +
-            docLink('Photo', app.photo, 'photo') +
-            docLink('Passport Copy', app.passportCopy, 'passportCopy') +
-            docLink('CDC Copy', app.cdcCopy, 'cdcCopy') +
-            docLink('Certificates File', app.certificatesFile, 'certificatesFile') +
-            '</div></div>';
-
-    return html;
-  }
-
-  /* ---------------- sensible date bounds ---------------- */
-  (function setDateBounds(){
-    var today = new Date().toISOString().split('T')[0];
-    var maxDob = new Date(); maxDob.setFullYear(maxDob.getFullYear() - 16);
-    document.getElementById('dob').max = maxDob.toISOString().split('T')[0];
-    ['passportExpiryDate','cdcExpiryDate','usVisaExpiry','medicalCertExpiry','cocExpiryDate','coeExpiryDate','availableFromDate','preferredJoiningDate'].forEach(function(id){
-      var el = document.getElementById(id);
-      if (el) el.min = today;
-    });
-  })();
-
-  /* ---------------- auto open profile if ?id= query param present ---------------- */
-  (function checkUrlParam(){
-    try {
-      var params = new URLSearchParams(window.location.search);
-      var qId = params.get('id') || params.get('appId');
-      if (qId) {
-        heroWrap.classList.add('hidden');
-        jcApp.classList.remove('active');
-        jcSuccess.classList.add('active');
-        document.getElementById('refValue').textContent = qId;
-        renderSubmittedProfile(qId);
+      /* ---------------- step visibility ---------------- */
+      var stepPanels = Array.prototype.slice.call(
+        document.querySelectorAll(".form-step"),
+      );
+      function showStep(n) {
+        stepPanels.forEach(function (panel) {
+          panel.classList.toggle(
+            "active",
+            parseInt(panel.getAttribute("data-step"), 10) === n,
+          );
+        });
+        btnBack.disabled = n === 1;
+        btnNext.style.display = n === TOTAL_STEPS ? "none" : "inline-flex";
+        btnSubmit.style.display = n === TOTAL_STEPS ? "inline-flex" : "none";
+        if (n === TOTAL_STEPS) buildReview();
+        updateVoyage();
+        jcApp.scrollIntoView({ behavior: "smooth", block: "start" });
       }
-    } catch (_) {}
-  })();
 
-  showStep(1);
-})();
-</script>
+      /* ---------------- conditional fields ---------------- */
+      document
+        .getElementById("usVisaStatus")
+        .addEventListener("change", function () {
+          document.getElementById("usVisaExpiryField").style.display =
+            this.value === "Valid" ? "flex" : "none";
+        });
+      document
+        .getElementById("department")
+        .addEventListener("change", function () {
+          document.getElementById("engineTypeField").style.display =
+            this.value === "Engine" ? "flex" : "none";
+        });
+      document
+        .getElementById("medicalCertStatus")
+        .addEventListener("change", function () {
+          document.getElementById("medicalExpiryField").style.display =
+            this.value === "Valid" ? "flex" : "none";
+        });
+      document
+        .getElementById("currentStatus")
+        .addEventListener("change", function () {
+          document.getElementById("availableFromField").style.display =
+            this.value === "Available Immediately" ? "none" : "flex";
+        });
+      document
+        .getElementById("referralSource")
+        .addEventListener("change", function () {
+          document.getElementById("referralOtherField").style.display =
+            this.value === "Other" ? "flex" : "none";
+        });
+
+      /* ---------------- validation ---------------- */
+      function markInvalid(fieldEl, invalid) {
+        if (!fieldEl) return;
+        fieldEl.classList.toggle("invalid", invalid);
+      }
+
+      function validateStep(n) {
+        var panel = document.querySelector(
+          '.form-step[data-step="' + n + '"]',
+        );
+        var valid = true;
+        var firstInvalid = null;
+
+        var inputs = panel.querySelectorAll(
+          "input[required], select[required], textarea[required]",
+        );
+        inputs.forEach(function (el) {
+          var fieldWrap =
+            el.closest(".field") || el.closest(".declaration-box");
+          var ok =
+            el.type === "checkbox" ? el.checked : el.value.trim() !== "";
+          if (el.type === "email" && ok) {
+            ok = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(el.value.trim());
+          }
+          if (!ok) {
+            valid = false;
+            markInvalid(fieldWrap, true);
+            if (!firstInvalid) firstInvalid = el;
+          } else {
+            markInvalid(fieldWrap, false);
+          }
+        });
+
+        // Step 3 — vessel type chip group needs at least one checked
+        if (n === 3) {
+          var vesselChecked =
+            panel.querySelectorAll(
+              'input[name="preferredVesselTypes"]:checked',
+            ).length > 0;
+          var fs = document.getElementById("vesselTypesFieldset");
+          fs.classList.toggle("invalid", !vesselChecked);
+          fs.querySelector(".err-msg").style.display = vesselChecked
+            ? "none"
+            : "block";
+          if (!vesselChecked) {
+            valid = false;
+            if (!firstInvalid) firstInvalid = fs;
+          }
+        }
+
+        // Step 6 — resume required
+        if (n === 6) {
+          var resumeInput = document.getElementById("fileResume");
+          var uzResume = document.getElementById("uz-resume");
+          var resumeOk = resumeInput.files && resumeInput.files.length > 0;
+          uzResume.classList.toggle("invalid", !resumeOk);
+          if (!resumeOk) {
+            valid = false;
+            if (!firstInvalid) firstInvalid = uzResume;
+          }
+        }
+
+        if (!valid && firstInvalid) {
+          firstInvalid.scrollIntoView({
+            behavior: "smooth",
+            block: "center",
+          });
+          showToast(
+            "Please complete the highlighted fields before continuing.",
+            "error",
+          );
+        }
+        return valid;
+      }
+
+      btnNext.addEventListener("click", function () {
+        if (validateStep(currentStep)) {
+          currentStep = Math.min(currentStep + 1, TOTAL_STEPS);
+          showStep(currentStep);
+        }
+      });
+      btnBack.addEventListener("click", function () {
+        currentStep = Math.max(currentStep - 1, 1);
+        showStep(currentStep);
+      });
+
+      // jump back to a step from the review screen
+      document.addEventListener("click", function (e) {
+        var editBtn = e.target.closest("[data-jump]");
+        if (editBtn) {
+          currentStep = parseInt(editBtn.getAttribute("data-jump"), 10);
+          showStep(currentStep);
+        }
+      });
+
+      /* ---------------- file upload zones ---------------- */
+      var MAX_DOC_MB = 5,
+        MAX_IMG_MB = 3;
+      function bytesToNiceSize(bytes) {
+        if (bytes < 1024 * 1024) return Math.round(bytes / 1024) + " KB";
+        return (bytes / (1024 * 1024)).toFixed(1) + " MB";
+      }
+      function wireUploadZone(zoneId, inputId, maxMB) {
+        var zone = document.getElementById(zoneId);
+        var input = document.getElementById(inputId);
+        var nameEl = zone.querySelector(".uz-filename");
+        var removeBtn = zone.querySelector(".uz-remove");
+
+        input.addEventListener("change", function () {
+          if (!input.files || !input.files[0]) {
+            return;
+          }
+          var f = input.files[0];
+          var maxBytes = maxMB * 1024 * 1024;
+          if (f.size > maxBytes) {
+            showToast(
+              f.name + " is too large — max " + maxMB + " MB.",
+              "error",
+            );
+            input.value = "";
+            zone.classList.remove("has-file");
+            nameEl.textContent = "";
+            return;
+          }
+          zone.classList.add("has-file");
+          zone.classList.remove("invalid");
+          nameEl.textContent = f.name + " (" + bytesToNiceSize(f.size) + ")";
+        });
+
+        ["dragenter", "dragover"].forEach(function (evt) {
+          zone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            zone.classList.add("dragover");
+          });
+        });
+        ["dragleave", "drop"].forEach(function (evt) {
+          zone.addEventListener(evt, function (e) {
+            e.preventDefault();
+            zone.classList.remove("dragover");
+          });
+        });
+        zone.addEventListener("drop", function (e) {
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+            input.files = e.dataTransfer.files;
+            input.dispatchEvent(new Event("change"));
+          }
+        });
+
+        removeBtn.addEventListener("click", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          input.value = "";
+          zone.classList.remove("has-file");
+          nameEl.textContent = "";
+        });
+      }
+      wireUploadZone("uz-resume", "fileResume", MAX_DOC_MB);
+      wireUploadZone("uz-photo", "filePhoto", MAX_IMG_MB);
+      wireUploadZone("uz-passport", "filePassportCopy", MAX_DOC_MB);
+      wireUploadZone("uz-cdc", "fileCdcCopy", MAX_DOC_MB);
+      wireUploadZone("uz-certs", "fileCertificates", MAX_DOC_MB);
+
+      /* ---------------- review summary ---------------- */
+      function val(id) {
+        var el = document.getElementById(id);
+        if (!el) return "";
+        return el.value ? el.value.trim() : "";
+      }
+      function checkedList(name) {
+        return Array.prototype.slice
+          .call(
+            document.querySelectorAll('input[name="' + name + '"]:checked'),
+          )
+          .map(function (el) {
+            return el.value;
+          });
+      }
+      function fmtDate(v) {
+        if (!v) return "—";
+        var d = new Date(v + "T00:00:00");
+        if (isNaN(d.getTime())) return v;
+        return d.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        });
+      }
+      function row(label, value) {
+        return (
+          '<div class="review-row"><span class="rk">' +
+          label +
+          '</span><span class="rv">' +
+          (value || "—") +
+          "</span></div>"
+        );
+      }
+      function section(title, jumpStep, rowsHtml) {
+        return (
+          '<div class="review-section"><div class="review-section-head"><b>' +
+          title +
+          "</b>" +
+          '<button type="button" class="review-edit-link" data-jump="' +
+          jumpStep +
+          '">Edit</button></div>' +
+          '<div class="review-rows">' +
+          rowsHtml +
+          "</div></div>"
+        );
+      }
+
+      function buildReview() {
+        var html = "";
+
+        html += section(
+          "Personal &amp; Contact",
+          1,
+          row("Full Name", val("fullName")) +
+          row("Date of Birth", fmtDate(val("dob"))) +
+          row("Gender", val("gender")) +
+          row("Nationality", val("nationality")) +
+          row(
+            "Mobile",
+            val("mobileNumber") +
+            (document.getElementById("isWhatsapp").checked
+              ? " (WhatsApp)"
+              : ""),
+          ) +
+          row("Email", val("email")) +
+          row(
+            "Emergency Contact",
+            val("emergencyContactName") +
+            (val("emergencyContactRelation")
+              ? " — " + val("emergencyContactRelation")
+              : ""),
+          ),
+        );
+
+        html += section(
+          "Identity &amp; Travel Documents",
+          2,
+          row("Passport No.", val("passportNumber")) +
+          row("Passport Expiry", fmtDate(val("passportExpiryDate"))) +
+          row("CDC No.", val("cdcNumber")) +
+          row("INDoS No.", val("indosNumber")),
+        );
+
+        html += section(
+          "Rank &amp; Experience",
+          3,
+          row("Department", val("department")) +
+          row("Rank Applying For", val("rankAppliedFor")) +
+          row(
+            "Total Sea Experience",
+            (val("totalSeaExpYears") || "0") +
+            "y " +
+            (val("totalSeaExpMonths") || "0") +
+            "m",
+          ) +
+          row(
+            "Preferred Vessel Types",
+            checkedList("preferredVesselTypes").join(", "),
+          ) +
+          row("Last Vessel", val("lastVesselName")),
+        );
+
+        html += section(
+          "Certificates",
+          4,
+          row("COC Class", val("cocClass")) +
+          row(
+            "Certificates Held",
+            checkedList("certificatesHeld").join(", "),
+          ),
+        );
+
+        html += section(
+          "Availability",
+          5,
+          row("Medical Certificate", val("medicalCertStatus")) +
+          row("Current Status", val("currentStatus")) +
+          row("Preferred Joining", fmtDate(val("preferredJoiningDate"))) +
+          row("Heard About Us Via", val("referralSource")),
+        );
+
+        var resumeFile = document.getElementById("fileResume").files[0];
+        html += section(
+          "Documents",
+          6,
+          row("Resume / CV", resumeFile ? resumeFile.name : "Not attached") +
+          row(
+            "Photo",
+            document.getElementById("filePhoto").files[0]
+              ? document.getElementById("filePhoto").files[0].name
+              : "—",
+          ) +
+          row(
+            "Passport Copy",
+            document.getElementById("filePassportCopy").files[0]
+              ? document.getElementById("filePassportCopy").files[0].name
+              : "—",
+          ) +
+          row(
+            "CDC Copy",
+            document.getElementById("fileCdcCopy").files[0]
+              ? document.getElementById("fileCdcCopy").files[0].name
+              : "—",
+          ),
+        );
+
+        document.getElementById("reviewContainer").innerHTML = html;
+      }
+
+      /* ---------------- submit ---------------- */
+      form.addEventListener("submit", async function (e) {
+        e.preventDefault();
+
+        if (!validateStep(TOTAL_STEPS)) return;
+
+        var consent = document.getElementById("declarationConsent");
+        if (!consent.checked) {
+          markInvalid(consent.closest(".declaration-box"), true);
+          showToast("Please confirm the declaration to submit.", "error");
+          return;
+        }
+
+        // honeypot check — if filled, silently treat as spam.
+        // FIX 2 (continued): reads the renamed field/id so it no longer
+        // collides with browser autofill for "Company"/organization data.
+        var hp = document.getElementById("hpConfirmField");
+        if (hp && hp.value.trim() !== "") {
+          showToast("Something went wrong. Please try again.", "error");
+          return;
+        }
+
+        btnSubmit.classList.add("loading");
+        btnSubmit.disabled = true;
+
+        try {
+          var fd = new FormData(form);
+          // remove the honeypot before sending
+          fd.delete("hp_confirm_field");
+
+          var res = await fetch(SUBMIT_URL, { method: "POST", body: fd });
+
+          if (!res.ok) {
+            var errBody = null;
+            try {
+              errBody = await res.json();
+            } catch (_) { }
+            throw new Error(
+              (errBody && errBody.message) ||
+              "Server responded with " + res.status,
+            );
+          }
+
+          // FIX 2 (continued) — response-parsing glitch: if the server
+          // responds 2xx but with an empty/non-JSON body, the old code
+          // let res.json() throw, which fell into the catch block below
+          // and showed an error toast even though the application had
+          // already been saved server-side. Parsing defensively here
+          // means a successful submit always reaches the success screen.
+          var data = null;
+          try {
+            data = await res.json();
+          } catch (_) {
+            data = null;
+          }
+
+          var refId =
+            (data &&
+              (data.applicationId ||
+                (data.data && data.data.applicationId))) ||
+            "JA-" + Date.now();
+          var docId =
+            (data && (data.id || (data.data && data.data._id))) || refId;
+          document.getElementById("refValue").textContent = refId;
+
+          jcApp.classList.remove("active");
+          jcSuccess.classList.add("active");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+
+          renderSubmittedProfile(docId);
+        } catch (err) {
+          console.error("Job application submit failed:", err);
+          showToast(
+            "Could not submit — " +
+            (err.message || "check your connection and try again."),
+            "error",
+          );
+        } finally {
+          btnSubmit.classList.remove("loading");
+          btnSubmit.disabled = false;
+        }
+      });
+
+      /* ---------------- Applicant Profile Fetch & View ---------------- */
+      async function renderSubmittedProfile(idParam) {
+        var container = document.getElementById("submittedProfileContainer");
+        if (!container) return;
+        container.innerHTML =
+          '<div style="text-align:center; padding:20px; color:var(--text-secondary);"><span class="spinner" style="display:inline-block; margin-right:8px;"></span> Loading complete applicant profile record...</div>';
+
+        try {
+          var res = await fetch(
+            SUBMIT_URL + "/" + encodeURIComponent(idParam),
+          );
+          if (!res.ok) throw new Error("Could not fetch applicant record");
+          var json = await res.json();
+          var app = json.data;
+          if (!app) throw new Error("Applicant record not found");
+
+          container.innerHTML = buildApplicantProfileHtml(app);
+        } catch (err) {
+          console.error("Error fetching profile:", err);
+          container.innerHTML =
+            '<div style="padding:16px; color:var(--red); background:var(--red-soft); border-radius:8px; text-align:center;">Unable to load applicant profile preview. Application ID: ' +
+            idParam +
+            "</div>";
+        }
+      }
+
+      function buildApplicantProfileHtml(app) {
+        function esc(s) {
+          return s
+            ? String(s)
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+            : "";
+        }
+        function dt(v) {
+          return v
+            ? new Date(v).toLocaleDateString("en-GB", {
+              day: "2-digit",
+              month: "short",
+              year: "numeric",
+            })
+            : "—";
+        }
+
+        var fileBase =
+          SUBMIT_URL + "/" + (app._id || app.applicationId) + "/files/";
+
+        function docLink(label, fileObj, field) {
+          if (!fileObj || !fileObj.originalName) {
+            return (
+              '<div style="background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:8px; padding:10px; font-size:.82rem; color:var(--text-muted);">' +
+              "<b>" +
+              label +
+              '</b><br><span style="font-size:.75rem;">Not Uploaded</span></div>'
+            );
+          }
+          return (
+            '<div style="background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:8px; padding:10px; display:flex; flex-direction:column; justify-content:space-between; gap:6px;">' +
+            '<div><b style="font-size:.82rem; color:var(--text-primary);">' +
+            label +
+            "</b>" +
+            '<div style="font-size:.74rem; color:var(--text-secondary); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="' +
+            esc(fileObj.originalName) +
+            '">' +
+            esc(fileObj.originalName) +
+            "</div></div>" +
+            '<a href="' +
+            fileBase +
+            field +
+            '" target="_blank" class="btn btn-ghost" style="font-size:.75rem; padding:4px 8px; text-align:center; font-weight:600; border:1px solid var(--border-strong);">' +
+            "📄 View Document</a></div>"
+          );
+        }
+
+        var html = "";
+        html +=
+          '<div style="background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:12px; padding:16px 18px; margin-bottom:18px;">' +
+          '<div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">' +
+          '<div><h3 style="margin:0 0 4px; font-family:var(--font-display); font-size:1.15rem;">' +
+          esc(app.fullName) +
+          "</h3>" +
+          '<div style="font-size:.82rem; color:var(--text-secondary); display:flex; gap:12px; flex-wrap:wrap;">' +
+          "<span><b>ID:</b> " +
+          esc(app.applicationId || app._id) +
+          "</span>" +
+          "<span><b>Rank:</b> " +
+          esc(app.rankAppliedFor) +
+          " (" +
+          esc(app.department) +
+          ")</span>" +
+          "<span><b>Submitted:</b> " +
+          dt(app.createdAt) +
+          "</span>" +
+          "</div></div>" +
+          '<span style="background:var(--accent-teal-soft); color:var(--accent-teal); font-weight:700; font-size:.78rem; padding:4px 10px; border-radius:999px;">STATUS: ' +
+          esc(app.status || "NEW") +
+          "</span>" +
+          "</div></div>";
+
+        // 1. Personal & Contact
+        html +=
+          '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">1. Personal &amp; Contact Details</h4>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">FULL NAME</span><b>' +
+          esc(app.fullName) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">DATE OF BIRTH</span><b>' +
+          dt(app.dob) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">NATIONALITY</span><b>' +
+          esc(app.nationality) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">MOBILE</span><b>' +
+          esc(app.mobileNumber) +
+          (app.isWhatsapp ? " (WhatsApp)" : "") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">EMAIL</span><b>' +
+          esc(app.email) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">EMERGENCY CONTACT</span><b>' +
+          esc(app.emergencyContact?.name || "—") +
+          " (" +
+          esc(app.emergencyContact?.relation || "") +
+          ")</b></div>" +
+          '<div style="grid-column:1/-1;"><span style="font-size:.7rem; color:var(--text-muted); display:block;">CURRENT ADDRESS</span><b>' +
+          esc(app.currentAddress) +
+          "</b></div>" +
+          "</div></div>";
+
+        // 2. Identity & Documents
+        html +=
+          '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">2. Identity &amp; Travel Documents</h4>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">PASSPORT NO.</span><b>' +
+          esc(app.passportNumber) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">PASSPORT EXPIRY</span><b>' +
+          dt(app.passportExpiryDate) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CDC NO.</span><b>' +
+          esc(app.cdcNumber || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CDC EXPIRY</span><b>' +
+          dt(app.cdcExpiryDate) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">INDOS NO.</span><b>' +
+          esc(app.indosNumber || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">US VISA STATUS</span><b>' +
+          esc(app.usVisaStatus || "—") +
+          "</b></div>" +
+          "</div></div>";
+
+        // 3. Rank & Sea Experience
+        html +=
+          '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">3. Rank &amp; Sea Experience</h4>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">DEPARTMENT</span><b>' +
+          esc(app.department) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">RANK APPLIED</span><b>' +
+          esc(app.rankAppliedFor) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">TOTAL SEA EXP</span><b>' +
+          (app.totalSeaExperience?.years || 0) +
+          "y " +
+          (app.totalSeaExperience?.months || 0) +
+          "m</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">LAST VESSEL</span><b>' +
+          esc(app.lastVesselName || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">LAST COMPANY</span><b>' +
+          esc(app.lastCompany || "—") +
+          "</b></div>" +
+          '<div style="grid-column:1/-1;"><span style="font-size:.7rem; color:var(--text-muted); display:block;">PREFERRED VESSEL TYPES</span><b>' +
+          (app.preferredVesselTypes && app.preferredVesselTypes.length
+            ? app.preferredVesselTypes.join(", ")
+            : "—") +
+          "</b></div>" +
+          "</div></div>";
+
+        // 4. Certificates
+        html +=
+          '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">4. Certificates &amp; Endorsements</h4>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">COC CLASS</span><b>' +
+          esc(app.coc?.class || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">COC NUMBER</span><b>' +
+          esc(app.coc?.number || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">COC EXPIRY</span><b>' +
+          dt(app.coc?.expiryDate) +
+          "</b></div>" +
+          '<div style="grid-column:1/-1;"><span style="font-size:.7rem; color:var(--text-muted); display:block;">CERTIFICATES HELD</span><b>' +
+          (app.certificatesHeld && app.certificatesHeld.length
+            ? app.certificatesHeld.join(", ")
+            : "None specified") +
+          "</b></div>" +
+          "</div></div>";
+
+        // 5. Availability & Preferences
+        html +=
+          '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">5. Availability &amp; Preferences</h4>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">MEDICAL CERT</span><b>' +
+          esc(app.medicalCertStatus || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CURRENT STATUS</span><b>' +
+          esc(app.currentStatus || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">AVAILABLE FROM</span><b>' +
+          dt(app.availableFromDate) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">EXPECTED SALARY</span><b>' +
+          esc(app.expectedSalary || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">REFERRAL SOURCE</span><b>' +
+          esc(app.referralSource || "—") +
+          "</b></div>" +
+          "</div></div>";
+
+        // 6. Uploaded Documents
+        html +=
+          '<div><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">6. Uploaded Documents</h4>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(160px, 1fr)); gap:10px;">' +
+          docLink("Resume / CV", app.resume, "resume") +
+          docLink("Photo", app.photo, "photo") +
+          docLink("Passport Copy", app.passportCopy, "passportCopy") +
+          docLink("CDC Copy", app.cdcCopy, "cdcCopy") +
+          docLink(
+            "Certificates File",
+            app.certificatesFile,
+            "certificatesFile",
+          ) +
+          "</div></div>";
+
+        return html;
+      }
+
+      /* ---------------- sensible date bounds ---------------- */
+      (function setDateBounds() {
+        var today = new Date().toISOString().split("T")[0];
+        var maxDob = new Date();
+        maxDob.setFullYear(maxDob.getFullYear() - 16);
+        document.getElementById("dob").max = maxDob
+          .toISOString()
+          .split("T")[0];
+        [
+          "passportExpiryDate",
+          "cdcExpiryDate",
+          "usVisaExpiry",
+          "medicalCertExpiry",
+          "cocExpiryDate",
+          "coeExpiryDate",
+          "availableFromDate",
+          "preferredJoiningDate",
+        ].forEach(function (id) {
+          var el = document.getElementById(id);
+          if (el) el.min = today;
+        });
+      })();
+
+      /* ---------------- auto open profile if ?id= query param present ---------------- */
+      (function checkUrlParam() {
+        try {
+          var params = new URLSearchParams(window.location.search);
+          var qId = params.get("id") || params.get("appId");
+          if (qId) {
+            heroWrap.classList.add("hidden");
+            jcApp.classList.remove("active");
+            jcSuccess.classList.add("active");
+            document.getElementById("refValue").textContent = qId;
+            renderSubmittedProfile(qId);
+          }
+        } catch (_) { }
+      })();
+
+      showStep(1);
+    })();
+  </script>
 </body>
+
 </html>

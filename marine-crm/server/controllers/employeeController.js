@@ -1,5 +1,5 @@
 const bcrypt = require("bcryptjs");
-const { Employee, Attendance, User, Worksheet, Task } = require("../models");
+const { Employee, Attendance, Holiday, User, Worksheet, Task } = require("../models");
 const { logActivity } = require("../utils/activityLogger");
 const { generateVerificationToken, sendVerificationEmail } = require("../services/emailService");
 
@@ -11,6 +11,57 @@ const getTodayDateStr = () => new Date().toISOString().split("T")[0];
 // ── Helper: resolve the Employee document for the calling user (BDM) ──────────
 const getMyEmployee = async (userId) => {
   return Employee.findOne({ userId });
+};
+
+// ── Helper: resolve OR auto-provision the calling user's own Employee record ──
+// getMyEmployee() above is a pure lookup and stays that way everywhere else
+// (listEmployees, checkIn/checkOut authorization, dashboard) — unchanged.
+// This variant is used only by the two self-service entry points that were
+// hitting "No employee profile found" for any account that never went
+// through the Admin "Create Employee" flow (which is every seeded account,
+// ADMIN included — seed.js creates Users but no Employee docs at all).
+//   1. Employee.findOne({ userId })              — already linked, use it.
+//   2. Employee.findOne({ email, userId: null })  — a profile exists under
+//      this account's email but isn't linked yet → link it instead of
+//      creating a duplicate.
+//   3. Otherwise auto-create one, using the SAME employeeId-generation
+//      convention as createEmployee() above, sourced from the User doc.
+const getOrCreateMyEmployee = async (req) => {
+  const existing = await Employee.findOne({ userId: req.user.id });
+  if (existing) return existing;
+
+  const email = (req.user.email || "").toLowerCase().trim();
+  if (email) {
+    const unlinked = await Employee.findOne({ email, userId: null });
+    if (unlinked) {
+      unlinked.userId = req.user.id;
+      await unlinked.save();
+      return unlinked;
+    }
+  }
+
+  const userDoc = await User.findById(req.user.id);
+  if (!userDoc) return null; // token valid but the account no longer exists
+
+  const count = await Employee.countDocuments();
+  let candidate = `EMP-${String(count + 1).padStart(3, "0")}`;
+  let attempt = count + 1;
+  while (await Employee.findOne({ employeeId: candidate })) {
+    attempt++;
+    candidate = `EMP-${String(attempt).padStart(3, "0")}`;
+  }
+
+  return Employee.create({
+    name: userDoc.name,
+    employeeId: candidate,
+    phone: userDoc.phone || "N/A",
+    email: email || null,
+    position: userDoc.department || null,
+    joinDate: new Date(),
+    userId: userDoc._id,
+    createdById: userDoc._id,
+    createdByName: userDoc.name,
+  });
 };
 
 // ── Helper: is this an admin/HR request? ────────────────────────────────────
@@ -461,6 +512,111 @@ const getTodayAttendance = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
+// LOCATION — optional, captured only at check-in/check-out (no background
+// or continuous tracking)
+// ─────────────────────────────────────────────────────────────────────────────
+// ── Helper: validate + resolve an optional check-in/out location ──────────────
+// Location is OPTIONAL at this layer — employee.html's existing admin-driven
+// checkin/checkout (marking attendance for someone else from the directory)
+// never sends coordinates, and must keep working exactly as before. It's
+// only ever populated by the employee's own self-service check-in/out,
+// where the browser Geolocation API supplies real coordinates client-side.
+//
+// This can't stop someone from spoofing GPS at the OS level — no server can
+// — but it does the validation that's actually possible here: reject
+// anything that isn't a real, in-range coordinate pair.
+const https = require("https");
+
+const isValidCoordinate = (lat, lng) =>
+  typeof lat === "number" && typeof lng === "number" &&
+  Number.isFinite(lat) && Number.isFinite(lng) &&
+  lat >= -90 && lat <= 90 && lng >= -180 && lng <= 180;
+
+// Best-effort reverse geocode via OpenStreetMap's Nominatim (no API key,
+// no new dependency — uses Node's built-in https). If it fails or times
+// out, the check-in/out itself still proceeds with the raw coordinates;
+// only the human-readable address is left null, since the actual GPS
+// fix (already validated above) is the source of truth, not the label.
+const reverseGeocode = (lat, lng) =>
+  new Promise((resolve) => {
+    const url = `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}&zoom=14&addressdetails=1`;
+    const req = https.get(
+      url,
+      { headers: { "User-Agent": "MarineCRM-Attendance/1.0" }, timeout: 4000 },
+      (res) => {
+        let body = "";
+        res.on("data", (chunk) => (body += chunk));
+        res.on("end", () => {
+          try {
+            const parsed = JSON.parse(body);
+            const a = parsed.address || {};
+            const locality = a.suburb || a.neighbourhood || a.village || a.town || a.city_district || null;
+            const city = a.city || a.town || a.county || null;
+            const parts = [locality, city, a.state, a.country].filter(Boolean);
+            resolve(parts.length ? parts.join(", ") : parsed.display_name || null);
+          } catch {
+            resolve(null);
+          }
+        });
+      }
+    );
+    req.on("timeout", () => req.destroy());
+    req.on("error", () => resolve(null));
+  });
+
+const resolveLocationFromBody = async (body) => {
+  if (body == null) return { ok: true, location: null };
+  const lat = typeof body.latitude === "string" ? parseFloat(body.latitude) : body.latitude;
+  const lng = typeof body.longitude === "string" ? parseFloat(body.longitude) : body.longitude;
+  if (lat === undefined && lng === undefined) return { ok: true, location: null };
+  if (!isValidCoordinate(lat, lng)) {
+    return { ok: false };
+  }
+  const address = await reverseGeocode(lat, lng);
+  return { ok: true, location: { latitude: lat, longitude: lng, address, capturedAt: new Date() } };
+};
+
+// If a saved location has coordinates but no address yet (e.g. Nominatim
+// was briefly unreachable when it was first captured), look it up now and
+// persist it so it's cached for next time. Returns the (possibly updated)
+// location object; never throws.
+const ensureLocationAddress = async (location) => {
+  if (!location || location.address) return location;
+  const address = await reverseGeocode(location.latitude, location.longitude);
+  if (address) location.address = address;
+  return location;
+};
+
+// ── Company attendance policy (Working Days: Mon–Sat, 10:00 AM start) ────────
+// All times are interpreted in IST (UTC+5:30) — the whole app/company
+// context (Marine CRM, Belapur/Navi Mumbai) is India-based and there is no
+// per-company timezone setting anywhere in this project, so this is the
+// one explicit assumption; change IST_OFFSET_MINUTES if that's wrong.
+const IST_OFFSET_MINUTES = 5 * 60 + 30;
+const DAY_START_MINUTES = 10 * 60;      // 10:00 AM — on-time cutoff
+const HALF_DAY_START_MINUTES = 14 * 60; // 2:00 PM — half-day threshold
+
+const getIstMinutesOfDay = (date) => {
+  const istMs = date.getTime() + IST_OFFSET_MINUTES * 60 * 1000;
+  const ist = new Date(istMs);
+  return ist.getUTCHours() * 60 + ist.getUTCMinutes();
+};
+
+// Decided once, at check-in time, from the check-in timestamp alone:
+//   before 10:00 AM IST  → on time, Full Day
+//   10:00 AM–1:59 PM IST → late, but still Full Day (accumulates a Late Mark;
+//                          3 Late Marks convert to 1 Half Day at month end)
+//   2:00 PM IST onward   → Half Day outright (per the Half Day Working Hours
+//                          policy: 2:00 PM–7:00 PM)
+const classifyCheckIn = (checkInDate) => {
+  const minutes = getIstMinutesOfDay(checkInDate);
+  if (minutes >= HALF_DAY_START_MINUTES) {
+    return { dayType: "HALF_DAY", isLate: false };
+  }
+  return { dayType: "FULL_DAY", isLate: minutes > DAY_START_MINUTES };
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
 // CHECK-IN  POST /api/employees/checkin/:id
 //   Admin/HR → any employee; BDM → only themselves
 // ─────────────────────────────────────────────────────────────────────────────
@@ -492,12 +648,32 @@ const checkIn = async (req, res, next) => {
       });
     }
 
+    const locationResult = await resolveLocationFromBody(req.body);
+    if (!locationResult.ok) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid location coordinates.",
+      });
+    }
+
     const today = getTodayDateStr();
     let record = await Attendance.findOne({ employeeId, date: today });
+    const checkInAt = new Date();
+    const { dayType, isLate } = classifyCheckIn(checkInAt);
     if (!record) {
-      record = new Attendance({ employeeId, date: today, checkIn: new Date() });
+      record = new Attendance({
+        employeeId,
+        date: today,
+        checkIn: checkInAt,
+        checkInLocation: locationResult.location,
+        dayType,
+        isLate,
+      });
     } else if (!record.checkIn) {
-      record.checkIn = new Date();
+      record.checkIn = checkInAt;
+      record.checkInLocation = locationResult.location;
+      record.dayType = dayType;
+      record.isLate = isLate;
     } else {
       return res
         .status(400)
@@ -544,13 +720,455 @@ const checkOut = async (req, res, next) => {
         .status(400)
         .json({ success: false, message: "Already checked out today." });
     }
+
+    const locationResult = await resolveLocationFromBody(req.body);
+    if (!locationResult.ok) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid location coordinates.",
+      });
+    }
+
     record.checkOut = new Date();
+    record.checkOutLocation = locationResult.location;
     await record.save();
     res.json({
       success: true,
       data: record,
       message: "Checked out successfully.",
     });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// ATTENDANCE — helpers shared by the endpoints below
+//
+// These extend the SAME Attendance collection/architecture used by
+// getTodayAttendance/checkIn/checkOut above (no new model, no new
+// router). They exist to power the attendance.html page (today card,
+// monthly calendar, monthly summary) and the navbar IN/OUT button,
+// which need a normalized single-record shape and month/summary
+// views that didn't exist yet.
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Shape a raw Attendance doc the way the attendance UI expects.
+// Storage still uses checkIn/checkOut (untouched); this is purely a
+// response-time convenience so the frontend doesn't need its own
+// duplicate time-math.
+// Shape a raw Attendance doc the way the attendance UI expects.
+// Storage still uses checkIn/checkOut (untouched); this is purely a
+// response-time convenience so the frontend doesn't need its own
+// duplicate time-math. Async because it opportunistically backfills a
+// missing reverse-geocoded address (see ensureLocationAddress above).
+const normalizeAttendanceRecord = async (doc) => {
+  if (!doc) return null;
+  const checkInTime = doc.checkIn || null;
+  const checkOutTime = doc.checkOut || null;
+  const totalMinutes =
+    checkInTime && checkOutTime
+      ? Math.round((new Date(checkOutTime) - new Date(checkInTime)) / 60000)
+      : null;
+
+  let checkInLocation = doc.checkInLocation || null;
+  let checkOutLocation = doc.checkOutLocation || null;
+  let addressBackfilled = false;
+  if (checkInLocation && !checkInLocation.address) {
+    checkInLocation = await ensureLocationAddress({ ...checkInLocation });
+    if (checkInLocation.address) addressBackfilled = true;
+  }
+  if (checkOutLocation && !checkOutLocation.address) {
+    checkOutLocation = await ensureLocationAddress({ ...checkOutLocation });
+    if (checkOutLocation.address) addressBackfilled = true;
+  }
+  // Persist the backfilled address so we don't re-geocode on every read.
+  if (addressBackfilled && doc.save) {
+    doc.checkInLocation = checkInLocation;
+    doc.checkOutLocation = checkOutLocation;
+    doc.save().catch(() => {}); // best-effort cache write; never blocks the response
+  }
+
+  const dayType = doc.dayType || "FULL_DAY";
+  const status = checkInTime ? (dayType === "HALF_DAY" ? "HALF_DAY" : "PRESENT") : "NOT_MARKED";
+
+  return {
+    date: doc.date,
+    status,
+    dayType,
+    isLate: !!doc.isLate,
+    checkInTime,
+    checkOutTime,
+    totalMinutes,
+    holidayName: null, // no Holiday system exists in this project yet
+    checkInLocation,
+    checkOutLocation,
+  };
+};
+
+// Resolve which employeeId a request is allowed to view.
+//   - No ?employeeId= → always the caller's own Employee record.
+//   - ?employeeId=X   → allowed only for ADMIN/HR (per existing
+//                        isManager permissions); anyone else gets a
+//                        403, even if X happens to equal their own id
+//                        spelled differently — this is the "can't
+//                        view another employee by editing the API
+//                        request" rule enforced server-side.
+const resolveEmployeeIdForQuery = async (req) => {
+  const queryEmployeeId = (req.query.employeeId || "").trim();
+
+  if (queryEmployeeId) {
+    if (isManager(req)) {
+      return { ok: true, employeeId: queryEmployeeId };
+    }
+    const myEmp = await getMyEmployee(req.user.id);
+    if (!myEmp || myEmp._id.toString() !== queryEmployeeId) {
+      return {
+        ok: false,
+        status: 403,
+        message: "You can only view your own attendance.",
+      };
+    }
+    return { ok: true, employeeId: queryEmployeeId };
+  }
+
+  const myEmp = await getOrCreateMyEmployee(req);
+  return { ok: true, employeeId: myEmp ? myEmp._id.toString() : null };
+};
+
+// Build a day-by-day view of a month for one employee: real Attendance
+// docs where they exist, and (for past working days with no record,
+// after the employee's join date) a synthesized ABSENT entry — since
+// this project has no absence-marking or holiday system yet, this is
+// the closest reasonable approximation without inventing new storage.
+// Default weekly off — Saturday(6) / Sunday(0). There is no working-days,
+// weekly-off, or HR-settings config anywhere in this project (Employee and
+// User schemas have neither), so this is the standard 5-day-week default,
+// applied explicitly here rather than silently assumed. If the company's
+// actual schedule differs, this is the one place to change it.
+// Company policy: Working Days are Monday → Saturday, so Sunday is the
+// only weekly off. (Was Saturday+Sunday before the company policy was
+// provided — updated to match.)
+const WEEK_OFF_DAYS = [0]; // Sun only
+
+const buildMonthAttendance = async (employeeId, year, month) => {
+  const monthStr = String(month).padStart(2, "0");
+  const prefix = `${year}-${monthStr}-`;
+
+  const [records, holidays] = await Promise.all([
+    Attendance.find({
+      employeeId,
+      date: { $gte: `${prefix}01`, $lte: `${prefix}31` },
+    }).sort({ date: 1 }),
+    Holiday.find({ date: { $gte: `${prefix}01`, $lte: `${prefix}31` } }),
+  ]);
+
+  const recordMap = {};
+  records.forEach((r) => {
+    recordMap[r.date] = r;
+  });
+  const holidayMap = {};
+  holidays.forEach((h) => {
+    holidayMap[h.date] = h;
+  });
+
+  const empDoc = await Employee.findById(employeeId).select("joinDate");
+  const joinDateStr = empDoc && empDoc.joinDate
+    ? new Date(empDoc.joinDate).toISOString().split("T")[0]
+    : null;
+
+  const daysInMonth = new Date(year, month, 0).getDate();
+  const todayStr = getTodayDateStr();
+
+  const result = [];
+  for (let day = 1; day <= daysInMonth; day++) {
+    const dateStr = `${year}-${monthStr}-${String(day).padStart(2, "0")}`;
+    if (dateStr > todayStr) continue; // future — no data yet
+    if (joinDateStr && dateStr < joinDateStr) continue; // before they joined
+
+    const doc = recordMap[dateStr];
+    const holiday = holidayMap[dateStr];
+    const dayOfWeek = new Date(`${dateStr}T00:00:00`).getDay();
+    const isWeekOff = WEEK_OFF_DAYS.includes(dayOfWeek);
+
+    if (holiday) {
+      // A company holiday always wins for display — it's never Absent —
+      // but if the employee actually checked in that day, keep their times.
+      const base = doc
+        ? await normalizeAttendanceRecord(doc)
+        : { date: dateStr, checkInTime: null, checkOutTime: null, totalMinutes: null, checkInLocation: null, checkOutLocation: null };
+      result.push({ ...base, date: dateStr, status: "HOLIDAY", holidayName: holiday.name });
+    } else if (doc) {
+      result.push(await normalizeAttendanceRecord(doc));
+    } else if (isWeekOff) {
+      result.push({
+        date: dateStr,
+        status: "WEEK_OFF",
+        checkInTime: null,
+        checkOutTime: null,
+        totalMinutes: null,
+        holidayName: null,
+        checkInLocation: null,
+        checkOutLocation: null,
+      });
+    } else if (dateStr !== todayStr) {
+      result.push({
+        date: dateStr,
+        status: "ABSENT",
+        checkInTime: null,
+        checkOutTime: null,
+        totalMinutes: null,
+        holidayName: null,
+        checkInLocation: null,
+        checkOutLocation: null,
+      });
+    }
+    // today with no record yet is intentionally omitted — the
+    // frontend already renders "today, no data" via the live ring.
+  }
+  return result;
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MY TODAY ATTENDANCE (normalized)  GET /api/employees/attendance/me/today
+//   Self → own record; Admin/HR may pass ?employeeId= to view another.
+//   Used by the navbar IN/OUT button and the attendance page's "Today" card.
+// ─────────────────────────────────────────────────────────────────────────────
+const getMyTodayAttendance = async (req, res, next) => {
+  try {
+    const resolved = await resolveEmployeeIdForQuery(req);
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({ success: false, message: resolved.message });
+    }
+    if (!resolved.employeeId) {
+      return res.json({ success: true, data: null });
+    }
+    // Reuse the same day-decision logic (holiday / week-off / present /
+    // absent) the calendar uses, so "today" never disagrees with what
+    // clicking today's cell in the calendar would show.
+    const now = new Date();
+    const monthRecords = await buildMonthAttendance(resolved.employeeId, now.getFullYear(), now.getMonth() + 1);
+    const todayStr = getTodayDateStr();
+    const record = monthRecords.find((r) => r.date === todayStr) || null;
+    res.json({ success: true, data: record });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MONTHLY ATTENDANCE  GET /api/employees/attendance/month?year=&month=&employeeId=
+//   Powers the attendance calendar. Same access rules as above.
+// ─────────────────────────────────────────────────────────────────────────────
+const getAttendanceMonth = async (req, res, next) => {
+  try {
+    const year = parseInt(req.query.year, 10);
+    const month = parseInt(req.query.month, 10);
+    if (!year || !month || month < 1 || month > 12) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid year and month query params are required.",
+      });
+    }
+
+    const resolved = await resolveEmployeeIdForQuery(req);
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({ success: false, message: resolved.message });
+    }
+    if (!resolved.employeeId) {
+      return res.json({ success: true, data: [] });
+    }
+
+    const data = await buildMonthAttendance(resolved.employeeId, year, month);
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// MONTHLY SUMMARY  GET /api/employees/attendance/summary?year=&month=&employeeId=
+//   Powers the present/absent/holiday/hours cards atop the attendance page.
+// ─────────────────────────────────────────────────────────────────────────────
+const getAttendanceSummary = async (req, res, next) => {
+  try {
+    const year = parseInt(req.query.year, 10);
+    const month = parseInt(req.query.month, 10);
+    if (!year || !month || month < 1 || month > 12) {
+      return res.status(400).json({
+        success: false,
+        message: "Valid year and month query params are required.",
+      });
+    }
+
+    const resolved = await resolveEmployeeIdForQuery(req);
+    if (!resolved.ok) {
+      return res.status(resolved.status).json({ success: false, message: resolved.message });
+    }
+    if (!resolved.employeeId) {
+      return res.json({
+        success: true,
+        data: {
+          presentDays: 0, absentDays: 0, holidays: 0, weekOffs: 0,
+          halfDays: 0, lateMarks: 0, halfDaysFromLateMarks: 0,
+          totalMinutes: 0, averageMinutes: 0,
+        },
+      });
+    }
+
+    const records = await buildMonthAttendance(resolved.employeeId, year, month);
+
+    let presentDays = 0, absentDays = 0, holidays = 0, weekOffs = 0, halfDays = 0, lateMarks = 0, totalMinutes = 0, presentWithHoursCount = 0;
+    records.forEach((r) => {
+      if (r.status === "PRESENT" || r.status === "HALF_DAY") {
+        presentDays += 1;
+        if (r.status === "HALF_DAY") halfDays += 1;
+        if (r.totalMinutes) {
+          totalMinutes += r.totalMinutes;
+          presentWithHoursCount += 1;
+        }
+      } else if (r.status === "ABSENT") {
+        absentDays += 1;
+      } else if (r.status === "HOLIDAY") {
+        holidays += 1;
+      } else if (r.status === "WEEK_OFF") {
+        weekOffs += 1;
+      }
+      if (r.isLate) lateMarks += 1;
+    });
+    const averageMinutes = presentWithHoursCount
+      ? Math.round(totalMinutes / presentWithHoursCount)
+      : 0;
+    // Company policy: 3 Late Marks = 1 Half Day, calculated at month end.
+    // This is a derived/informational count — it does NOT retroactively
+    // rewrite any day's actual status; it's surfaced so HR can apply it
+    // during payroll/month-end review.
+    const halfDaysFromLateMarks = Math.floor(lateMarks / 3);
+
+    res.json({
+      success: true,
+      data: {
+        presentDays,
+        absentDays,
+        holidays,
+        weekOffs,
+        halfDays,
+        lateMarks,
+        halfDaysFromLateMarks,
+        totalMinutes: Math.round(totalMinutes),
+        averageMinutes,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// HOLIDAYS  /api/employees/holidays
+//   Company-wide calendar facts, deliberately kept separate from the
+//   Attendance model/architecture. Everyone authenticated can read them
+//   (the attendance calendar needs this for every employee viewing their
+//   own month); only ADMIN/HR can create/update/delete, enforced both by
+//   route middleware (requireRole) and again here as a second check.
+// ─────────────────────────────────────────────────────────────────────────────
+const listHolidays = async (req, res, next) => {
+  try {
+    const filter = {};
+    const year = parseInt(req.query.year, 10);
+    const month = parseInt(req.query.month, 10);
+    if (year && month && month >= 1 && month <= 12) {
+      const monthStr = String(month).padStart(2, "0");
+      const prefix = `${year}-${monthStr}-`;
+      filter.date = { $gte: `${prefix}01`, $lte: `${prefix}31` };
+    } else if (year) {
+      filter.date = { $gte: `${year}-01-01`, $lte: `${year}-12-31` };
+    }
+    const holidays = await Holiday.find(filter).sort({ date: 1 });
+    res.json({ success: true, data: holidays });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createHoliday = async (req, res, next) => {
+  try {
+    if (!isManager(req)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Admin/HR can manage holidays.",
+      });
+    }
+    const { date, name, description } = req.body;
+    if (!date || !name) {
+      return res.status(400).json({
+        success: false,
+        message: "Holiday date and name are required.",
+      });
+    }
+    const dateStr = new Date(date).toISOString().split("T")[0];
+    const existing = await Holiday.findOne({ date: dateStr });
+    if (existing) {
+      return res.status(409).json({
+        success: false,
+        message: `A holiday is already set for ${dateStr}.`,
+      });
+    }
+    const holiday = await Holiday.create({
+      date: dateStr,
+      name: name.trim(),
+      description: description ? description.trim() : "",
+      createdById: req.user.id,
+      createdByName: req.user.name,
+    });
+    res.status(201).json({ success: true, data: holiday, message: "Holiday added." });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, message: "A holiday already exists for that date." });
+    }
+    next(err);
+  }
+};
+
+const updateHoliday = async (req, res, next) => {
+  try {
+    if (!isManager(req)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Admin/HR can manage holidays.",
+      });
+    }
+    const holiday = await Holiday.findById(req.params.id);
+    if (!holiday) {
+      return res.status(404).json({ success: false, message: "Holiday not found." });
+    }
+    const { date, name, description } = req.body;
+    if (date) holiday.date = new Date(date).toISOString().split("T")[0];
+    if (name) holiday.name = name.trim();
+    if (description !== undefined) holiday.description = description ? description.trim() : "";
+    await holiday.save();
+    res.json({ success: true, data: holiday, message: "Holiday updated." });
+  } catch (err) {
+    if (err.code === 11000) {
+      return res.status(409).json({ success: false, message: "A holiday already exists for that date." });
+    }
+    next(err);
+  }
+};
+
+const deleteHoliday = async (req, res, next) => {
+  try {
+    if (!isManager(req)) {
+      return res.status(403).json({
+        success: false,
+        message: "Only Admin/HR can manage holidays.",
+      });
+    }
+    const holiday = await Holiday.findByIdAndDelete(req.params.id);
+    if (!holiday) {
+      return res.status(404).json({ success: false, message: "Holiday not found." });
+    }
+    res.json({ success: true, message: "Holiday removed." });
   } catch (err) {
     next(err);
   }
@@ -722,7 +1340,7 @@ const updateTaskStatus = async (req, res, next) => {
 // ─────────────────────────────────────────────────────────────────────────────
 const getMyProfile = async (req, res, next) => {
   try {
-    const emp = await getMyEmployee(req.user.id);
+    const emp = await getOrCreateMyEmployee(req);
     if (!emp)
       return res.status(404).json({
         success: false,
@@ -888,7 +1506,7 @@ const getUpcomingBirthdays = async (req, res, next) => {
         diff = Math.ceil((nextYear - now) / (1000 * 60 * 60 * 24));
       }
 
-      if (diff <= 30) {
+      if (diff <= 30) { 
         results.push({
           id: emp.id,
           name: emp.name,
@@ -916,8 +1534,15 @@ module.exports = {
   exitEmployee,
   reactivateEmployee,
   getTodayAttendance,
+  getMyTodayAttendance,
+  getAttendanceMonth,
+  getAttendanceSummary,
   checkIn,
   checkOut,
+  listHolidays,
+  createHoliday,
+  updateHoliday,
+  deleteHoliday,
   submitWorksheet,
   getWorksheets,
   createTask,

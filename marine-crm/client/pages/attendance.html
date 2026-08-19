@@ -23,6 +23,8 @@
     </script>
 
     <link rel="stylesheet" href="/public/css/styles1.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
 
     <style>
         /* Page-local layout only — colors all come from styles1.css tokens,
@@ -136,27 +138,37 @@
 
         .cal-legend {
             display: flex;
-            gap: 14px;
+            gap: 6px;
             flex-wrap: wrap;
-            font-size: 0.75rem;
-            color: var(--text-secondary);
+            font-size: 0.72rem;
         }
 
-        .cal-legend-item { display: inline-flex; align-items: center; gap: 6px; }
+        .cal-legend-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px 4px 8px;
+            border-radius: 999px;
+            background: var(--bg-input);
+            border: 1px solid var(--border-color);
+            color: var(--text-secondary);
+            font-weight: 600;
+            white-space: nowrap;
+        }
 
         .cal-legend-dot {
-            width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0;
+            width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0;
         }
 
         .cal-grid {
             display: grid;
-            grid-template-columns: repeat(7, 1fr);
-            gap: 8px;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
         }
 
         .cal-dow {
             text-align: center;
-            font-size: 0.68rem;
+            font-size: 0.66rem;
             font-weight: 700;
             letter-spacing: 0.06em;
             text-transform: uppercase;
@@ -167,7 +179,7 @@
         .cal-cell {
             position: relative;
             aspect-ratio: 1 / 1;
-            min-height: 52px;
+            min-height: 56px;
             border-radius: var(--radius-sm);
             border: 1px solid var(--border-color);
             background: var(--bg-input);
@@ -175,9 +187,10 @@
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            gap: 4px;
+            gap: 2px;
             cursor: pointer;
-            transition: all var(--transition);
+            overflow: hidden;
+            transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
         }
 
         .cal-cell.empty { visibility: hidden; cursor: default; }
@@ -186,27 +199,91 @@
             border-color: var(--accent-primary);
             transform: translateY(-2px);
             box-shadow: var(--shadow-sm);
+            z-index: 1;
         }
 
         .cal-cell-date {
-            font-size: 0.82rem;
+            font-size: 0.8rem;
             font-weight: 700;
             color: var(--text-primary);
+            line-height: 1;
+        }
+
+        .cal-cell-time {
+            font-size: 0.6rem;
+            font-weight: 600;
+            line-height: 1;
+            color: var(--text-secondary);
+            letter-spacing: 0.01em;
         }
 
         .cal-cell-dot {
-            width: 8px; height: 8px; border-radius: 50%;
+            width: 6px; height: 6px; border-radius: 50%;
+            margin-top: 1px;
         }
 
+        /* Status color-washes — reuse the same tint tokens as everywhere else in the CRM */
+        .cal-cell.status-present { background: var(--green-light); border-color: rgba(52, 211, 153, 0.28); }
         .cal-cell.status-present .cal-cell-dot { background: var(--green); }
+        .cal-cell.status-present .cal-cell-date { color: var(--green); }
+
+        .cal-cell.status-absent { background: var(--red-light); border-color: rgba(248, 113, 113, 0.28); }
         .cal-cell.status-absent .cal-cell-dot { background: var(--red); }
+        .cal-cell.status-absent .cal-cell-date { color: var(--red); }
+
+        .cal-cell.status-holiday { background: var(--yellow-light); border-color: rgba(242, 197, 114, 0.32); }
         .cal-cell.status-holiday .cal-cell-dot { background: var(--yellow); }
+        .cal-cell.status-holiday .cal-cell-date,
+        .cal-cell.status-holiday .cal-cell-time { color: var(--yellow); }
+
+        .cal-cell.status-weekoff { background: var(--purple-light); border-color: rgba(167, 139, 250, 0.3); }
+        .cal-cell.status-weekoff .cal-cell-dot { background: var(--purple); }
+        .cal-cell.status-weekoff .cal-cell-date,
+        .cal-cell.status-weekoff .cal-cell-time { color: var(--purple); }
+
+        /* No existing --orange token in the shared theme, so this is scoped
+           locally to this page only (styles1.css is untouched). */
+        .cal-cell.status-halfday { background: rgba(251, 146, 60, 0.14); border-color: rgba(251, 146, 60, 0.32); }
+        .cal-cell.status-halfday .cal-cell-dot { background: #fb923c; }
+        .cal-cell.status-halfday .cal-cell-date,
+        .cal-cell.status-halfday .cal-cell-time { color: #fb923c; }
+
+        .cal-cell-late-badge {
+            position: absolute;
+            bottom: 3px; right: 3px;
+            font-size: 0.5rem;
+            line-height: 1;
+        }
+
+        /* No .badge-orange in the shared stylesheet — scoped here only,
+           mirrors the existing .badge-purple pattern. */
+        .badge-orange { background: rgba(251, 146, 60, 0.14); color: #fb923c; border: 1px solid rgba(251, 146, 60, 0.32); }
+
+        .cal-cell.status-future { background: var(--bg-input); opacity: 0.55; }
+        .cal-cell.status-future .cal-cell-time { color: var(--text-muted); }
+
         .cal-cell.status-none .cal-cell-dot { background: var(--text-muted); opacity: 0.5; }
+
+        .cal-cell.status-present .cal-cell-time { color: var(--green); }
+        .cal-cell.status-absent .cal-cell-time { color: var(--red); }
 
         .cal-cell.is-today {
             box-shadow: inset 0 0 0 2px var(--blue);
         }
         .cal-cell.is-today .cal-cell-date { color: var(--blue); }
+        .cal-cell.is-today::after {
+            content: '';
+            position: absolute;
+            top: 4px; right: 4px;
+            width: 5px; height: 5px;
+            border-radius: 50%;
+            background: var(--blue);
+        }
+
+        /* Selected/open day gets a visibly stronger ring on top of its status color */
+        .cal-cell.is-selected {
+            box-shadow: inset 0 0 0 2px var(--accent-primary);
+        }
 
         /* ── Day detail modal (reuses .modal-overlay / .modal) ───── */
         .att-day-modal-box { width: 100%; max-width: 420px; }
@@ -233,12 +310,35 @@
         .emp-selector-wrap select { min-width: 220px; }
         .emp-selector-wrap.hidden { display: none; }
 
+        .cal-toolbar {
+            flex-wrap: wrap;
+            row-gap: 10px;
+        }
+
+        @media (max-width: 768px) {
+            .cal-cell { min-height: 48px; }
+            .cal-cell-date { font-size: 0.75rem; }
+            .cal-cell-time { font-size: 0.56rem; }
+        }
+
         @media (max-width: 576px) {
             .today-card-body { flex-direction: column; align-items: stretch; }
             .today-action { align-items: stretch; }
             .checkio-btn { width: 100%; }
-            .cal-cell { min-height: 40px; }
-            .cal-legend { font-size: 0.68rem; gap: 10px; }
+            .cal-grid { gap: 4px; }
+            .cal-cell { min-height: 40px; border-radius: 6px; }
+            .cal-cell-time { display: none; } /* keep cells small & tappable; details live in the day modal */
+            .cal-legend { font-size: 0.64rem; gap: 5px; }
+            .cal-legend-item { padding: 3px 8px 3px 6px; }
+        }
+
+        @media (max-width: 380px) {
+            .cal-cell-date { font-size: 0.68rem; }
+            .cal-dow { font-size: 0.58rem; }
+            .cal-grid { gap: 3px; }
+            .cal-cell { min-height: 34px; }
+            .cal-legend-item span:not(.cal-legend-dot) { display: none; } /* dot-only legend on tiny screens */
+            .cal-legend-item { padding: 5px; gap: 0; }
         }
     </style>
 </head>
@@ -287,6 +387,11 @@
                     <div class="stat-card">
                         <h3 class="stat-title">🟡 Holidays</h3>
                         <p class="stat-value skeleton" id="stat-att-holidays">0</p>
+                        <div class="stat-trend neutral">This month</div>
+                    </div>
+                    <div class="stat-card">
+                        <h3 class="stat-title">🟣 Week Offs</h3>
+                        <p class="stat-value skeleton" id="stat-att-weekoffs">0</p>
                         <div class="stat-trend neutral">This month</div>
                     </div>
                     <div class="stat-card">
@@ -343,6 +448,9 @@
                 <div class="card" data-reveal>
                     <div class="card-header">
                         <h2 class="card-title">Monthly Calendar</h2>
+                        <button class="btn btn-secondary btn-sm hidden" id="manage-holidays-btn">
+                            <i class="fas fa-calendar-plus"></i> Manage Holidays
+                        </button>
                     </div>
                     <div class="card-body">
                         <div class="cal-toolbar">
@@ -352,11 +460,14 @@
                                 <button class="btn btn-secondary btn-sm" id="cal-next-btn" aria-label="Next month">›</button>
                             </div>
                             <div class="cal-legend">
-                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--green);"></span> Present</span>
-                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--red);"></span> Absent</span>
-                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--yellow);"></span> Holiday</span>
-                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--blue);box-shadow:0 0 0 2px var(--blue) inset;"></span> Today</span>
-                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--text-muted);opacity:0.5;"></span> No data</span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--green);"></span><span>Present</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--red);"></span><span>Absent</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--yellow);"></span><span>Holiday</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--purple);"></span><span>Week Off</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#fb923c;"></span><span>Half Day</span></span>
+                                <span class="cal-legend-item"><span style="font-size:0.7rem;">⏰</span><span>Late</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--blue);box-shadow:0 0 0 2px var(--blue) inset;"></span><span>Today</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--text-muted);opacity:0.5;"></span><span>No data</span></span>
                             </div>
                         </div>
                         <div class="cal-grid" id="cal-dow-row">
@@ -427,16 +538,87 @@
         }
 
         const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
-        const ATTENDANCE_ADMIN_ROLES = ['ADMIN', 'HR', 'MANAGER'];
+        // Must match the backend's isManager() check in employeeController.js
+        // (ADMIN/HR only, per this task's scope — the full role hierarchy is
+        // a separate future task). Showing this to other roles would let them
+        // pick another employee only to have the backend 403 the request.
+        const ATTENDANCE_ADMIN_ROLES = ['ADMIN', 'HR'];
 
         let viewingEmployeeId = ''; // '' = self
         let calYear, calMonth; // calMonth is 1-12
         let monthRecords = [];
         let todayRecord = null;
         let liveDurationTimer = null;
+        let myEmployeeLinkStatus = null; // { linked: true } | { linked: false, code, message }
+        let selectedCalDate = null;
 
         const pad2 = (n) => String(n).padStart(2, '0');
         const isoDateOnly = (d) => `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`;
+
+        // ── Geolocation capture (check-in/out only — no watch/tracking) ──
+        // Uses getCurrentPosition (a single, one-off fix), never watchPosition —
+        // there is no background or continuous location tracking anywhere here.
+        function captureCurrentLocation() {
+            return new Promise((resolve, reject) => {
+                if (!('geolocation' in navigator)) {
+                    reject(new Error('Location permission is required to record attendance. Your browser does not support location.'));
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+                    (err) => {
+                        let message = 'Location permission is required to record attendance.';
+                        if (err.code === err.POSITION_UNAVAILABLE) {
+                            message = 'Could not determine your location. Please check your device\'s location settings and try again.';
+                        } else if (err.code === err.TIMEOUT) {
+                            message = 'Getting your location timed out. Please try again.';
+                        }
+                        reject(new Error(message));
+                    },
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                );
+            });
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str == null ? '' : String(str);
+            return div.innerHTML;
+        }
+
+        // Renders "📍 address" + a "View on Map" link pinned to the exact
+        // captured coordinates (never a manually searched place name).
+        function locationLine(loc) {
+            if (!loc || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') {
+                return '<span class="dim" style="font-size:0.8rem;">📍 Location not captured</span>';
+            }
+            if (!loc.address) {
+                // Coordinates ARE saved — the human-readable address just
+                // hasn't resolved yet (the backend retries this lazily on
+                // every read and caches it once it succeeds).
+                const mapUrl = `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`;
+                return `
+                    <div>📍 ${loc.latitude.toFixed(5)}, ${loc.longitude.toFixed(5)} <span class="dim" style="font-size:0.72rem;">(address lookup pending)</span></div>
+                    <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem;color:var(--accent-primary);">View on Map</a>
+                `;
+            }
+            const mapUrl = `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`;
+            return `
+                <div>📍 ${escapeHtml(loc.address)}</div>
+                <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="font-size:0.75rem;color:var(--accent-primary);">View on Map</a>
+            `;
+        }
+
+        // Compact one-line version for the Today card (📍 city + a map
+        // link), vs. the fuller locationLine() used in the day modal.
+        function locationMiniLink(loc) {
+            if (!loc || typeof loc.latitude !== 'number' || typeof loc.longitude !== 'number') {
+                return `<div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;margin-top:2px;">📍 Location not captured</div>`;
+            }
+            const label = loc.address ? escapeHtml(loc.address) : `${loc.latitude.toFixed(4)}, ${loc.longitude.toFixed(4)} (resolving…)`;
+            const mapUrl = `https://www.google.com/maps?q=${loc.latitude},${loc.longitude}`;
+            return `<div style="font-size:0.72rem;color:var(--text-muted);font-weight:500;margin-top:2px;">📍 ${label} · <a href="${mapUrl}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-primary);">View on Map</a></div>`;
+        }
 
         function formatClockTime(isoString) {
             if (!isoString) return null;
@@ -514,6 +696,136 @@
             });
         }
 
+        // ── Holiday management (ADMIN/HR only) ────────────────────
+        // Server enforces this too (requireRole + isManager check inside
+        // the controller) — this is just the UI gate, matching how the
+        // employee selector is gated the same way above.
+        function initHolidayManagement() {
+            if (!ATTENDANCE_ADMIN_ROLES.includes(currentUser.role)) return;
+            const btn = document.getElementById('manage-holidays-btn');
+            btn.classList.remove('hidden');
+            btn.addEventListener('click', openManageHolidaysModal);
+        }
+
+        async function openManageHolidaysModal() {
+            const modal = UI.createModal({
+                title: '🗓️ Manage Holidays',
+                bodyHtml: `
+                    <div style="display:flex;flex-direction:column;gap:14px;">
+                        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+                            <div>
+                                <label class="form-label">Date <span style="color:#f87171">*</span></label>
+                                <input id="hol-date" type="date" class="form-control" />
+                            </div>
+                            <div>
+                                <label class="form-label">Name <span style="color:#f87171">*</span></label>
+                                <input id="hol-name" class="form-control" placeholder="e.g. Independence Day" />
+                            </div>
+                        </div>
+                        <div>
+                            <label class="form-label">Description (optional)</label>
+                            <input id="hol-desc" class="form-control" placeholder="Optional notes" />
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="hol-add-btn" style="align-self:flex-start;">
+                            <i class="fas fa-plus"></i> Add Holiday
+                        </button>
+                        <div id="hol-list" style="display:flex;flex-direction:column;gap:6px;max-height:260px;overflow-y:auto;"></div>
+                    </div>
+                `,
+                footerHtml: `<button class="btn btn-secondary" id="hol-close">Close</button>`,
+            });
+
+            modal.querySelector('#hol-close').onclick = () => modal.close();
+
+            async function refreshList() {
+                const listEl = modal.querySelector('#hol-list');
+                listEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">Loading…</div>';
+                try {
+                    const res = await window.ApiService.holidays.getAll({ year: calYear });
+                    const holidays = (res && res.data) || [];
+                    if (!holidays.length) {
+                        listEl.innerHTML = '<div style="color:var(--text-muted);font-size:0.85rem;">No holidays added yet.</div>';
+                        return;
+                    }
+                    listEl.innerHTML = holidays.map(h => `
+                        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px;border:1px solid var(--border-color);border-radius:6px;">
+                            <div>
+                                <div style="font-weight:600;font-size:0.85rem;">${h.name}</div>
+                                <div style="font-size:0.72rem;color:var(--text-muted);">${h.date}${h.description ? ' — ' + h.description : ''}</div>
+                            </div>
+                            <button class="btn btn-secondary btn-sm hol-delete-btn" data-id="${h.id || h._id}" aria-label="Delete holiday">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    `).join('');
+                    listEl.querySelectorAll('.hol-delete-btn').forEach(delBtn => {
+                        delBtn.addEventListener('click', async () => {
+                            delBtn.disabled = true;
+                            try {
+                                await window.ApiService.holidays.delete(delBtn.dataset.id);
+                                UI.showToast('Holiday removed.', 'success');
+                                await refreshList();
+                                loadMonth();
+                                loadSummary();
+                            } catch (err) {
+                                UI.showToast((err && err.message) || 'Could not remove holiday.', 'error');
+                                delBtn.disabled = false;
+                            }
+                        });
+                    });
+                } catch (err) {
+                    listEl.innerHTML = '<div style="color:var(--red);font-size:0.85rem;">Could not load holidays.</div>';
+                }
+            }
+
+            modal.querySelector('#hol-add-btn').onclick = async () => {
+                const dateVal = modal.querySelector('#hol-date').value;
+                const nameVal = modal.querySelector('#hol-name').value.trim();
+                const descVal = modal.querySelector('#hol-desc').value.trim();
+                if (!dateVal || !nameVal) {
+                    return UI.showToast('Date and name are required.', 'error');
+                }
+                const addBtn = modal.querySelector('#hol-add-btn');
+                addBtn.disabled = true;
+                try {
+                    await window.ApiService.holidays.create({ date: dateVal, name: nameVal, description: descVal });
+                    UI.showToast('Holiday added.', 'success');
+                    modal.querySelector('#hol-date').value = '';
+                    modal.querySelector('#hol-name').value = '';
+                    modal.querySelector('#hol-desc').value = '';
+                    await refreshList();
+                    loadMonth();
+                    loadSummary();
+                } catch (err) {
+                    UI.showToast((err && err.message) || 'Could not add holiday.', 'error');
+                } finally {
+                    addBtn.disabled = false;
+                }
+            };
+
+            refreshList();
+        }
+
+
+        // checkIn/checkOut need this account's Employee._id (resolved
+        // via the existing GET /employees/me → Employee.findOne({userId})
+        // lookup, same one used everywhere else in the app). Some
+        // accounts have no linked employee record yet, so this is
+        // checked once up front and the Check In button is disabled
+        // with a clear reason rather than failing silently on click.
+        async function checkMyEmployeeLinkAndUpdateUI() {
+            if (viewingEmployeeId) return; // not relevant when viewing someone else
+            if (!window.ApiService || !window.ApiService.attendance || !window.ApiService.attendance.checkMyEmployeeLink) return;
+
+            myEmployeeLinkStatus = await window.ApiService.attendance.checkMyEmployeeLink();
+            if (!myEmployeeLinkStatus.linked) {
+                const btn = document.getElementById('checkio-btn');
+                const note = document.getElementById('attendance-status-note');
+                btn.disabled = true;
+                note.textContent = myEmployeeLinkStatus.message || 'Attendance isn\'t available for this account yet.';
+            }
+        }
+
         // ── Today card ────────────────────────────────────────────
         function stopLiveDurationTimer() {
             if (liveDurationTimer) {
@@ -550,26 +862,32 @@
             const checkIn = record && record.checkInTime;
             const checkOut = record && record.checkOutTime;
 
-            inEl.innerHTML = checkIn ? formatClockTime(checkIn) : '<span class="dim">—</span>';
-            outEl.innerHTML = checkOut ? formatClockTime(checkOut) : '<span class="dim">—</span>';
+            inEl.innerHTML = checkIn
+                ? `${formatClockTime(checkIn)}${locationMiniLink(record && record.checkInLocation)}`
+                : '<span class="dim">—</span>';
+            outEl.innerHTML = checkOut
+                ? `${formatClockTime(checkOut)}${locationMiniLink(record && record.checkOutLocation)}`
+                : '<span class="dim">—</span>';
 
             const isSelf = !viewingEmployeeId;
+            const isHalfDay = record && record.dayType === 'HALF_DAY';
+            const lateSuffix = record && record.isLate ? ' ⏰ Late' : '';
 
             if (checkIn && checkOut) {
                 const mins = (record.totalMinutes !== null && record.totalMinutes !== undefined)
                     ? record.totalMinutes
                     : minutesBetween(checkIn, checkOut);
                 totalEl.textContent = formatMinutesAsHM(mins) || '—';
-                badge.className = 'badge badge-green';
-                badge.textContent = 'Checked Out';
+                badge.className = isHalfDay ? 'badge badge-orange' : 'badge badge-green';
+                badge.textContent = (isHalfDay ? 'Checked Out — Half Day' : 'Checked Out') + lateSuffix;
                 btn.className = 'btn checkio-btn done';
                 btn.textContent = 'Done for Today';
                 btn.disabled = !isSelf;
                 note.textContent = isSelf ? "You've completed today's attendance." : '';
             } else if (checkIn && !checkOut) {
                 startLiveDurationTimer(checkIn);
-                badge.className = 'badge badge-yellow';
-                badge.textContent = 'Checked In';
+                badge.className = isHalfDay ? 'badge badge-orange' : 'badge badge-yellow';
+                badge.textContent = (isHalfDay ? 'Checked In — Half Day' : 'Checked In') + lateSuffix;
                 btn.className = 'btn checkio-btn out';
                 btn.textContent = 'Check Out';
                 btn.disabled = !isSelf;
@@ -580,6 +898,14 @@
                 badge.textContent = record.holidayName ? `Holiday — ${record.holidayName}` : 'Holiday';
                 btn.className = 'btn checkio-btn done';
                 btn.textContent = 'Holiday';
+                btn.disabled = true;
+                note.textContent = 'No check-in required today.';
+            } else if (record && record.status === 'WEEK_OFF') {
+                totalEl.innerHTML = '<span class="dim">—</span>';
+                badge.className = 'badge badge-purple';
+                badge.textContent = 'Week Off';
+                btn.className = 'btn checkio-btn done';
+                btn.textContent = 'Week Off';
                 btn.disabled = true;
                 note.textContent = 'No check-in required today.';
             } else if (record && record.status === 'ABSENT') {
@@ -611,6 +937,7 @@
                         .then(list => (list || []).find(r => r.date === isoDateOnly(new Date())) || null)
                     : await window.AttendanceService.getToday();
                 renderTodayCard(record);
+                await checkMyEmployeeLinkAndUpdateUI();
             } catch (err) {
                 console.error('Failed to load today\'s attendance:', err);
                 renderTodayCard(null);
@@ -620,34 +947,117 @@
             }
         }
 
+        // ── Checkout worksheet gate ──────────────────────────────
+        // Mirrors employee.html's handleCheckOutModal() exactly: submit
+        // the worksheet first (same Worksheet model/API), and only on
+        // success perform the actual attendance checkout. If the person
+        // closes the modal (✕, backdrop, or Esc) without hitting Submit,
+        // checkOut() is never called — attendance stays Checked In.
+        function openCheckoutWorksheetModal() {
+            const tpl = document.getElementById('worksheet-modal-tpl');
+            const isHalfDay = todayRecord && todayRecord.dayType === 'HALF_DAY';
+            const modal = UI.createModal({
+                title: isHalfDay ? '📋 Half Day Worksheet & Checkout' : '📋 Full Day Worksheet & Checkout',
+                bodyHtml: tpl.innerHTML,
+                footerHtml: `
+                    <button class="btn btn-secondary" id="ws-cancel">Cancel</button>
+                    <button class="btn btn-warning" id="ws-submit"><i class="fas fa-paper-plane"></i> Submit & Check Out</button>
+                `,
+            });
+
+            modal.querySelector('#ws-cancel').onclick = () => modal.close();
+            let worksheetSubmitted = false;
+            modal.querySelector('#ws-submit').onclick = async () => {
+                const submitBtn = modal.querySelector('#ws-submit');
+
+                if (!worksheetSubmitted) {
+                    const summaryStr = modal.querySelector('#ws-summary').value.trim();
+                    if (!summaryStr) {
+                        return UI.showToast('Please provide a summary of your work done today.', 'error');
+                    }
+                    const callsVal = modal.querySelector('#ws-calls').value;
+                    const vesselsVal = modal.querySelector('#ws-vessels').value;
+                    const notesStr = modal.querySelector('#ws-notes').value.trim();
+
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+                    try {
+                        const employeeId = await window.ApiService.attendance.getMyEmployeeId();
+                        // 1. Submit worksheet (same model/endpoint employee.html uses)
+                        await window.ApiService.employees.submitWorksheet({
+                            employeeId,
+                            summaryOfWork: summaryStr,
+                            callsMade: callsVal,
+                            vesselsContacted: vesselsVal,
+                            notes: notesStr,
+                        });
+                        worksheetSubmitted = true; // saved — never resubmit, even on a later retry
+                    } catch (err) {
+                        console.error('Worksheet submit failed:', err);
+                        UI.showToast((err && err.message) || 'Could not save your worksheet.', 'error');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit & Check Out';
+                        return;
+                    }
+                }
+
+                // 2. Only after the worksheet is saved: get location, then checkout.
+                //    If location fails, checkout is never called — still Checked In.
+                submitBtn.innerHTML = '<i class="fas fa-map-marker-alt fa-spin"></i> Getting your location…';
+                try {
+                    const coords = await captureCurrentLocation();
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking out…';
+                    const updated = await window.AttendanceService.checkOut(coords);
+                    renderTodayCard(updated || { ...todayRecord, checkOutTime: new Date().toISOString() });
+
+                    UI.showToast('Worksheet submitted & checked out successfully.', 'success');
+                    modal.close();
+                    window.dispatchEvent(new CustomEvent('attendance:changed'));
+                    loadMonth();
+                    loadSummary();
+                } catch (err) {
+                    console.error('Location / checkout error:', err);
+                    UI.showToast((err && err.message) || 'Checkout failed.', 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Retry Location & Check Out';
+                }
+            };
+        }
+
         document.getElementById('checkio-btn').addEventListener('click', async () => {
             if (viewingEmployeeId) return; // read-only when viewing someone else
-            const btn = document.getElementById('checkio-btn');
             const isCheckingOut = todayRecord && todayRecord.checkInTime && !todayRecord.checkOutTime;
 
+            if (isCheckingOut) {
+                openCheckoutWorksheetModal();
+                return;
+            }
+
+            const btn = document.getElementById('checkio-btn');
             btn.disabled = true;
             const originalText = btn.textContent;
-            btn.textContent = isCheckingOut ? 'Checking out…' : 'Checking in…';
+            btn.textContent = 'Getting your location…';
 
             try {
-                if (isCheckingOut) {
-                    const updated = await window.AttendanceService.checkOut();
-                    renderTodayCard(updated || { ...todayRecord, checkOutTime: new Date().toISOString() });
-                    if (window.UI && window.UI.showToast) window.UI.showToast('Checked out. Have a good one!', 'success');
-                } else {
-                    const updated = await window.AttendanceService.checkIn();
-                    renderTodayCard(updated || { checkInTime: new Date().toISOString(), checkOutTime: null, status: 'PRESENT' });
-                    if (window.UI && window.UI.showToast) window.UI.showToast('Checked in. Have a great day!', 'success');
-                }
+                const coords = await captureCurrentLocation();
+                btn.textContent = 'Checking in…';
+                const updated = await window.AttendanceService.checkIn(coords);
+                renderTodayCard(updated || { checkInTime: new Date().toISOString(), checkOutTime: null, status: 'PRESENT' });
+                if (window.UI && window.UI.showToast) window.UI.showToast('Checked in. Have a great day!', 'success');
                 window.dispatchEvent(new CustomEvent('attendance:changed'));
                 loadMonth();
                 loadSummary();
             } catch (err) {
-                console.error('Check in/out failed:', err);
-                btn.disabled = false;
+                console.error('Check in failed:', err);
+                const noProfile = err && err.code === 'NO_EMPLOYEE_PROFILE';
+                btn.disabled = noProfile; // don't invite a retry that can't succeed
                 btn.textContent = originalText;
-                const message = err && err.message ? err.message : 'Something went wrong. Please try again.';
+                const message = (err && err.message) || 'Something went wrong. Please try again.';
                 if (window.UI && window.UI.showToast) window.UI.showToast(message, 'error');
+                if (noProfile) {
+                    const note = document.getElementById('attendance-status-note');
+                    if (note) note.textContent = message;
+                }
             }
         });
 
@@ -673,6 +1083,7 @@
                 animateCountUp(document.getElementById('stat-att-present'), summary.presentDays || 0);
                 animateCountUp(document.getElementById('stat-att-absent'), summary.absentDays || 0);
                 animateCountUp(document.getElementById('stat-att-holidays'), summary.holidays || 0);
+                animateCountUp(document.getElementById('stat-att-weekoffs'), summary.weekOffs || 0);
 
                 const totalHoursEl = document.getElementById('stat-att-total-hours');
                 totalHoursEl.classList.remove('skeleton');
@@ -683,7 +1094,7 @@
                 avgHoursEl.textContent = formatMinutesAsHM(summary.averageMinutes || 0) || '0h 00m';
             } catch (err) {
                 console.error('Failed to load attendance summary:', err);
-                ['stat-att-present', 'stat-att-absent', 'stat-att-holidays'].forEach(id => {
+                ['stat-att-present', 'stat-att-absent', 'stat-att-holidays', 'stat-att-weekoffs'].forEach(id => {
                     const el = document.getElementById(id);
                     el.classList.remove('skeleton');
                     el.textContent = '—';
@@ -694,9 +1105,12 @@
         }
 
         // ── Calendar ──────────────────────────────────────────────
-        function statusClassFor(record) {
+        function statusClassFor(record, dateIso, todayIso) {
+            if (dateIso && todayIso && dateIso > todayIso) return 'status-future';
             if (!record) return 'status-none';
             if (record.status === 'HOLIDAY') return 'status-holiday';
+            if (record.status === 'WEEK_OFF') return 'status-weekoff';
+            if (record.status === 'HALF_DAY') return 'status-halfday';
             if (record.checkInTime || record.status === 'PRESENT') return 'status-present';
             if (record.status === 'ABSENT') return 'status-absent';
             return 'status-none';
@@ -725,19 +1139,46 @@
             for (let day = 1; day <= daysInMonth; day++) {
                 const dateIso = `${calYear}-${pad2(calMonth)}-${pad2(day)}`;
                 const record = recordsByDate[dateIso];
-                const statusClass = statusClassFor(record);
+                const statusClass = statusClassFor(record, dateIso, todayIso);
                 const isToday = dateIso === todayIso;
+                const isSelected = dateIso === selectedCalDate;
+
+                // Compact in-cell hint so the calendar carries real signal,
+                // not just color — hidden on narrow screens via CSS.
+                let hint = '';
+                if (statusClass === 'status-present' && record) {
+                    hint = record.checkInTime ? formatClockTime(record.checkInTime) : 'Present';
+                } else if (statusClass === 'status-halfday') {
+                    hint = record && record.checkInTime ? formatClockTime(record.checkInTime) : 'Half Day';
+                } else if (statusClass === 'status-holiday') {
+                    hint = record && record.holidayName ? record.holidayName : 'Holiday';
+                } else if (statusClass === 'status-weekoff') {
+                    hint = 'Week Off';
+                } else if (statusClass === 'status-absent') {
+                    hint = 'Absent';
+                } else if (statusClass === 'status-future') {
+                    hint = 'Future';
+                }
+                const hintHtml = hint ? `<div class="cal-cell-time" title="${hint.replace(/"/g, '&quot;')}">${hint}</div>` : '<div class="cal-cell-dot"></div>';
+                const lateBadge = record && record.isLate ? `<span class="cal-cell-late-badge" title="Late check-in">⏰</span>` : '';
+
                 html += `
-                    <div class="cal-cell ${statusClass} ${isToday ? 'is-today' : ''}" data-date="${dateIso}">
+                    <div class="cal-cell ${statusClass} ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" data-date="${dateIso}">
                         <div class="cal-cell-date">${day}</div>
-                        <div class="cal-cell-dot"></div>
+                        ${hintHtml}
+                        ${lateBadge}
                     </div>`;
             }
 
             grid.innerHTML = html;
 
             grid.querySelectorAll('.cal-cell:not(.empty)').forEach(cell => {
-                cell.addEventListener('click', () => openDayModal(cell.dataset.date, recordsByDate[cell.dataset.date]));
+                cell.addEventListener('click', () => {
+                    selectedCalDate = cell.dataset.date;
+                    grid.querySelectorAll('.cal-cell.is-selected').forEach(c => c.classList.remove('is-selected'));
+                    cell.classList.add('is-selected');
+                    openDayModal(cell.dataset.date, recordsByDate[cell.dataset.date]);
+                });
             });
         }
 
@@ -784,9 +1225,13 @@
             const d = new Date(dateIso + 'T00:00:00');
             title.textContent = d.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
 
-            const statusLabel = !record ? 'No Data'
+            const todayIso = isoDateOnly(new Date());
+            const statusLabel = dateIso > todayIso ? 'Future'
+                : !record ? 'No Data'
                 : record.status === 'HOLIDAY' ? (record.holidayName ? `Holiday — ${record.holidayName}` : 'Holiday')
+                : record.status === 'WEEK_OFF' ? 'Week Off'
                 : record.status === 'ABSENT' ? 'Absent'
+                : record.status === 'HALF_DAY' ? 'Half Day'
                 : (record.checkInTime && record.checkOutTime) ? 'Checked Out'
                 : record.checkInTime ? 'Checked In'
                 : 'Present';
@@ -797,11 +1242,22 @@
                     : minutesBetween(record.checkInTime, record.checkOutTime))
                 : null;
 
+            const dayTypeRow = record && record.checkInTime
+                ? `<div class="day-detail-row"><span class="day-detail-label">Day Type</span><span class="day-detail-value">${record.dayType === 'HALF_DAY' ? 'Half Day' : 'Full Day'}</span></div>`
+                : '';
+            const lateRow = record && record.isLate
+                ? `<div class="day-detail-row"><span class="day-detail-label">Late Mark</span><span class="day-detail-value">⏰ Checked in after 10:00 AM</span></div>`
+                : '';
+
             body.innerHTML = `
                 <div class="day-detail-row"><span class="day-detail-label">Status</span><span class="day-detail-value">${statusLabel}</span></div>
+                ${dayTypeRow}
                 <div class="day-detail-row"><span class="day-detail-label">Check In</span><span class="day-detail-value">${record && record.checkInTime ? formatClockTime(record.checkInTime) : '—'}</span></div>
+                <div class="day-detail-row"><span class="day-detail-label">Location</span><span class="day-detail-value" style="text-align:right;">${locationLine(record && record.checkInLocation)}</span></div>
                 <div class="day-detail-row"><span class="day-detail-label">Check Out</span><span class="day-detail-value">${record && record.checkOutTime ? formatClockTime(record.checkOutTime) : '—'}</span></div>
+                <div class="day-detail-row"><span class="day-detail-label">Location</span><span class="day-detail-value" style="text-align:right;">${locationLine(record && record.checkOutLocation)}</span></div>
                 <div class="day-detail-row"><span class="day-detail-label">Total Hours</span><span class="day-detail-value">${formatMinutesAsHM(totalMins) || '—'}</span></div>
+                ${lateRow}
             `;
 
             dayModal.style.display = 'flex';
@@ -827,6 +1283,7 @@
             calMonth = now.getMonth() + 1;
 
             initEmployeeSelector();
+            initHolidayManagement();
             loadToday();
             loadMonth();
             loadSummary();
@@ -834,6 +1291,45 @@
 
         window.addEventListener('beforeunload', stopLiveDurationTimer);
     </script>
+
+    <!-- CHECKOUT DAILY WORKSHEET MODAL TEMPLATE — same fields/ids as
+         employee.html's worksheet-modal-tpl, so both pages submit the
+         exact same Worksheet shape through the exact same API. -->
+    <template id="worksheet-modal-tpl">
+        <div style="display: flex; flex-direction: column; gap: 14px">
+            <div style="
+                    background: rgba(14, 165, 233, 0.1);
+                    padding: 12px;
+                    border-radius: 6px;
+                    font-size: 0.85rem;
+                    color: var(--text-secondary);
+                  ">
+                <i class="fas fa-info-circle" style="color: var(--accent-blue); margin-right: 6px"></i>
+                Please fill in your daily work summary before completing check-out.
+            </div>
+            <div>
+                <label class="form-label">Summary of Work Done Today
+                    <span style="color: #f87171">*</span></label>
+                <textarea id="ws-summary" class="form-control" rows="3"
+                    placeholder="Describe tasks, client calls, and progress completed today…"></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+                <div>
+                    <label class="form-label">Calls / Contacts Made</label>
+                    <input id="ws-calls" type="number" min="0" class="form-control" value="0" />
+                </div>
+                <div>
+                    <label class="form-label">Vessel Owners Contacted</label>
+                    <input id="ws-vessels" type="number" min="0" class="form-control" value="0" />
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Additional Notes / Leads Followed</label>
+                <textarea id="ws-notes" class="form-control" rows="2"
+                    placeholder="Any follow-up details or remarks…"></textarea>
+            </div>
+        </div>
+    </template>
 
     <script src="/public/js/components/cursor.js"></script>
 </body>

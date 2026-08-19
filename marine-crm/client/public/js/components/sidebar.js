@@ -432,7 +432,10 @@ async function attendanceFetch(method, url, body) {
     const message = (data && (data.message || data.error)) || `Request failed (${res.status})`;
     throw new Error(message);
   }
-  return data;
+  // The attendance API responds with { success, data } — unwrap it so
+  // callers always get the plain record/array/object, matching how
+  // documentsApi.getAll() elsewhere in this app unwraps res.data.data.
+  return (data && data.data !== undefined) ? data.data : data;
 }
 
 // Normalizes both possible shapes: a window.ApiService.attendance.*

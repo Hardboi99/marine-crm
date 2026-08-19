@@ -5,7 +5,8 @@ const { requireRole } = require('../middlewares/roleCheck');
 const {
   listEmployees, createEmployee, updateEmployee, deleteEmployee,
   exitEmployee, reactivateEmployee,
-  getTodayAttendance, checkIn, checkOut,
+  getTodayAttendance, getMyTodayAttendance, getAttendanceMonth, getAttendanceSummary, checkIn, checkOut,
+  listHolidays, createHoliday, updateHoliday, deleteHoliday,
   submitWorksheet, getWorksheets,
   createTask, getTasks, updateTaskStatus,
   getMyProfile,
@@ -22,9 +23,18 @@ router.get('/me/birthday-check', authenticate, checkMyBirthdayToday);
 router.get('/', authenticate, listEmployees);
 
 // ── Attendance (filtered by role inside handler) ──────────────────────────────
-router.get('/attendance/today', authenticate, getTodayAttendance);
+router.get('/attendance/today',    authenticate, getTodayAttendance);
+router.get('/attendance/me/today', authenticate, getMyTodayAttendance);
+router.get('/attendance/month',    authenticate, getAttendanceMonth);
+router.get('/attendance/summary',  authenticate, getAttendanceSummary);
 router.post('/checkin/:id',     authenticate, checkIn);
 router.post('/checkout/:id',    authenticate, checkOut);
+
+// ── Holidays (read: everyone authenticated; write: ADMIN/HR only) ─────────────
+router.get('/holidays',      authenticate, listHolidays);
+router.post('/holidays',     authenticate, requireRole('ADMIN', 'HR'), createHoliday);
+router.put('/holidays/:id',  authenticate, requireRole('ADMIN', 'HR'), updateHoliday);
+router.delete('/holidays/:id', authenticate, requireRole('ADMIN', 'HR'), deleteHoliday);
 
 // ── Worksheets (filtered by role inside handler) ──────────────────────────────
 router.post('/worksheet',  authenticate, submitWorksheet);

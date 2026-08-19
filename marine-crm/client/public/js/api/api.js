@@ -43,6 +43,92 @@ api.interceptors.response.use(
   }
 );
 
+// ─── Attendance helpers ───────────────────────────────────────────────────────
+// checkIn/checkOut on the existing backend are keyed by Employee._id
+// (POST /employees/checkin/:id), not the logged-in User._id. Every
+// other place in this project that resolves "my own employee record"
+// does it the exact same way: Employee.findOne({ userId: <User._id> })
+// — see getMyEmployee() in employeeController.js, reused by
+// listEmployees, checkIn, checkOut, and getMyProfile (GET /employees/me),
+// and by getEmployeeDashboard() in dashboardController.js. GET
+// /employees/me already exposes that same lookup over HTTP (it just
+// wasn't called by any page before), so the navbar button / attendance
+// page reuse it here rather than adding a new resolution mechanism.
+//
+// Not every logged-in User has a linked Employee (e.g. accounts
+// created without going through the Admin "Create Employee" flow, or
+// seeded users) — GET /employees/me correctly 404s for those. That's
+// an expected data state, not a bug, so this wraps it into a typed,
+// friendly error the UI can show without looking like a crash.
+let _cachedMyEmployeeId = null;
+async function resolveMyEmployeeId() {
+  if (_cachedMyEmployeeId) return _cachedMyEmployeeId;
+
+  let res;
+  try {
+    res = await api.get('/employees/me'); // → { success, data: Employee }
+  } catch (err) {
+    const e = new Error(
+      'Your account isn\'t linked to an employee profile yet. Ask your Admin/HR to enable attendance for your account.'
+    );
+    e.code = 'NO_EMPLOYEE_PROFILE';
+    e.cause = err;
+    throw e;
+  }
+
+  const id = res && res.data && (res.data.id || res.data._id);
+  if (!id) {
+    const e = new Error(
+      'Your account isn\'t linked to an employee profile yet. Ask your Admin/HR to enable attendance for your account.'
+    );
+    e.code = 'NO_EMPLOYEE_PROFILE';
+    throw e;
+  }
+  _cachedMyEmployeeId = id;
+  return id;
+}
+
+// Lets a page check up-front (e.g. on load) whether the logged-in
+// account has an employee profile, so it can disable the Check In
+// button with a clear explanation instead of letting the person click
+// it and get a generic failure toast.
+async function checkMyEmployeeLink() {
+  try {
+    await resolveMyEmployeeId();
+    return { linked: true };
+  } catch (err) {
+    return { linked: false, code: err.code || 'PROFILE_LOOKUP_FAILED', message: err.message };
+  }
+}
+
+// Normalizes a raw Attendance doc ({ checkIn, checkOut, date, ... }, as
+// returned by the existing checkin/checkout endpoints) into the shape
+// the attendance UI works with. This is purely a client-side response
+// shim — it does not change what employee.html's existing check-in/out
+// buttons receive, since those call ApiService.employees.* directly.
+function normalizeAttendanceRecordClient(raw) {
+  if (!raw) return null;
+  const checkInTime = raw.checkIn || raw.checkInTime || null;
+  const checkOutTime = raw.checkOut || raw.checkOutTime || null;
+  const totalMinutes = (checkInTime && checkOutTime)
+    ? Math.round((new Date(checkOutTime) - new Date(checkInTime)) / 60000)
+    : (raw.totalMinutes !== undefined ? raw.totalMinutes : null);
+  const dayType = raw.dayType || 'FULL_DAY';
+  const status = raw.status || (checkInTime ? (dayType === 'HALF_DAY' ? 'HALF_DAY' : 'PRESENT') : 'NOT_MARKED');
+  return {
+    date: raw.date,
+    status,
+    dayType,
+    isLate: !!raw.isLate,
+    checkInTime,
+    checkOutTime,
+    totalMinutes,
+    holidayName: raw.holidayName || null,
+    checkInLocation: raw.checkInLocation || null,
+    checkOutLocation: raw.checkOutLocation || null,
+  };
+}
+
 // ─── API Endpoints ────────────────────────────────────────────────────────────
 
 const ApiService = {
@@ -264,7 +350,48 @@ const ApiService = {
     create: (formData) => api.post('/documents', formData, {
       headers: { 'Content-Type': undefined }
     }),
-  }
+  },
+
+  // ── Attendance (navbar IN/OUT button + attendance.html) ────────────────────
+  // Backed by the SAME /api/employees/* attendance architecture as
+  // ApiService.employees.getTodayAttendance/checkIn/checkOut above —
+  // this just adds the self/normalized + month/summary views that
+  // page needs. window.AttendanceService in sidebar.js auto-detects
+  // and prefers this namespace over its own placeholder fetch() calls.
+  attendance: {
+    getToday: () => api.get('/employees/attendance/me/today'),
+    checkIn: async (coords) => {
+      const id = await resolveMyEmployeeId();
+      const res = await api.post(`/employees/checkin/${id}`, coords || {});
+      return { success: res.success, data: normalizeAttendanceRecordClient(res.data) };
+    },
+    checkOut: async (coords) => {
+      const id = await resolveMyEmployeeId();
+      const res = await api.post(`/employees/checkout/${id}`, coords || {});
+      return { success: res.success, data: normalizeAttendanceRecordClient(res.data) };
+    },
+    getMonth: (year, month, employeeId) => api.get('/employees/attendance/month', {
+      params: { year, month, ...(employeeId ? { employeeId } : {}) },
+    }),
+    getSummary: (year, month, employeeId) => api.get('/employees/attendance/summary', {
+      params: { year, month, ...(employeeId ? { employeeId } : {}) },
+    }),
+    // Lets attendance.html check up-front whether this account can
+    // check in/out at all, instead of surfacing the failure only on click.
+    checkMyEmployeeLink,
+    // Exposes the resolved (and cached) Employee._id for this account —
+    // needed by the checkout worksheet flow, which must submit the
+    // worksheet under the same employeeId before calling checkOut.
+    getMyEmployeeId: () => resolveMyEmployeeId(),
+  },
+
+  // ── Holidays (read: everyone; write: ADMIN/HR — enforced server-side) ──────
+  holidays: {
+    getAll: (params) => api.get('/employees/holidays', { params }),
+    create: (data) => api.post('/employees/holidays', data),
+    update: (id, data) => api.put(`/employees/holidays/${id}`, data),
+    delete: (id) => api.delete(`/employees/holidays/${id}`),
+  },
 };
 
 window.ApiService = ApiService;
