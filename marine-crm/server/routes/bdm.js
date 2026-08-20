@@ -1,24 +1,27 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middlewares/auth');
+const { authenticate, loadCurrentUser } = require('../middlewares/auth');
 const { requireRole } = require('../middlewares/roleCheck');
 const {
   getCountries, getCountry, createCountry, updateCountry, deleteCountry,
   getCompanies, getCompany, createCompany, updateCompany, deleteCompany,
 } = require('../controllers/bdmController');
 
-// Country routes (ADMIN + BDM + MANAGER can manage)
-router.get('/countries', authenticate, getCountries);
-router.get('/countries/:id', authenticate, getCountry);
-router.post('/countries', authenticate, requireRole('ADMIN', 'BDM', 'MANAGER'), createCountry);
-router.put('/countries/:id', authenticate, requireRole('ADMIN', 'BDM', 'MANAGER'), updateCountry);
-router.delete('/countries/:id', authenticate, requireRole('ADMIN'), deleteCountry);
+router.use(authenticate, loadCurrentUser);
+
+// Country routes (ADMIN + BDM + Managers can manage; countries are shared,
+// non-ownable reference data so they are not record-scoped)
+router.get('/countries', getCountries);
+router.get('/countries/:id', getCountry);
+router.post('/countries', requireRole('ADMIN', 'BDM', 'MANAGER'), createCountry);
+router.put('/countries/:id', requireRole('ADMIN', 'BDM', 'MANAGER'), updateCountry);
+router.delete('/countries/:id', requireRole('ADMIN'), deleteCountry);
 
 // Company routes
-router.get('/companies', authenticate, getCompanies);
-router.get('/companies/:id', authenticate, getCompany);
-router.post('/companies', authenticate, requireRole('ADMIN', 'BDM', 'MANAGER'), createCompany);
-router.put('/companies/:id', authenticate, requireRole('ADMIN', 'BDM', 'MANAGER'), updateCompany);
-router.delete('/companies/:id', authenticate, requireRole('ADMIN'), deleteCompany);
+router.get('/companies', getCompanies);
+router.get('/companies/:id', getCompany);
+router.post('/companies', requireRole('ADMIN', 'BDM', 'MANAGER'), createCompany);
+router.put('/companies/:id', requireRole('ADMIN', 'BDM', 'MANAGER'), updateCompany);
+router.delete('/companies/:id', requireRole('ADMIN'), deleteCompany);
 
 module.exports = router;

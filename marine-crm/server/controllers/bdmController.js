@@ -1,5 +1,6 @@
 const { Country, Company, Call, Appointment, Contract } = require('../models');
 const { logActivity } = require('../utils/activityLogger');
+const { getDataScope, canAccessRecord } = require('../utils/accessScope');
 
 // ─── COUNTRIES ────────────────────────────────────────────────
 
@@ -110,6 +111,17 @@ const getCompanies = async (req, res, next) => {
     if (countryId) where.countryId = countryId;
     if (status) where.status = status;
 
+    // Ownership-scoped: a BDM only sees companies they created/own unless
+    // their role has organisation-wide visibility (see accessScope.js).
+    const scope = await getDataScope(req.currentUser, 'COMPANY');
+    if (scope.$or && where.$or) {
+      const { $or: scopeOr } = scope;
+      where.$and = [{ $or: where.$or }, { $or: scopeOr }];
+      delete where.$or;
+    } else {
+      Object.assign(where, scope);
+    }
+
     const [companies, total] = await Promise.all([
       Company.find(where)
         .sort({ createdAt: -1 })
@@ -165,6 +177,11 @@ const getCompany = async (req, res, next) => {
       .populate('createdById', 'name');
 
     if (!company) return res.status(404).json({ success: false, message: 'Company not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, company, 'COMPANY');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this company record.' });
+    }
 
     const [calls, appointments, contracts] = await Promise.all([
       Call.find({ companyId: company._id }).sort({ callDate: -1 }).limit(10).populate('userId', 'name'),
@@ -237,6 +254,14 @@ const createCompany = async (req, res, next) => {
 
 const updateCompany = async (req, res, next) => {
   try {
+    const existing = await Company.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Company not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'COMPANY');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this company record.' });
+    }
+
     const allowed = ['name', 'countryId', 'fleetDetails', 'contactPerson', 'email', 'phone', 'website', 'status', 'notes'];
     const data = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     if (data.name) data.name = data.name.trim();
@@ -267,6 +292,11 @@ const deleteCompany = async (req, res, next) => {
   try {
     const company = await Company.findById(req.params.id);
     if (!company) return res.status(404).json({ success: false, message: 'Company not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, company, 'COMPANY');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this company record.' });
+    }
 
     await Company.findByIdAndDelete(req.params.id);
     await Call.deleteMany({ companyId: req.params.id });

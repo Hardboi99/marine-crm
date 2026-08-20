@@ -1,5 +1,6 @@
 const { Contract, Company } = require('../models');
 const { logActivity } = require('../utils/activityLogger');
+const { getDataScope, canAccessRecord } = require('../utils/accessScope');
 
 // ─── CONTRACTS ────────────────────────────────────────────────
 
@@ -21,6 +22,15 @@ const getContracts = async (req, res, next) => {
         { notes: { $regex: search, $options: 'i' } },
         { companyId: { $in: matchingCompanyIds } },
       ];
+    }
+
+    const scope = await getDataScope(req.currentUser, 'CONTRACT');
+    if (scope.$or && where.$or) {
+      const { $or: scopeOr } = scope;
+      where.$and = [{ $or: where.$or }, { $or: scopeOr }];
+      delete where.$or;
+    } else {
+      Object.assign(where, scope);
     }
 
     const [contracts, total] = await Promise.all([
@@ -61,6 +71,11 @@ const getContract = async (req, res, next) => {
       .populate('appointmentId');
 
     if (!contract) return res.status(404).json({ success: false, message: 'Contract not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, contract, 'CONTRACT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this contract.' });
+    }
 
     const obj = contract.toJSON();
     obj.company = contract.companyId;
@@ -114,6 +129,14 @@ const createContract = async (req, res, next) => {
 
 const updateContract = async (req, res, next) => {
   try {
+    const existingContract = await Contract.findById(req.params.id);
+    if (!existingContract) return res.status(404).json({ success: false, message: 'Contract not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existingContract, 'CONTRACT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this contract.' });
+    }
+
     const allowed = ['companyId', 'appointmentId', 'title', 'status', 'signedDate', 'expiryDate', 'notes'];
     const data = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
 
@@ -152,6 +175,11 @@ const deleteContract = async (req, res, next) => {
   try {
     const contract = await Contract.findById(req.params.id).populate('companyId', 'name');
     if (!contract) return res.status(404).json({ success: false, message: 'Contract not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, contract, 'CONTRACT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this contract.' });
+    }
 
     await Contract.findByIdAndDelete(req.params.id);
 

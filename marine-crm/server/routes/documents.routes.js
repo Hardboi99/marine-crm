@@ -5,12 +5,17 @@ const router = express.Router();
 
 const { documentUpload } = require('../middlewares/documentUpload');
 const { getAllDocuments, createDocument } = require('../controllers/documents.controller');
-const { authenticate } = require('../middlewares/auth');
+const { authenticate, loadCurrentUser } = require('../middlewares/auth');
 const { requireRole } = require('../middlewares/roleCheck');
 
-// authenticate populates req.user ({ id, email, role, name }) from the JWT.
-// requireRole restricts access strictly to ADMIN and MANAGER_DOCS.
-router.use(authenticate, requireRole('ADMIN', 'MANAGER_DOCS'));
+// authenticate populates req.user ({ id, email, role, name }) from the JWT;
+// loadCurrentUser fetches the live DB user so getAllDocuments can apply
+// record-level scoping (never trust department/role from a stale JWT).
+// requireRole restricts access to ADMIN, the Documentation team, and
+// organisation-wide roles. 'MANAGER_DOCS' is kept for legacy DB records
+// mid-migration — requireRole() also accepts its current equivalent
+// (DOCUMENTATION_MANAGER) automatically. See utils/roles.js.
+router.use(authenticate, loadCurrentUser, requireRole('ADMIN', 'DIRECTOR', 'COO', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER', 'MANAGER_DOCS'));
 
 router.get('/', getAllDocuments);
 

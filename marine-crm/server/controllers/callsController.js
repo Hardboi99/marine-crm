@@ -1,6 +1,7 @@
 const { Call, Appointment, Reason, FollowUp, Company } = require('../models');
 const { validateOutcome } = require('../utils/reasonValidator');
 const { logActivity } = require('../utils/activityLogger');
+const { getDataScope, canAccessRecord } = require('../utils/accessScope');
 
 // ─── CALLS ────────────────────────────────────────────────────
 
@@ -20,6 +21,9 @@ const getCalls = async (req, res, next) => {
       end.setHours(23, 59, 59, 999);
       where.callDate = { $gte: start, $lte: end };
     }
+
+    const scope = await getDataScope(req.currentUser, 'CALL');
+    Object.assign(where, scope);
 
     const [calls, total] = await Promise.all([
       Call.find(where)
@@ -84,6 +88,14 @@ const createCall = async (req, res, next) => {
 
 const updateCall = async (req, res, next) => {
   try {
+    const existing = await Call.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Call not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'CALL');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this call record.' });
+    }
+
     const allowed = ['callDate', 'durationMinutes', 'statusColor', 'notes', 'nextFollowupDate'];
     const data = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     if (data.callDate) data.callDate = new Date(data.callDate);
@@ -108,6 +120,14 @@ const updateCall = async (req, res, next) => {
 
 const deleteCall = async (req, res, next) => {
   try {
+    const existing = await Call.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Call not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'CALL');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this call record.' });
+    }
+
     const call = await Call.findByIdAndDelete(req.params.id);
     if (!call) return res.status(404).json({ success: false, message: 'Call not found.' });
     res.json({ success: true, message: 'Call deleted.' });
@@ -128,6 +148,9 @@ const getAppointments = async (req, res, next) => {
     if (companyId) where.companyId = companyId;
     if (outcome) where.outcome = outcome;
     if (upcoming === 'true') where.scheduledAt = { $gte: now };
+
+    const scope = await getDataScope(req.currentUser, 'APPOINTMENT');
+    Object.assign(where, scope);
 
     const [appointments, total] = await Promise.all([
       Appointment.find(where)
@@ -198,6 +221,14 @@ const createAppointment = async (req, res, next) => {
 
 const setAppointmentOutcome = async (req, res, next) => {
   try {
+    const existingAppt = await Appointment.findById(req.params.id);
+    if (!existingAppt) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existingAppt, 'APPOINTMENT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this appointment.' });
+    }
+
     const { outcome, reasonId, bookedAt, reminderAt, meetingNotes } = req.body;
 
     const validation = validateOutcome(outcome, reasonId);
@@ -255,6 +286,14 @@ const setAppointmentOutcome = async (req, res, next) => {
 
 const updateAppointment = async (req, res, next) => {
   try {
+    const existing = await Appointment.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'APPOINTMENT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this appointment.' });
+    }
+
     const allowed = ['scheduledAt', 'meetingNotes', 'reminderAt'];
     const data = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
     if (data.scheduledAt) data.scheduledAt = new Date(data.scheduledAt);
@@ -270,6 +309,14 @@ const updateAppointment = async (req, res, next) => {
 
 const deleteAppointment = async (req, res, next) => {
   try {
+    const existing = await Appointment.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Appointment not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'APPOINTMENT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this appointment.' });
+    }
+
     const appt = await Appointment.findByIdAndDelete(req.params.id);
     if (!appt) return res.status(404).json({ success: false, message: 'Appointment not found.' });
     res.json({ success: true, message: 'Appointment deleted.' });

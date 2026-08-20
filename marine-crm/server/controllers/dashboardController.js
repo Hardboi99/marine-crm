@@ -1,4 +1,6 @@
 const { Call, FollowUp, Appointment, Contract, Company, Country, Activity, Notification, Reason, Candidate, Requirement, Invoice, Employee, Attendance, Task, Worksheet } = require('../models');
+const { getDataScope } = require('../utils/accessScope');
+const { ROLES, ORG_WIDE_ROLES } = require('../utils/roles');
 
 // ─── EMPLOYEE PERSONAL DASHBOARD (BDM role) ────────────────────────────────
 const getEmployeeDashboard = async (req, res, next) => {
@@ -28,6 +30,11 @@ const getEmployeeDashboard = async (req, res, next) => {
 
 // ─── DASHBOARD STATS ──────────────────────────────────────────
 
+// §29 — dashboard content changes according to the logged-in user. Crewing
+// counts are scoped through the same accessScope utility used by the list
+// endpoints so a manager's dashboard matches their team, and an officer's
+// dashboard matches only their own work. BDM pipeline stats and revenue
+// are only meaningful (and only shown) to BDM + org-wide roles.
 const getDashboardStats = async (req, res, next) => {
   try {
     const now = new Date();
@@ -35,21 +42,36 @@ const getDashboardStats = async (req, res, next) => {
     const todayEnd = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
+    const role = req.currentUser?.role;
+    const canSeeBdmAndFinance = ORG_WIDE_ROLES.has(role) || role === ROLES.BDM || role === ROLES.ACCOUNTS_OFFICER;
+
+    const [requirementScope, candidateScope] = await Promise.all([
+      getDataScope(req.currentUser, 'REQUIREMENT'),
+      getDataScope(req.currentUser, 'CANDIDATE'),
+    ]);
+
+    const bdmStatsPromise = canSeeBdmAndFinance
+      ? Promise.all([
+          Call.countDocuments({ callDate: { $gte: todayStart, $lt: todayEnd } }),
+          FollowUp.countDocuments({ status: 'PENDING' }),
+          Appointment.countDocuments({ scheduledAt: { $gte: now }, outcome: null }),
+          Contract.countDocuments({ status: 'ACTIVE' }),
+          Company.countDocuments({ createdAt: { $gte: monthStart }, status: 'CLIENT' }),
+          Company.countDocuments(),
+          (role === ROLES.ACCOUNTS_OFFICER || ORG_WIDE_ROLES.has(role))
+            ? Invoice.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }])
+            : Promise.resolve([]),
+        ])
+      : Promise.resolve([0, 0, 0, 0, 0, 0, []]);
+
     const [
-      todaysCalls, pendingFollowups, upcomingMeetings, activeContracts,
-      newClientsThisMonth, totalCompanies,
-      activeRequirements, candidatesPlaced, totalCandidates, revenueData
+      [todaysCalls, pendingFollowups, upcomingMeetings, activeContracts, newClientsThisMonth, totalCompanies, revenueData],
+      activeRequirements, candidatesPlaced, totalCandidates
     ] = await Promise.all([
-      Call.countDocuments({ callDate: { $gte: todayStart, $lt: todayEnd } }),
-      FollowUp.countDocuments({ status: 'PENDING' }),
-      Appointment.countDocuments({ scheduledAt: { $gte: now }, outcome: null }),
-      Contract.countDocuments({ status: 'ACTIVE' }),
-      Company.countDocuments({ createdAt: { $gte: monthStart }, status: 'CLIENT' }),
-      Company.countDocuments(),
-      Requirement.countDocuments({ status: 'OPEN' }),
-      Candidate.countDocuments({ status: 'ONBOARDED' }),
-      Candidate.countDocuments(),
-      Invoice.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }])
+      bdmStatsPromise,
+      Requirement.countDocuments({ ...requirementScope, status: 'OPEN' }),
+      Candidate.countDocuments({ ...candidateScope, status: 'ONBOARDED' }),
+      Candidate.countDocuments(candidateScope),
     ]);
 
     const totalRevenue = revenueData[0] ? revenueData[0].total : 0;
@@ -59,7 +81,8 @@ const getDashboardStats = async (req, res, next) => {
       data: {
         todaysCalls, pendingFollowups, upcomingMeetings, activeContracts,
         newClientsThisMonth, totalCompanies,
-        activeRequirements, candidatesPlaced, totalCandidates, totalRevenue
+        activeRequirements, candidatesPlaced, totalCandidates,
+        totalRevenue: canSeeBdmAndFinance ? totalRevenue : undefined,
       },
     });
   } catch (err) { next(err); }

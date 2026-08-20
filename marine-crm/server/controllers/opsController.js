@@ -1,5 +1,7 @@
 const { Onboarding, Candidate, Requirement, Invoice, Company } = require('../models');
 const { logActivity } = require('../utils/activityLogger');
+const { getDataScope, canAccessRecord } = require('../utils/accessScope');
+const { isRoleAllowedForStatus } = require('../utils/workflow');
 const crypto = require('crypto');
 
 // ─── ONBOARDING & DOCUMENTATION CHECKLISTS ────────────────────────
@@ -11,6 +13,12 @@ const getOnboardings = async (req, res, next) => {
 
     if (candidateId) query.candidateId = candidateId;
     if (status) query.status = status;
+
+    // §24/§25 — onboarding/financial logistics stay scoped to
+    // Accounts + org-wide roles; sourcing/documentation officers don't
+    // get unnecessary visibility into this stage.
+    const scope = await getDataScope(req.currentUser, 'ONBOARDING');
+    Object.assign(query, scope);
 
     const onboardings = await Onboarding.find(query)
       .sort({ createdAt: -1 })
@@ -28,12 +36,26 @@ const getOnboardings = async (req, res, next) => {
 
 const updateOnboarding = async (req, res, next) => {
   try {
+    const existing = await Onboarding.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Onboarding record not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'ONBOARDING');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this onboarding record.' });
+    }
+
     const allowed = [
       'contractPrepared', 'contractSigned', 'cdcValidityChecked', 'passportValidityChecked',
       'medicalCleared', 'visaProcessed', 'ticketBooked', 'flightDetails', 'vesselName',
       'portOfJoining', 'reportingDate', 'status'
     ];
     const updateData = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
+
+    // §22 — only Accounts/org-wide roles may mark ONBOARDED. Sourcing
+    // officers/managers can never set this, even indirectly via this endpoint.
+    if (updateData.status === 'COMPLETED' && !isRoleAllowedForStatus(req.currentUser.role, 'ONBOARDED')) {
+      return res.status(403).json({ success: false, message: 'Your role is not permitted to complete onboarding.' });
+    }
 
     if (updateData.reportingDate) updateData.reportingDate = new Date(updateData.reportingDate);
 
@@ -54,6 +76,7 @@ const updateOnboarding = async (req, res, next) => {
     if (candidate) {
       if (onboarding.status === 'COMPLETED') {
         candidate.status = 'ONBOARDED';
+        candidate.workflowStage = 'ONBOARDED';
         await candidate.save();
 
         // Mark requirement as fulfilled too
@@ -87,6 +110,10 @@ const getInvoices = async (req, res, next) => {
 
     if (companyId) query.companyId = companyId;
     if (paymentStatus) query.paymentStatus = paymentStatus;
+
+    // §14 — financial data stays with Accounts + org-wide roles only.
+    const scope = await getDataScope(req.currentUser, 'INVOICE');
+    Object.assign(query, scope);
 
     const invoices = await Invoice.find(query)
       .sort({ createdAt: -1 })
@@ -143,6 +170,14 @@ const createInvoice = async (req, res, next) => {
 
 const updateInvoice = async (req, res, next) => {
   try {
+    const existingInvoice = await Invoice.findById(req.params.id);
+    if (!existingInvoice) return res.status(404).json({ success: false, message: 'Invoice not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existingInvoice, 'INVOICE');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this invoice.' });
+    }
+
     const allowed = ['paymentStatus', 'amount', 'candidateCharges', 'salaryAgreed', 'dueDate'];
     const updateData = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
 

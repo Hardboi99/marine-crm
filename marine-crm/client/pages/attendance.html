@@ -164,6 +164,9 @@
             display: grid;
             grid-template-columns: repeat(7, minmax(0, 1fr));
             gap: 6px;
+            max-width: 420px;
+            margin-left: auto;
+            margin-right: auto;
         }
 
         .cal-dow {
@@ -179,7 +182,7 @@
         .cal-cell {
             position: relative;
             aspect-ratio: 1 / 1;
-            min-height: 56px;
+            max-height: 52px;
             border-radius: var(--radius-sm);
             border: 1px solid var(--border-color);
             background: var(--bg-input);
@@ -309,6 +312,7 @@
         }
         .emp-selector-wrap select { min-width: 220px; }
         .emp-selector-wrap.hidden { display: none; }
+        .hidden { display: none !important; }
 
         .cal-toolbar {
             flex-wrap: wrap;
@@ -481,6 +485,52 @@
                     </div>
                 </div>
 
+                <!-- My Worksheet History -->
+                <div class="card" data-reveal>
+                    <div class="card-header">
+                        <h2 class="card-title">My Worksheet History</h2>
+                    </div>
+                    <div class="card-body">
+                        <div id="ws-history-list" style="display:flex;flex-direction:column;gap:10px;">
+                            <div style="text-align:center;padding:16px;color:var(--text-muted);">Loading…</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Manager/COO/Admin Worksheet Review -->
+                <div class="card hidden" data-reveal id="ws-review-card">
+                    <div class="card-header">
+                        <h2 class="card-title">Worksheet Review</h2>
+                    </div>
+                    <div class="card-body">
+                        <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+                            <input type="date" id="ws-review-filter-date" class="form-control" style="max-width:170px;" />
+                            <input type="text" id="ws-review-filter-name" class="form-control" placeholder="Filter by employee name" style="max-width:220px;" />
+                            <select id="ws-review-filter-status" class="form-control" style="max-width:170px;">
+                                <option value="">All statuses</option>
+                                <option value="SUBMITTED">Pending Review</option>
+                                <option value="REVIEWED">Reply Sent</option>
+                            </select>
+                        </div>
+                        <div id="ws-review-list" style="display:flex;flex-direction:column;gap:10px;">
+                            <div style="text-align:center;padding:16px;color:var(--text-muted);">Loading…</div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Worksheet detail modal -->
+    <div id="ws-detail-modal" class="modal-overlay" style="display:none;">
+        <div class="modal att-day-modal-box" id="ws-detail-dialog" style="max-width:560px;">
+            <div class="modal-header">
+                <h2 class="modal-title" id="ws-detail-modal-title">Worksheet</h2>
+                <button class="modal-close" id="ws-detail-modal-close" type="button" aria-label="Close">✕</button>
+            </div>
+            <div class="modal-body" id="ws-detail-modal-body" style="max-height:70vh;overflow-y:auto;">
+                <!-- populated by JS -->
             </div>
         </div>
     </div>
@@ -806,6 +856,222 @@
             refreshList();
         }
 
+        // ── Worksheet history / review / detail modal ──────────────
+        // Reuses the SAME Worksheet model/API employee.html's checkout
+        // flow already writes to (ApiService.employees.submitWorksheet /
+        // getWorksheets) — this just adds a place to browse & reply to
+        // what's already being saved, nothing new is created server-side
+        // beyond the reply/response fields on that same model.
+        let myWorksheets = [];
+        let allWorksheetsCache = [];
+
+        function formatWorksheetDate(dateStr) {
+            const d = new Date(dateStr + 'T00:00:00');
+            return d.toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+        }
+
+        async function loadWorksheetHistory() {
+            const listEl = document.getElementById('ws-history-list');
+            try {
+                const res = await window.ApiService.employees.getWorksheets();
+                myWorksheets = (res && res.data) || [];
+                if (!myWorksheets.length) {
+                    listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);">No worksheets submitted yet.</div>';
+                    return;
+                }
+                listEl.innerHTML = myWorksheets.map(w => `
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--border-color);border-radius:var(--radius-sm);flex-wrap:wrap;">
+                        <div>
+                            <div style="font-weight:700;">${formatWorksheetDate(w.date)} ${w.dayType ? `<span style="font-weight:500;font-size:0.72rem;color:var(--text-muted);">(${w.dayType === 'HALF_DAY' ? 'Half Day' : 'Full Day'})</span>` : ''}</div>
+                            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+                                Worksheet uploaded: ${w.submittedAt ? new Date(w.submittedAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}) : '—'}
+                                ${w.status === 'REVIEWED' ? ' · <span style="color:var(--green);">Reply received</span>' : ' · <span style="color:var(--text-muted);">Pending review</span>'}
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-sm ws-view-btn" data-id="${w.id || w._id}">View Worksheet</button>
+                    </div>
+                `).join('');
+                listEl.querySelectorAll('.ws-view-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        const w = myWorksheets.find(x => (x.id || x._id) === btn.dataset.id);
+                        if (w) openWorksheetDetailModal(w, false);
+                    });
+                });
+            } catch (err) {
+                listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--red);">Could not load worksheet history.</div>';
+            }
+        }
+
+        function initWorksheetReview() {
+            if (!ATTENDANCE_ADMIN_ROLES.includes(currentUser.role)) return;
+            document.getElementById('ws-review-card').classList.remove('hidden');
+            ['ws-review-filter-date', 'ws-review-filter-name', 'ws-review-filter-status'].forEach(id => {
+                document.getElementById(id).addEventListener('input', renderWorksheetReviewList);
+                document.getElementById(id).addEventListener('change', renderWorksheetReviewList);
+            });
+            loadWorksheetReview();
+        }
+
+        async function loadWorksheetReview() {
+            const listEl = document.getElementById('ws-review-list');
+            try {
+                const res = await window.ApiService.employees.getWorksheets();
+                allWorksheetsCache = (res && res.data) || [];
+                renderWorksheetReviewList();
+            } catch (err) {
+                listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--red);">Could not load worksheets.</div>';
+            }
+        }
+
+        function renderWorksheetReviewList() {
+            const listEl = document.getElementById('ws-review-list');
+            const dateFilter = document.getElementById('ws-review-filter-date').value;
+            const nameFilter = document.getElementById('ws-review-filter-name').value.trim().toLowerCase();
+            const statusFilter = document.getElementById('ws-review-filter-status').value;
+
+            const filtered = allWorksheetsCache.filter(w => {
+                if (dateFilter && w.date !== dateFilter) return false;
+                if (statusFilter && w.status !== statusFilter) return false;
+                const empName = (w.employeeId && w.employeeId.name) ? w.employeeId.name.toLowerCase() : '';
+                if (nameFilter && !empName.includes(nameFilter)) return false;
+                return true;
+            });
+
+            if (!filtered.length) {
+                listEl.innerHTML = '<div style="text-align:center;padding:16px;color:var(--text-muted);">No worksheets match these filters.</div>';
+                return;
+            }
+
+            listEl.innerHTML = filtered.map(w => {
+                const empName = (w.employeeId && w.employeeId.name) ? escapeHtml(w.employeeId.name) : 'Unknown employee';
+                return `
+                    <div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:12px 14px;border:1px solid var(--border-color);border-radius:var(--radius-sm);flex-wrap:wrap;">
+                        <div>
+                            <div style="font-weight:700;">${empName}</div>
+                            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:2px;">
+                                ${formatWorksheetDate(w.date)}${w.dayType ? ` · ${w.dayType === 'HALF_DAY' ? 'Half Day' : 'Full Day'}` : ''}
+                                · ${w.status === 'REVIEWED' ? '<span style="color:var(--green);">Reply Sent</span>' : '<span style="color:var(--text-muted);">Pending Review</span>'}
+                            </div>
+                        </div>
+                        <button class="btn btn-secondary btn-sm ws-review-view-btn" data-id="${w.id || w._id}">View</button>
+                    </div>
+                `;
+            }).join('');
+
+            listEl.querySelectorAll('.ws-review-view-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const w = allWorksheetsCache.find(x => (x.id || x._id) === btn.dataset.id);
+                    if (w) openWorksheetDetailModal(w, true);
+                });
+            });
+        }
+
+        function openWorksheetDetailModal(worksheet, isManagerView) {
+            const modal = document.getElementById('ws-detail-modal');
+            const dialog = document.getElementById('ws-detail-dialog');
+            const title = document.getElementById('ws-detail-modal-title');
+            const body = document.getElementById('ws-detail-modal-body');
+
+            const empName = (worksheet.employeeId && worksheet.employeeId.name)
+                ? escapeHtml(worksheet.employeeId.name)
+                : (isManagerView ? 'Unknown employee' : currentUser.name || 'You');
+
+            title.textContent = `Worksheet — ${formatWorksheetDate(worksheet.date)}`;
+
+            const canReply = isManagerView && ATTENDANCE_ADMIN_ROLES.includes(currentUser.role);
+            const canRespond = !isManagerView && worksheet.reply && !worksheet.employeeResponse;
+
+            const replyBlock = worksheet.reply
+                ? `<div style="margin-top:14px;padding:12px;border-radius:var(--radius-sm);background:var(--bg-input);border:1px solid var(--border-color);">
+                        <div style="font-weight:700;font-size:0.82rem;">Manager Reply${worksheet.repliedByName ? ` — ${escapeHtml(worksheet.repliedByName)}` : ''}</div>
+                        <div style="margin-top:4px;font-size:0.85rem;">${escapeHtml(worksheet.reply)}</div>
+                   </div>`
+                : '';
+
+            const responseBlock = worksheet.employeeResponse
+                ? `<div style="margin-top:10px;padding:12px;border-radius:var(--radius-sm);background:var(--green-light);border:1px solid rgba(52,211,153,0.28);">
+                        <div style="font-weight:700;font-size:0.82rem;">Employee Response</div>
+                        <div style="margin-top:4px;font-size:0.85rem;">${escapeHtml(worksheet.employeeResponse)}</div>
+                   </div>`
+                : '';
+
+            const replyFormBlock = canReply
+                ? `<div style="margin-top:14px;">
+                        <label class="form-label">Reply</label>
+                        <textarea id="ws-reply-input" class="form-control" rows="2" placeholder="Write a reply for this worksheet…"></textarea>
+                        <button class="btn btn-primary btn-sm" id="ws-reply-submit-btn" style="margin-top:8px;">Send Reply</button>
+                   </div>`
+                : '';
+
+            const responseFormBlock = canRespond
+                ? `<div style="margin-top:10px;">
+                        <label class="form-label">Your Response</label>
+                        <textarea id="ws-response-input" class="form-control" rows="2" placeholder="Reply to your manager…"></textarea>
+                        <button class="btn btn-primary btn-sm" id="ws-response-submit-btn" style="margin-top:8px;">Send Response</button>
+                   </div>`
+                : '';
+
+            body.innerHTML = `
+                <div class="day-detail-row"><span class="day-detail-label">Employee</span><span class="day-detail-value">${empName}</span></div>
+                <div class="day-detail-row"><span class="day-detail-label">Attendance Type</span><span class="day-detail-value">${worksheet.dayType ? (worksheet.dayType === 'HALF_DAY' ? 'Half Day' : 'Full Day') : '—'}</span></div>
+                <div class="day-detail-row"><span class="day-detail-label">Worksheet Submitted</span><span class="day-detail-value">${worksheet.submittedAt ? new Date(worksheet.submittedAt).toLocaleTimeString(undefined,{hour:'2-digit',minute:'2-digit'}) : '—'}</span></div>
+                <hr style="border-color:var(--border-color);margin:10px 0;">
+                <div style="font-weight:700;font-size:0.82rem;margin-bottom:4px;">Today's Work</div>
+                <div style="font-size:0.85rem;white-space:pre-wrap;">${escapeHtml(worksheet.summaryOfWork || '—')}</div>
+                ${worksheet.notes ? `<div style="font-weight:700;font-size:0.82rem;margin-top:10px;margin-bottom:4px;">Notes</div><div style="font-size:0.85rem;white-space:pre-wrap;">${escapeHtml(worksheet.notes)}</div>` : ''}
+                <div class="day-detail-row" style="margin-top:10px;"><span class="day-detail-label">Calls Made</span><span class="day-detail-value">${worksheet.callsMade || 0}</span></div>
+                <div class="day-detail-row"><span class="day-detail-label">Vessels Contacted</span><span class="day-detail-value">${worksheet.vesselsContacted || 0}</span></div>
+                ${replyBlock}
+                ${responseBlock}
+                ${replyFormBlock}
+                ${responseFormBlock}
+            `;
+
+            if (canReply) {
+                document.getElementById('ws-reply-submit-btn').addEventListener('click', async () => {
+                    const text = document.getElementById('ws-reply-input').value.trim();
+                    if (!text) return UI.showToast('Please write a reply first.', 'error');
+                    const wid = worksheet.id || worksheet._id;
+                    try {
+                        await window.ApiService.employees.replyToWorksheet(wid, text);
+                        UI.showToast('Reply sent.', 'success');
+                        closeWorksheetDetailModal();
+                        loadWorksheetReview();
+                    } catch (err) {
+                        UI.showToast((err && err.message) || 'Could not send reply.', 'error');
+                    }
+                });
+            }
+            if (canRespond) {
+                document.getElementById('ws-response-submit-btn').addEventListener('click', async () => {
+                    const text = document.getElementById('ws-response-input').value.trim();
+                    if (!text) return UI.showToast('Please write a response first.', 'error');
+                    const wid = worksheet.id || worksheet._id;
+                    try {
+                        await window.ApiService.employees.respondToWorksheet(wid, text);
+                        UI.showToast('Response saved.', 'success');
+                        closeWorksheetDetailModal();
+                        loadWorksheetHistory();
+                    } catch (err) {
+                        UI.showToast((err && err.message) || 'Could not save response.', 'error');
+                    }
+                });
+            }
+
+            modal.style.display = 'flex';
+            document.body.classList.add('no-scroll');
+        }
+
+        function closeWorksheetDetailModal() {
+            document.getElementById('ws-detail-modal').style.display = 'none';
+            document.body.classList.remove('no-scroll');
+        }
+
+        document.getElementById('ws-detail-modal-close').addEventListener('click', closeWorksheetDetailModal);
+        document.getElementById('ws-detail-modal').addEventListener('click', (e) => {
+            if (e.target === document.getElementById('ws-detail-modal')) closeWorksheetDetailModal();
+        });
+
 
         // checkIn/checkOut need this account's Employee._id (resolved
         // via the existing GET /employees/me → Employee.findOne({userId})
@@ -1015,9 +1281,15 @@
                     window.dispatchEvent(new CustomEvent('attendance:changed'));
                     loadMonth();
                     loadSummary();
+                    loadWorksheetHistory();
+                    if (ATTENDANCE_ADMIN_ROLES.includes(currentUser.role)) loadWorksheetReview();
                 } catch (err) {
                     console.error('Location / checkout error:', err);
-                    UI.showToast((err && err.message) || 'Checkout failed.', 'error');
+                    const outsideGeofence = err && typeof err.distanceMeters === 'number';
+                    const msg = outsideGeofence
+                        ? `📍 Distance from office: ${err.distanceMeters}m — outside the ${err.radiusMeters}m attendance area. Move closer and try again.`
+                        : (err && err.message) || 'Checkout failed.';
+                    UI.showToast(msg, 'error');
                     submitBtn.disabled = false;
                     submitBtn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Retry Location & Check Out';
                 }
@@ -1050,13 +1322,16 @@
             } catch (err) {
                 console.error('Check in failed:', err);
                 const noProfile = err && err.code === 'NO_EMPLOYEE_PROFILE';
+                const outsideGeofence = err && typeof err.distanceMeters === 'number';
                 btn.disabled = noProfile; // don't invite a retry that can't succeed
                 btn.textContent = originalText;
                 const message = (err && err.message) || 'Something went wrong. Please try again.';
                 if (window.UI && window.UI.showToast) window.UI.showToast(message, 'error');
-                if (noProfile) {
-                    const note = document.getElementById('attendance-status-note');
-                    if (note) note.textContent = message;
+                const note = document.getElementById('attendance-status-note');
+                if (noProfile && note) {
+                    note.textContent = message;
+                } else if (outsideGeofence && note) {
+                    note.innerHTML = `📍 Distance from office: <strong>${err.distanceMeters}m</strong> — outside the ${err.radiusMeters}m attendance area. Move closer and try again.`;
                 }
             }
         });
@@ -1249,6 +1524,13 @@
                 ? `<div class="day-detail-row"><span class="day-detail-label">Late Mark</span><span class="day-detail-value">⏰ Checked in after 10:00 AM</span></div>`
                 : '';
 
+            const dayWorksheet = myWorksheets.find(w => w.date === dateIso);
+            const worksheetRow = dayWorksheet
+                ? `<div class="day-detail-row"><span class="day-detail-label">Worksheet</span><span class="day-detail-value">${dayWorksheet.status === 'REVIEWED' ? 'Reply Sent' : 'Submitted'} — <a href="#" id="att-day-view-worksheet" style="color:var(--accent-primary);">View</a></span></div>`
+                : (record && record.checkOutTime
+                    ? `<div class="day-detail-row"><span class="day-detail-label">Worksheet</span><span class="day-detail-value dim">Not found</span></div>`
+                    : '');
+
             body.innerHTML = `
                 <div class="day-detail-row"><span class="day-detail-label">Status</span><span class="day-detail-value">${statusLabel}</span></div>
                 ${dayTypeRow}
@@ -1258,7 +1540,16 @@
                 <div class="day-detail-row"><span class="day-detail-label">Location</span><span class="day-detail-value" style="text-align:right;">${locationLine(record && record.checkOutLocation)}</span></div>
                 <div class="day-detail-row"><span class="day-detail-label">Total Hours</span><span class="day-detail-value">${formatMinutesAsHM(totalMins) || '—'}</span></div>
                 ${lateRow}
+                ${worksheetRow}
             `;
+
+            if (dayWorksheet) {
+                document.getElementById('att-day-view-worksheet').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    closeDayModal();
+                    openWorksheetDetailModal(dayWorksheet, false);
+                });
+            }
 
             dayModal.style.display = 'flex';
             document.body.classList.add('no-scroll');
@@ -1284,6 +1575,8 @@
 
             initEmployeeSelector();
             initHolidayManagement();
+            initWorksheetReview();
+            loadWorksheetHistory();
             loadToday();
             loadMonth();
             loadSummary();

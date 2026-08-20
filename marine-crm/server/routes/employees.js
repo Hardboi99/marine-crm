@@ -7,7 +7,7 @@ const {
   exitEmployee, reactivateEmployee,
   getTodayAttendance, getMyTodayAttendance, getAttendanceMonth, getAttendanceSummary, checkIn, checkOut,
   listHolidays, createHoliday, updateHoliday, deleteHoliday,
-  submitWorksheet, getWorksheets,
+  submitWorksheet, getWorksheets, replyToWorksheet, respondToWorksheetReply,
   createTask, getTasks, updateTaskStatus,
   getMyProfile,
   bulkImportEmployees,
@@ -39,6 +39,8 @@ router.delete('/holidays/:id', authenticate, requireRole('ADMIN', 'HR'), deleteH
 // ── Worksheets (filtered by role inside handler) ──────────────────────────────
 router.post('/worksheet',  authenticate, submitWorksheet);
 router.get('/worksheets',  authenticate, getWorksheets);
+router.patch('/worksheets/:id/reply',    authenticate, requireRole('ADMIN', 'HR'), replyToWorksheet);
+router.patch('/worksheets/:id/response', authenticate, respondToWorksheetReply);
 
 // ── Tasks (Admin/HR create; everyone can read/update own) ─────────────────────
 router.post('/tasks',             authenticate, requireRole('ADMIN', 'HR'), createTask);
