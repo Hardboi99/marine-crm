@@ -453,8 +453,8 @@ async function callAttendanceMethod(methodName, ...args) {
 
 const ATTENDANCE_FETCH_IMPL = {
   getToday: () => attendanceFetch('GET', ATTENDANCE_ENDPOINTS.today),
-  checkIn: () => attendanceFetch('POST', ATTENDANCE_ENDPOINTS.checkin, {}),
-  checkOut: () => attendanceFetch('POST', ATTENDANCE_ENDPOINTS.checkout, {}),
+  checkIn: (coords) => attendanceFetch('POST', ATTENDANCE_ENDPOINTS.checkin, coords || {}),
+  checkOut: (coords) => attendanceFetch('POST', ATTENDANCE_ENDPOINTS.checkout, coords || {}),
   getMonth: (year, month, employeeId) => attendanceFetch(
     'GET',
     `${ATTENDANCE_ENDPOINTS.month}?year=${year}&month=${month}${employeeId ? `&employeeId=${encodeURIComponent(employeeId)}` : ''}`
@@ -467,8 +467,8 @@ const ATTENDANCE_FETCH_IMPL = {
 
 window.AttendanceService = {
   getToday: () => callAttendanceMethod('getToday'),
-  checkIn: () => callAttendanceMethod('checkIn'),
-  checkOut: () => callAttendanceMethod('checkOut'),
+  checkIn: (coords) => callAttendanceMethod('checkIn', coords),
+  checkOut: (coords) => callAttendanceMethod('checkOut', coords),
   getMonth: (year, month, employeeId) => callAttendanceMethod('getMonth', year, month, employeeId),
   getSummary: (year, month, employeeId) => callAttendanceMethod('getSummary', year, month, employeeId)
 };

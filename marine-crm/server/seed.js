@@ -19,6 +19,7 @@ const {
   Activity,
   Notification,
 } = require('./models');
+const { ROLES, DEPARTMENTS } = require('./utils/roles');
 
 async function main() {
   console.log('🌱 Starting comprehensive BDM Sales Pipeline seeding...');
@@ -40,57 +41,195 @@ async function main() {
   ]);
   console.log('🧹 Cleaned existing database collections');
 
-  // ─── 1. USERS ──────────────────────────────────────────────────
+  // ─── 1. USERS — full DIRECTOR → COO → DEPARTMENT hierarchy ─────
+  // §34/§35: fixes the old seed's invalid `role: 'MANAGER'` value (User.js
+  // no longer accepts it as a first-class role) and builds a real,
+  // dynamic reportingTo chain instead of a flat list. IDs are
+  // pre-generated so we can wire reportingTo before the documents exist.
   const passwordHash = await bcrypt.hash('admin123', 12);
+
+  const ids = {
+    admin: new mongoose.Types.ObjectId(),
+    director: new mongoose.Types.ObjectId(),
+    coo: new mongoose.Types.ObjectId(),
+    sourcingManager: new mongoose.Types.ObjectId(),
+    sourcingOfficer1: new mongoose.Types.ObjectId(),
+    sourcingOfficer2: new mongoose.Types.ObjectId(),
+    docManager: new mongoose.Types.ObjectId(),
+    docOfficer1: new mongoose.Types.ObjectId(),
+    docOfficer2: new mongoose.Types.ObjectId(),
+    bdm: new mongoose.Types.ObjectId(),
+    seniorBdm: new mongoose.Types.ObjectId(),
+    bdm3: new mongoose.Types.ObjectId(),
+    accountsOfficer: new mongoose.Types.ObjectId(),
+    adminOfficer: new mongoose.Types.ObjectId(),
+    hr: new mongoose.Types.ObjectId(),
+  };
 
   const users = await User.create([
     {
+      _id: ids.admin,
       name: 'System Admin',
       email: 'admin@marinecrm.com',
       passwordHash,
-      role: 'ADMIN',
-      department: 'Management',
+      role: ROLES.ADMIN,
+      department: DEPARTMENTS.SYSTEM,
+      reportingTo: null,
       phone: '+1-555-0190',
     },
     {
+      _id: ids.director,
+      name: 'Founder Director',
+      email: 'director@marinecrm.com',
+      passwordHash,
+      role: ROLES.DIRECTOR,
+      department: DEPARTMENTS.EXECUTIVE,
+      reportingTo: null,
+      phone: '+91-98100-00001',
+    },
+    {
+      _id: ids.coo,
+      name: 'Chief Operating Officer',
+      email: 'coo@marinecrm.com',
+      passwordHash,
+      role: ROLES.COO,
+      department: DEPARTMENTS.EXECUTIVE,
+      reportingTo: ids.director,
+      phone: '+91-98100-00002',
+    },
+    {
+      _id: ids.sourcingManager,
+      name: 'Sourcing Manager',
+      email: 'sourcing.manager@marinecrm.com',
+      passwordHash,
+      role: ROLES.SOURCING_MANAGER,
+      department: DEPARTMENTS.SOURCING,
+      reportingTo: ids.coo,
+      phone: '+91-98100-00003',
+    },
+    {
+      _id: ids.sourcingOfficer1,
+      name: 'Sourcing Officer One',
+      email: 'sourcing.officer1@marinecrm.com',
+      passwordHash,
+      role: ROLES.SOURCING_OFFICER,
+      department: DEPARTMENTS.SOURCING,
+      reportingTo: ids.sourcingManager,
+      phone: '+91-98100-00004',
+    },
+    {
+      _id: ids.sourcingOfficer2,
+      name: 'Sourcing Officer Two',
+      email: 'sourcing.officer2@marinecrm.com',
+      passwordHash,
+      role: ROLES.SOURCING_OFFICER,
+      department: DEPARTMENTS.SOURCING,
+      reportingTo: ids.sourcingManager,
+      phone: '+91-98100-00005',
+    },
+    {
+      _id: ids.docManager,
+      name: 'Documentation Manager',
+      email: 'documentation.manager@marinecrm.com',
+      passwordHash,
+      role: ROLES.DOCUMENTATION_MANAGER,
+      department: DEPARTMENTS.DOCUMENTATION,
+      reportingTo: ids.coo,
+      phone: '+91-98100-00006',
+    },
+    {
+      _id: ids.docOfficer1,
+      name: 'Documentation Officer One',
+      email: 'documentation.officer1@marinecrm.com',
+      passwordHash,
+      role: ROLES.DOCUMENTATION_OFFICER,
+      department: DEPARTMENTS.DOCUMENTATION,
+      reportingTo: ids.docManager,
+      phone: '+91-98100-00007',
+    },
+    {
+      _id: ids.docOfficer2,
+      name: 'Documentation Officer Two',
+      email: 'documentation.officer2@marinecrm.com',
+      passwordHash,
+      role: ROLES.DOCUMENTATION_OFFICER,
+      department: DEPARTMENTS.DOCUMENTATION,
+      reportingTo: ids.docManager,
+      phone: '+91-98100-00008',
+    },
+    {
+      _id: ids.bdm,
       name: 'Rajesh BDM',
       email: 'bdm@marinecrm.com',
       passwordHash,
-      role: 'BDM',
-      department: 'Sales & Business Development',
+      role: ROLES.BDM,
+      department: DEPARTMENTS.BUSINESS_DEVELOPMENT,
+      reportingTo: ids.coo,
       phone: '+971-50-123-4567',
     },
     {
-      name: 'Suresh Manager',
-      email: 'manager@marinecrm.com',
-      passwordHash,
-      role: 'MANAGER',
-      department: 'Operations',
-      phone: '+91-98765-43210',
-    },
-    {
+      _id: ids.seniorBdm,
       name: 'Ananya Sharma',
       email: 'ananya@marinecrm.com',
       passwordHash,
-      role: 'BDM',
-      department: 'Sales & Business Development',
+      role: ROLES.BDM,
+      department: DEPARTMENTS.BUSINESS_DEVELOPMENT,
+      reportingTo: ids.coo,
       phone: '+65-9123-4567',
     },
     {
+      _id: ids.bdm3,
       name: 'Vikram Singh',
       email: 'vikram@marinecrm.com',
       passwordHash,
-      role: 'BDM',
-      department: 'Sales & Business Development',
+      role: ROLES.BDM,
+      department: DEPARTMENTS.BUSINESS_DEVELOPMENT,
+      reportingTo: ids.coo,
       phone: '+44-20-7946-0912',
     },
+    {
+      _id: ids.accountsOfficer,
+      name: 'Accounts Officer',
+      email: 'accounts.officer@marinecrm.com',
+      passwordHash,
+      role: ROLES.ACCOUNTS_OFFICER,
+      department: DEPARTMENTS.ACCOUNTS,
+      reportingTo: ids.coo,
+      phone: '+91-98100-00009',
+    },
+    {
+      _id: ids.adminOfficer,
+      name: 'Admin Officer',
+      email: 'admin.officer@marinecrm.com',
+      passwordHash,
+      role: ROLES.ADMIN_OFFICER,
+      department: DEPARTMENTS.ADMINISTRATION,
+      reportingTo: ids.coo,
+      phone: '+91-98100-00010',
+    },
+    {
+      _id: ids.hr,
+      name: 'HR Executive',
+      email: 'hr@marinecrm.com',
+      passwordHash,
+      role: ROLES.HR,
+      department: DEPARTMENTS.HR,
+      reportingTo: ids.coo,
+      phone: '+91-98100-00011',
+    },
   ]);
-  console.log(`✅ Created ${users.length} realistic BDM & Admin users`);
+  console.log(`✅ Created ${users.length} users across the full org hierarchy`);
 
-  const admin = users[0];
-  const bdm = users[1];
-  const manager = users[2];
-  const seniorBdm = users[3];
+  // Keep the original short variable names so the rest of this file (BDM
+  // pipeline seed data below) doesn't need to change: `bdm`/`seniorBdm`
+  // keep generating Company/Call/Appointment/Contract/FollowUp records,
+  // `admin` keeps being the technical admin, and `manager` now points at
+  // the COO (org-wide — a safe superset of the old ad-hoc "manager" role
+  // used only as a decidedById on a handful of records below).
+  const admin = users.find(u => u._id.equals(ids.admin));
+  const bdm = users.find(u => u._id.equals(ids.bdm));
+  const manager = users.find(u => u._id.equals(ids.coo));
+  const seniorBdm = users.find(u => u._id.equals(ids.seniorBdm));
 
   // ─── 2. COUNTRIES ──────────────────────────────────────────────
   const countries = await Country.create([
@@ -661,12 +800,23 @@ async function main() {
   ]);
   console.log('✅ Created in-app notifications');
 
-  console.log('\n🎉 Comprehensive BDM Sales Pipeline Database seeded successfully!');
-  console.log('\n📋 Demo Credentials:');
-  console.log('   Admin:        admin@marinecrm.com   / admin123');
-  console.log('   BDM (Rajesh): bdm@marinecrm.com     / admin123');
-  console.log('   Manager:      manager@marinecrm.com  / admin123');
-  console.log('   Senior BDM:   ananya@marinecrm.com   / admin123');
+  console.log('\n🎉 Marine CRM hierarchical database seeded successfully!');
+  console.log('\n📋 Demo Credentials (all passwords: admin123):');
+  console.log('   System Admin (technical):     admin@marinecrm.com');
+  console.log('   Director:                     director@marinecrm.com');
+  console.log('   COO:                          coo@marinecrm.com');
+  console.log('   Sourcing Manager:              sourcing.manager@marinecrm.com');
+  console.log('   Sourcing Officer 1:            sourcing.officer1@marinecrm.com');
+  console.log('   Sourcing Officer 2:            sourcing.officer2@marinecrm.com');
+  console.log('   Documentation Manager:         documentation.manager@marinecrm.com');
+  console.log('   Documentation Officer 1:       documentation.officer1@marinecrm.com');
+  console.log('   Documentation Officer 2:       documentation.officer2@marinecrm.com');
+  console.log('   BDM (Rajesh):                  bdm@marinecrm.com');
+  console.log('   BDM (Ananya):                  ananya@marinecrm.com');
+  console.log('   BDM (Vikram):                  vikram@marinecrm.com');
+  console.log('   Accounts Officer:              accounts.officer@marinecrm.com');
+  console.log('   Admin Officer:                 admin.officer@marinecrm.com');
+  console.log('   HR:                            hr@marinecrm.com');
   console.log('\n📊 Data Summary:');
   console.log(`   - Users:        ${users.length}`);
   console.log(`   - Countries:    ${countries.length}`);

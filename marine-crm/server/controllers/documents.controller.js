@@ -2,8 +2,15 @@
 
 const fs = require('fs');
 const { Document } = require('../models');
+const { ROLES, ORG_WIDE_ROLES } = require('../utils/roles');
 
 // GET /api/documents
+// NOTE (limitation — see final response §H): the Document model has no
+// candidate/department link, only `uploadedBy` — so scoping here is by
+// upload ownership rather than the full ownership-chain used for
+// Candidate/Requirement. DOCUMENTATION_OFFICER sees their own uploads;
+// DOCUMENTATION_MANAGER and org-wide roles see the whole documentation
+// queue (route-level requireRole already excludes every other department).
 async function getAllDocuments(req, res, next) {
   try {
     const { category, status, search } = req.query;
@@ -11,6 +18,13 @@ async function getAllDocuments(req, res, next) {
     if (category) filter.category = category;
     if (status) filter.status = status;
     if (search) filter.name = { $regex: search, $options: 'i' };
+
+    const role = req.currentUser?.role;
+    if (role === ROLES.DOCUMENTATION_OFFICER) {
+      filter.uploadedBy = req.currentUser._id;
+    }
+    // DOCUMENTATION_MANAGER / org-wide roles: no extra restriction (route
+    // gating in routes/documents.routes.js already limits who reaches here).
 
     const documents = await Document.find(filter)
       .populate('uploadedBy', 'name email')

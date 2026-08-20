@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middlewares/auth');
+const { authenticate, loadCurrentUser } = require('../middlewares/auth');
 const { requireRole } = require('../middlewares/roleCheck');
 const {
   getOnboardings, updateOnboarding,
@@ -8,16 +8,18 @@ const {
   getExpiryAlerts
 } = require('../controllers/opsController');
 
-// Onboarding checklists
-router.get('/onboardings', authenticate, getOnboardings);
-router.put('/onboardings/:id', authenticate, requireRole('ADMIN', 'HR', 'MANAGER'), updateOnboarding);
+router.use(authenticate, loadCurrentUser);
 
-// Invoices & accounts
-router.get('/invoices', authenticate, getInvoices);
-router.post('/invoices', authenticate, requireRole('ADMIN', 'MANAGER'), createInvoice);
-router.put('/invoices/:id', authenticate, requireRole('ADMIN', 'MANAGER'), updateInvoice);
+// Onboarding checklists — Accounts + org-wide roles only (§24/§25).
+router.get('/onboardings', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'ACCOUNTS_OFFICER'), getOnboardings);
+router.put('/onboardings/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'ACCOUNTS_OFFICER'), updateOnboarding);
 
-// Expiry alerts & Compliance
-router.get('/expiry-alerts', authenticate, getExpiryAlerts);
+// Invoices & accounts — never exposed to Sourcing/HR (§14).
+router.get('/invoices', requireRole('ADMIN', 'DIRECTOR', 'COO', 'ACCOUNTS_OFFICER'), getInvoices);
+router.post('/invoices', requireRole('ADMIN', 'DIRECTOR', 'COO', 'ACCOUNTS_OFFICER'), createInvoice);
+router.put('/invoices/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'ACCOUNTS_OFFICER'), updateInvoice);
+
+// Expiry alerts & Compliance — operationally useful org-wide, kept open to any authenticated staff.
+router.get('/expiry-alerts', getExpiryAlerts);
 
 module.exports = router;

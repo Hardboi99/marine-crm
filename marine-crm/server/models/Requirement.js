@@ -25,7 +25,12 @@ const requirementSchema = new mongoose.Schema(
       enum: ['OPEN', 'FULFILLED', 'CANCELLED'],
       default: 'OPEN'
     },
-    createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+    createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+
+    // ── Ownership / hierarchy fields (data-scope authorization) ──────────
+    assignedToId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    managerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    department: { type: String, default: 'SOURCING' },
   },
   { timestamps: true }
 );

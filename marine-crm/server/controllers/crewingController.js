@@ -1,5 +1,8 @@
-const { Candidate, Requirement, Application, Onboarding, Reason, Company } = require('../models');
+const { Candidate, Requirement, Application, Onboarding, Reason, Company, User } = require('../models');
 const { logActivity } = require('../utils/activityLogger');
+const { getDataScope, canAccessRecord } = require('../utils/accessScope');
+const { isValidTransition, isRoleAllowedForStatus } = require('../utils/workflow');
+const { ROLES, ORG_WIDE_ROLES, DEPARTMENTS } = require('../utils/roles');
 
 // ─── REQUIREMENTS CRUD ──────────────────────────────────────────
 
@@ -12,6 +15,10 @@ const getRequirements = async (req, res, next) => {
     if (vesselType) query.vesselType = vesselType;
     if (rank) query.rank = rank;
     if (status) query.status = status;
+
+    // Backend record-level filtering — never load-then-filter in the client.
+    const scope = await getDataScope(req.currentUser, 'REQUIREMENT');
+    Object.assign(query, scope);
 
     const requirements = await Requirement.find(query)
       .sort({ createdAt: -1 })
@@ -30,6 +37,8 @@ const createRequirement = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'companyId, vesselType, rank, and joiningDate are required.' });
     }
 
+    const creator = req.currentUser;
+
     const requirement = await Requirement.create({
       companyId,
       vesselType,
@@ -37,7 +46,10 @@ const createRequirement = async (req, res, next) => {
       experienceMonthsRequired: experienceMonthsRequired ? parseInt(experienceMonthsRequired) : 0,
       joiningDate: new Date(joiningDate),
       salaryOffered: salaryOffered ? parseFloat(salaryOffered) : null,
-      createdById: req.user.id
+      createdById: req.user.id,
+      assignedToId: req.user.id,
+      managerId: creator.role === ROLES.SOURCING_OFFICER ? creator.reportingTo : null,
+      department: creator.department || DEPARTMENTS.SOURCING,
     });
 
     await requirement.populate('companyId', 'name');
@@ -60,7 +72,15 @@ const createRequirement = async (req, res, next) => {
 
 const updateRequirement = async (req, res, next) => {
   try {
-    const allowed = ['vesselType', 'rank', 'experienceMonthsRequired', 'joiningDate', 'salaryOffered', 'status'];
+    const existing = await Requirement.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Requirement not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'REQUIREMENT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this requirement.' });
+    }
+
+    const allowed = ['vesselType', 'rank', 'experienceMonthsRequired', 'joiningDate', 'salaryOffered', 'status', 'assignedToId'];
     const updateData = Object.fromEntries(Object.entries(req.body).filter(([k]) => allowed.includes(k)));
 
     if (updateData.joiningDate) updateData.joiningDate = new Date(updateData.joiningDate);
@@ -80,8 +100,15 @@ const updateRequirement = async (req, res, next) => {
 
 const deleteRequirement = async (req, res, next) => {
   try {
-    const requirement = await Requirement.findByIdAndDelete(req.params.id);
-    if (!requirement) return res.status(404).json({ success: false, message: 'Requirement not found.' });
+    const existing = await Requirement.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Requirement not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'REQUIREMENT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this requirement.' });
+    }
+
+    await Requirement.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Requirement deleted successfully.' });
   } catch (err) {
     next(err);
@@ -108,6 +135,20 @@ const getCandidates = async (req, res, next) => {
       ];
     }
 
+    // Backend record-level filtering (Role → Department → Hierarchy →
+    // Ownership). This is the fix for §18: getCandidates() must NOT simply
+    // return all candidates for every authenticated user.
+    const scope = await getDataScope(req.currentUser, 'CANDIDATE');
+    if (scope.$or && query.$or) {
+      // Both the search filter and the scope filter use $or — combine with $and.
+      const { $or: scopeOr, ...scopeRest } = scope;
+      query.$and = [{ $or: query.$or }, { $or: scopeOr }];
+      delete query.$or;
+      Object.assign(query, scopeRest);
+    } else {
+      Object.assign(query, scope);
+    }
+
     const candidates = await Candidate.find(query).sort({ createdAt: -1 });
     res.json({ success: true, data: candidates });
   } catch (err) {
@@ -125,6 +166,9 @@ const createCandidate = async (req, res, next) => {
     if (!name || !rank || !dob || !location || !cocDetails?.number || !passportDetails?.number || !cdcDetails?.number || !expectedWages || !contactNumber || !email || !availabilityDate) {
       return res.status(400).json({ success: false, message: 'Missing required seafarer fields.' });
     }
+
+    const creator = req.currentUser;
+    const isSourcingOfficer = creator.role === ROLES.SOURCING_OFFICER;
 
     const candidate = await Candidate.create({
       name, rank, dob: new Date(dob), location,
@@ -149,7 +193,13 @@ const createCandidate = async (req, res, next) => {
       availabilityDate: new Date(availabilityDate),
       vesselExperience: vesselExperience || [],
       remarks,
-      createdById: req.user.id
+      createdById: req.user.id,
+      assignedToId: req.user.id,
+      teamManagerId: isSourcingOfficer ? creator.reportingTo : null,
+      department: DEPARTMENTS.SOURCING,
+      currentDepartment: DEPARTMENTS.SOURCING,
+      currentOwnerId: req.user.id,
+      workflowStage: 'CV_SCREENING',
     });
 
     if (req.user) {
@@ -170,15 +220,71 @@ const createCandidate = async (req, res, next) => {
 
 const updateCandidate = async (req, res, next) => {
   try {
+    const existing = await Candidate.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    // §20 — record-level authorization: a role check alone is not enough.
+    // Verify this specific user actually has access to this specific record.
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'CANDIDATE');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
+    }
+
     const allowedFields = [
       'name', 'rank', 'dob', 'location', 'cocDetails', 'passportDetails', 'cdcDetails',
-      'lastWages', 'expectedWages', 'contactNumber', 'email', 'availabilityDate', 'vesselExperience', 'status', 'remarks'
+      'lastWages', 'expectedWages', 'contactNumber', 'email', 'availabilityDate', 'vesselExperience', 'status', 'remarks',
+      'assignedToId', 'currentOwnerId', 'workflowStage'
     ];
     const updateData = {};
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         updateData[field] = req.body[field];
       }
+    }
+
+    // §22 — workflow transition control: no arbitrary jumping between
+    // stages, and sensitive downstream statuses are role-gated.
+    if (updateData.status && updateData.status !== existing.status) {
+      if (!isValidTransition(existing.status, updateData.status)) {
+        return res.status(400).json({
+          success: false,
+          message: `Invalid status transition: ${existing.status} → ${updateData.status}.`,
+        });
+      }
+      if (!isRoleAllowedForStatus(req.currentUser.role, updateData.status)) {
+        return res.status(403).json({
+          success: false,
+          message: `Your role is not permitted to set candidate status to ${updateData.status}.`,
+        });
+      }
+
+      // Keep department/workflowStage/ownership in sync as the SAME
+      // candidate record moves through the pipeline (never duplicated).
+      if (updateData.status === 'DOCUMENTATION') {
+        updateData.currentDepartment = DEPARTMENTS.DOCUMENTATION;
+        updateData.department = DEPARTMENTS.DOCUMENTATION;
+        updateData.workflowStage = 'DOCUMENTATION';
+        updateData.currentOwnerId = null; // enters the documentation team's shared queue
+      } else if (updateData.status === 'ACCOUNTS') {
+        updateData.currentDepartment = DEPARTMENTS.ACCOUNTS;
+        updateData.department = DEPARTMENTS.ACCOUNTS;
+        updateData.workflowStage = 'ACCOUNTS';
+        updateData.currentOwnerId = null;
+      } else if (updateData.status === 'ONBOARDING') {
+        updateData.currentDepartment = DEPARTMENTS.ONBOARDING;
+        updateData.department = DEPARTMENTS.ONBOARDING;
+        updateData.workflowStage = 'ONBOARDING';
+      } else if (updateData.status === 'ONBOARDED') {
+        updateData.workflowStage = 'ONBOARDED';
+      }
+
+      await logActivity({
+        userId: req.user.id,
+        entityType: 'CANDIDATE',
+        entityId: existing._id.toString(),
+        action: 'CANDIDATE_STATUS_CHANGED',
+        details: { name: existing.name, from: existing.status, to: updateData.status },
+      });
     }
 
     if (updateData.dob) updateData.dob = new Date(updateData.dob);
@@ -205,8 +311,15 @@ const updateCandidate = async (req, res, next) => {
 
 const deleteCandidate = async (req, res, next) => {
   try {
-    const candidate = await Candidate.findByIdAndDelete(req.params.id);
-    if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+    const existing = await Candidate.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'CANDIDATE');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
+    }
+
+    await Candidate.findByIdAndDelete(req.params.id);
     res.json({ success: true, message: 'Candidate profile deleted.' });
   } catch (err) {
     next(err);
@@ -220,6 +333,11 @@ const matchCandidates = async (req, res, next) => {
     const requirement = await Requirement.findById(req.params.id);
     if (!requirement) return res.status(404).json({ success: false, message: 'Requirement not found.' });
 
+    const allowedToAccess = await canAccessRecord(req.currentUser, requirement, 'REQUIREMENT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this requirement.' });
+    }
+
     // Matching criteria:
     // 1. Rank matches
     // 2. Status is AVAILABLE or SHORTLISTED (not proposed/onboarded)
@@ -229,18 +347,18 @@ const matchCandidates = async (req, res, next) => {
       status: { $in: ['AVAILABLE', 'SHORTLISTED'] }
     };
 
+    // Only match against candidates this user is actually allowed to see.
+    const scope = await getDataScope(req.currentUser, 'CANDIDATE');
+    Object.assign(query, scope);
+
     const candidates = await Candidate.find(query);
 
     // Filter by vessel type experience and experience duration if needed
     const matched = candidates.filter(candidate => {
-      // Find matches in vesselExperience array
       const experienceEntry = candidate.vesselExperience.find(
         exp => exp.vesselType.toLowerCase() === requirement.vesselType.toLowerCase()
       );
       if (!experienceEntry) return false;
-
-      // Ensure total months of experience on this vessel matches requirement (if specified)
-      // requirement.experienceMonthsRequired is compared to experienceEntry.months
       return experienceEntry.months >= requirement.experienceMonthsRequired;
     });
 
@@ -259,6 +377,9 @@ const getApplications = async (req, res, next) => {
     if (requirementId) query.requirementId = requirementId;
     if (candidateId) query.candidateId = candidateId;
     if (status) query.status = status;
+
+    const scope = await getDataScope(req.currentUser, 'APPLICATION');
+    Object.assign(query, scope);
 
     const applications = await Application.find(query)
       .sort({ createdAt: -1 })
@@ -282,14 +403,21 @@ const proposeCandidate = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'requirementId and candidateId are required.' });
     }
 
-    // Check if candidate is available
     const candidate = await Candidate.findById(candidateId);
     if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    const canAccessCandidate = await canAccessRecord(req.currentUser, candidate, 'CANDIDATE');
+    if (!canAccessCandidate) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate.' });
+    }
 
     const requirement = await Requirement.findById(requirementId);
     if (!requirement) return res.status(404).json({ success: false, message: 'Requirement not found.' });
 
-    // Check if proposal already exists
+    if (!isValidTransition(candidate.status, 'PROPOSED')) {
+      return res.status(400).json({ success: false, message: `Cannot propose a candidate in status ${candidate.status}.` });
+    }
+
     let application = await Application.findOne({ requirementId, candidateId });
     if (application) {
       application.status = 'PROPOSED';
@@ -303,8 +431,8 @@ const proposeCandidate = async (req, res, next) => {
       });
     }
 
-    // Update candidate status to PROPOSED
     candidate.status = 'PROPOSED';
+    candidate.workflowStage = 'PROPOSED';
     await candidate.save();
 
     await logActivity({
@@ -334,6 +462,11 @@ const setApplicationDecision = async (req, res, next) => {
 
     if (!application) return res.status(404).json({ success: false, message: 'Application record not found.' });
 
+    const canAccessApp = await canAccessRecord(req.currentUser, application, 'APPLICATION');
+    if (!canAccessApp) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this application.' });
+    }
+
     application.status = status;
     const candidate = await Candidate.findById(application.candidateId._id);
 
@@ -341,13 +474,12 @@ const setApplicationDecision = async (req, res, next) => {
       application.rejectionReasonId = null;
       application.rejectionNotes = null;
 
-      // Update candidate status to APPROVED
       if (candidate) {
         candidate.status = 'APPROVED';
+        candidate.workflowStage = 'CLIENT_ACCEPTED';
         await candidate.save();
       }
 
-      // Automatically initialize Onboarding checklist record
       const onboardingExists = await Onboarding.findOne({
         candidateId: application.candidateId._id,
         requirementId: application.requirementId._id
@@ -362,16 +494,15 @@ const setApplicationDecision = async (req, res, next) => {
         });
       }
     } else {
-      // CLIENT_REJECTED
       if (!rejectionReasonId) {
         return res.status(400).json({ success: false, message: 'rejectionReasonId is required for rejections.' });
       }
       application.rejectionReasonId = rejectionReasonId;
       application.rejectionNotes = rejectionNotes || null;
 
-      // Candidate is returned to the Talent Pool (AVAILABLE status)
       if (candidate) {
         candidate.status = 'REJECTED_TALENT_POOL';
+        candidate.workflowStage = 'CLIENT_REJECTED';
         await candidate.save();
       }
     }
