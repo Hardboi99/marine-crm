@@ -263,7 +263,10 @@
         }
 
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const DOCS_ALLOWED_ROLES = ['ADMIN', 'DIRECTOR', 'COO', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER', 'HR'];
+        // Must match server/routes/documents.routes.js requireRole(...) exactly —
+        // HR was previously listed here but is NOT in the backend's allowed
+        // roles, so HR users could open this page but every API call 403'd.
+        const DOCS_ALLOWED_ROLES = ['ADMIN', 'DIRECTOR', 'COO', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'];
         if (!DOCS_ALLOWED_ROLES.includes(user.role)) {
             window.location.href = '/pages/dashboard.html';
         }
@@ -363,9 +366,9 @@
                     <td style="font-size:0.85rem;">${d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                     <td>${statusBadge(d.status)}</td>
                     <td>
-                        <a class="btn btn-secondary btn-sm" href="${d.fileUrl || '#'}" target="_blank" rel="noopener">
+                        <button type="button" class="btn btn-secondary btn-sm" onclick="viewDocumentFile('${d.id || d._id}', '${esc((d.name || 'document').replace(/'/g, "\\'"))}')">
                             <i class="fas fa-download"></i> View
-                        </a>
+                        </button>
                     </td>
                 </tr>
             `).join('');
@@ -388,9 +391,54 @@
             if (countEl) countEl.textContent = `${total} document${total === 1 ? '' : 's'}`;
         }
 
+        // Seafarer Profile -> Documents deep link: /pages/documents.html?candidateId=... or ?employeeId=...
+        const _urlParams = new URLSearchParams(window.location.search);
+        const linkedCandidateId = _urlParams.get('candidateId') || null;
+        const linkedEmployeeId = _urlParams.get('employeeId') || null;
+        const linkedName = _urlParams.get('name') || null;
+
+        (function showLinkedFilterBanner() {
+            if (!linkedCandidateId && !linkedEmployeeId) return;
+            const bar = document.createElement('div');
+            bar.className = 'alert alert-info';
+            bar.style.cssText = 'margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;';
+            bar.innerHTML = `<span>Showing documents for <strong>${window.escapeHtml ? window.escapeHtml(linkedName || 'this seafarer') : (linkedName || 'this seafarer')}</strong> only.</span>
+                <a href="/pages/documents.html" class="btn btn-secondary btn-sm">Show All Documents</a>`;
+            const container = document.querySelector('.page-content, .content, main') || document.body;
+            container.insertBefore(bar, container.firstChild);
+        })();
+
+        // The /:id/file route requires a Bearer auth header (this app has no
+        // cookie/session auth), which a plain <a href> can never send — so
+        // every "View" click 401'd. Fetch it as an authenticated blob and
+        // open that instead.
+        async function viewDocumentFile(id, name) {
+            try {
+                const token = localStorage.getItem('token');
+                const res = await fetch(`/api/documents/${id}/file`, {
+                    headers: { Authorization: `Bearer ${token}` }
+                });
+                if (!res.ok) throw new Error(`Request failed (${res.status})`);
+                const blob = await res.blob();
+                const blobUrl = URL.createObjectURL(blob);
+                window.open(blobUrl, '_blank', 'noopener');
+                setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+            } catch (err) {
+                console.error('Failed to open document:', err);
+                if (window.UI && window.UI.showToast) {
+                    window.UI.showToast('Could not open this document. It may have been removed.', 'error');
+                } else {
+                    alert('Could not open this document.');
+                }
+            }
+        }
+
         async function loadDocuments() {
             try {
-                const res = await documentsApi.getAll();
+                const params = {};
+                if (linkedCandidateId) params.candidateId = linkedCandidateId;
+                if (linkedEmployeeId) params.employeeId = linkedEmployeeId;
+                const res = await documentsApi.getAll(params);
                 allDocuments = res?.data?.data || res?.data || [];
             } catch (err) {
                 console.error('Failed to load documents:', err);

@@ -172,6 +172,7 @@
             let expCount = 0;
 
             const tbody = document.getElementById('candidates-tbody');
+            const _loggedInUserRole = (JSON.parse(localStorage.getItem('user') || '{}').role) || '';
             const searchInput = document.getElementById('search-input');
             const rankFilter = document.getElementById('rank-filter');
             const statusFilter = document.getElementById('status-filter');
@@ -194,9 +195,10 @@
                 const status = statusFilter.value;
 
                 const filtered = candidatesData.filter(c => {
-                    const matchSearch = c.name.toLowerCase().includes(search) ||
-                        c.location.toLowerCase().includes(search) ||
-                        c.email.toLowerCase().includes(search);
+                    const matchSearch = (c.name || '').toLowerCase().includes(search) ||
+                        (c.nationality || '').toLowerCase().includes(search) ||
+                        (c.currentVessel || '').toLowerCase().includes(search) ||
+                        (c.email || '').toLowerCase().includes(search);
                     const matchRank = rank ? c.rank === rank : true;
                     const matchStatus = status ? c.status === status : true;
                     return matchSearch && matchRank && matchStatus;
@@ -211,29 +213,31 @@
                     document.getElementById('candidates-table').style.display = 'table';
                     filtered.forEach(c => {
                         const tr = document.createElement('tr');
-                        const formatAvail = new Date(c.availabilityDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                        const formatAvail = c.availableFrom ? new Date(c.availableFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
+                        const canSeeDocs = ['ADMIN', 'DIRECTOR', 'COO', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'].includes(_loggedInUserRole);
                         tr.innerHTML = `
                             <td><strong>${c.name}</strong></td>
                             <td><span class="badge badge-blue">${c.rank}</span></td>
                             <td>
-                                <div><i class="fas fa-map-marker-alt"></i> ${c.location}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-envelope"></i> ${c.email}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-phone"></i> ${c.contactNumber}</div>
+                                <div><i class="fas fa-flag"></i> ${c.nationality || '—'}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-envelope"></i> ${c.email || '—'}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-phone"></i> ${c.phone || '—'}</div>
                             </td>
                             <td>
-                                <div><strong>No:</strong> ${c.cocDetails.number}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);">Exp: ${new Date(c.cocDetails.expiryDate).toLocaleDateString()}</div>
+                                <div><strong>Passport:</strong> ${c.passportNumber || '—'}</div>
+                                <div style="font-size: 0.8rem; color: var(--text-secondary);">CDC: ${c.cdcNumber || '—'}</div>
                             </td>
                             <td>${formatAvail}</td>
                             <td>
                                 ${window.UI?.renderStatusBadge ? window.UI.renderStatusBadge(c.status) : `<span class="badge">${c.status}</span>`}
                             </td>
                             <td>
-                                <div style="font-size: 0.85rem;">Last: $${c.lastWages || 0}/m</div>
-                                <div style="font-weight: 600; color: var(--accent-primary);">Exp: $${c.expectedWages}/m</div>
+                                <div style="font-size: 0.85rem;">Exp: ${c.experienceYears || 0} yrs</div>
+                                <div style="font-weight: 600; color: var(--accent-primary);">Exp Salary: $${c.expectedSalary || 0}/m</div>
                             </td>
                             <td class="row-actions">
                                 <button class="btn btn-secondary btn-sm" onclick="editCandidate('${c.id}')" title="Edit Profile"><i class="fas fa-user-edit"></i></button>
+                                ${canSeeDocs ? `<a class="btn btn-secondary btn-sm" href="/pages/documents.html?candidateId=${c.id}&name=${encodeURIComponent(c.name || '')}" title="View Documents"><i class="fas fa-folder-open"></i></a>` : ''}
                                 <button class="btn btn-danger btn-sm" onclick="deleteCandidate('${c.id}')" title="Delete Profile"><i class="fas fa-trash"></i></button>
                             </td>
                         `;
@@ -286,87 +290,66 @@
 
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
-                                <label class="form-label">Date of Birth *</label>
-                                <input type="date" id="cand-dob" class="form-control" value="${c ? new Date(c.dob).toISOString().split('T')[0] : ''}" required>
+                                <label class="form-label">Nationality</label>
+                                <input type="text" id="cand-nationality" class="form-control" value="${c ? c.nationality || '' : ''}" placeholder="e.g. Ukraine">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Location (City, Country) *</label>
-                                <input type="text" id="cand-location" class="form-control" value="${c ? c.location : ''}" placeholder="e.g. Odessa, Ukraine" required>
-                            </div>
-                        </div>
-
-                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                            <div class="form-group">
-                                <label class="form-label">Contact Number *</label>
-                                <input type="tel" id="cand-phone" class="form-control" value="${c ? c.contactNumber : ''}" placeholder="+380..." required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Email Address *</label>
-                                <input type="email" id="cand-email" class="form-control" value="${c ? c.email : ''}" required>
-                            </div>
-                        </div>
-
-                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary);">Certificates & Expirations</h3>
-                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                            <div class="form-group">
-                                <label class="form-label">Passport Number *</label>
-                                <input type="text" id="cand-passport-no" class="form-control" value="${c ? c.passportDetails.number : ''}" required>
-                            </div>
-                            <div class="form-group">
-                                <label class="form-label">Passport Expiry *</label>
-                                <input type="date" id="cand-passport-exp" class="form-control" value="${c ? new Date(c.passportDetails.expiryDate).toISOString().split('T')[0] : ''}" required>
+                                <label class="form-label">Current Vessel</label>
+                                <input type="text" id="cand-vessel" class="form-control" value="${c ? c.currentVessel || '' : ''}" placeholder="e.g. MV Ocean Star">
                             </div>
                         </div>
 
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
-                                <label class="form-label">CDC Number *</label>
-                                <input type="text" id="cand-cdc-no" class="form-control" value="${c ? c.cdcDetails.number : ''}" required>
+                                <label class="form-label">Phone</label>
+                                <input type="tel" id="cand-phone" class="form-control" value="${c ? c.phone || '' : ''}" placeholder="+380...">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">CDC Expiry *</label>
-                                <input type="date" id="cand-cdc-exp" class="form-control" value="${c ? new Date(c.cdcDetails.expiryDate).toISOString().split('T')[0] : ''}" required>
+                                <label class="form-label">Email Address</label>
+                                <input type="email" id="cand-email" class="form-control" value="${c ? c.email || '' : ''}">
                             </div>
                         </div>
 
+                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary);">Certificates</h3>
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
-                                <label class="form-label">COC (Certificate of Competency) *</label>
-                                <input type="text" id="cand-coc-no" class="form-control" value="${c ? c.cocDetails.number : ''}" required>
+                                <label class="form-label">Passport Number</label>
+                                <input type="text" id="cand-passport-no" class="form-control" value="${c ? c.passportNumber || '' : ''}">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">COC Expiry *</label>
-                                <input type="date" id="cand-coc-exp" class="form-control" value="${c ? new Date(c.cocDetails.expiryDate).toISOString().split('T')[0] : ''}" required>
+                                <label class="form-label">CDC Number</label>
+                                <input type="text" id="cand-cdc-no" class="form-control" value="${c ? c.cdcNumber || '' : ''}">
                             </div>
                         </div>
 
-                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary);">Financials & Availability</h3>
-                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary);">Experience & Availability</h3>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
-                                <label class="form-label">Last Wages ($/m)</label>
-                                <input type="number" id="cand-wages-last" class="form-control" value="${c ? c.lastWages || '' : ''}">
+                                <label class="form-label">Experience (Years)</label>
+                                <input type="number" min="0" id="cand-experience-years" class="form-control" value="${c ? c.experienceYears || 0 : 0}">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Expected Wages ($/m) *</label>
-                                <input type="number" id="cand-wages-exp" class="form-control" value="${c ? c.expectedWages : ''}" required>
+                                <label class="form-label">Available From</label>
+                                <input type="date" id="cand-avail" class="form-control" value="${c && c.availableFrom ? new Date(c.availableFrom).toISOString().split('T')[0] : ''}">
+                            </div>
+                        </div>
+
+                        <div class="form-row" style="display: grid; grid-template-columns: 2fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label class="form-label">Expected Salary (per month)</label>
+                                <input type="number" id="cand-expected-salary" class="form-control" value="${c ? c.expectedSalary || '' : ''}">
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Available From *</label>
-                                <input type="date" id="cand-avail" class="form-control" value="${c ? new Date(c.availabilityDate).toISOString().split('T')[0] : ''}" required>
+                                <label class="form-label">Currency</label>
+                                <select id="cand-currency" class="form-control">
+                                    ${['USD', 'EUR', 'GBP'].map(cur => `<option value="${cur}" ${c && c.currency === cur ? 'selected' : (!c && cur === 'USD' ? 'selected' : '')}>${cur}</option>`).join('')}
+                                </select>
                             </div>
                         </div>
 
                         <div class="form-group">
-                            <label class="form-label">Remarks / Notes</label>
-                            <textarea id="cand-remarks" class="form-control" rows="2">${c ? c.remarks || '' : ''}</textarea>
-                        </div>
-
-                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-top: 15px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; color: var(--accent-primary);">
-                            <span>Sea Service Experience</span>
-                            <button type="button" class="btn btn-secondary btn-sm" id="add-exp-btn"><i class="fas fa-plus"></i> Add Experience</button>
-                        </h3>
-                        <div id="experience-container">
-                            <!-- Dynamically added experience elements -->
+                            <label class="form-label">Notes</label>
+                            <textarea id="cand-notes" class="form-control" rows="2">${c ? c.notes || '' : ''}</textarea>
                         </div>
                     </form>
                 `;
@@ -389,113 +372,36 @@
                     });
 
                     _candidateModal.querySelector('#save-candidate-btn').addEventListener('click', saveCandidate);
-                    _candidateModal.querySelector('#add-exp-btn').addEventListener('click', () => addExperienceRow());
-
-                    // Populate existing experiences
-                    if (c && c.vesselExperience) {
-                        c.vesselExperience.forEach(exp => addExperienceRow(exp.vesselType, exp.rank, exp.months));
-                    } else {
-                        // Add one blank row
-                        addExperienceRow();
-                    }
                 }
-            }
-
-            function addExperienceRow(vesselType = '', rank = '', months = '') {
-                const container = document.getElementById('experience-container');
-                const rowId = `exp-row-${expCount++}`;
-
-                const rankOptions = [
-                    'Master', 'Chief Officer', '2nd Officer', '3rd Officer', 'Junior Officer', 'Bosun', 'AB', 'OS',
-                    'Chief Engineer', '2E', '3E', '4E', 'ETO', 'Fitter', 'Oiler', 'Wiper',
-                    'Cook', 'Messman'
-                ].map(r => `<option value="${r}" ${rank === r ? 'selected' : ''}>${r}</option>`).join('');
-
-                const rowDiv = document.createElement('div');
-                rowDiv.id = rowId;
-                rowDiv.className = 'form-row';
-                rowDiv.style = 'display: grid; grid-template-columns: 1.5fr 1.5fr 1fr auto; gap: 10px; margin-bottom: 10px; align-items: end;';
-                rowDiv.innerHTML = `
-                    <div class="form-group" style="margin-bottom:0">
-                        <label class="form-label" style="font-size:0.75rem">Vessel Type</label>
-                        <select class="form-control exp-vessel" required>
-                            <option value="">Select Vessel</option>
-                            <option value="Tanker" ${vesselType === 'Tanker' ? 'selected' : ''}>Tanker</option>
-                            <option value="Bulk Carrier" ${vesselType === 'Bulk Carrier' ? 'selected' : ''}>Bulk Carrier</option>
-                            <option value="Container" ${vesselType === 'Container' ? 'selected' : ''}>Container</option>
-                            <option value="RoRo" ${vesselType === 'RoRo' ? 'selected' : ''}>RoRo</option>
-                            <option value="Gas Carrier" ${vesselType === 'Gas Carrier' ? 'selected' : ''}>Gas Carrier</option>
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0">
-                        <label class="form-label" style="font-size:0.75rem">Rank Served</label>
-                        <select class="form-control exp-rank" required>
-                            <option value="">Select Rank</option>
-                            ${rankOptions}
-                        </select>
-                    </div>
-                    <div class="form-group" style="margin-bottom:0">
-                        <label class="form-label" style="font-size:0.75rem">Months</label>
-                        <input type="number" class="form-control exp-months" value="${months}" placeholder="e.g. 18" required>
-                    </div>
-                    <button type="button" class="btn btn-danger btn-sm" onclick="document.getElementById('${rowId}').remove()" style="height:38px; margin-bottom:1px;"><i class="fas fa-trash"></i></button>
-                `;
-                container.appendChild(rowDiv);
             }
 
             window.saveCandidate = async () => {
                 const name = document.getElementById('cand-name').value.trim();
                 const rank = document.getElementById('cand-rank').value;
-                const dob = document.getElementById('cand-dob').value;
-                const location = document.getElementById('cand-location').value.trim();
-                const phone = document.getElementById('cand-phone').value.trim();
-                const email = document.getElementById('cand-email').value.trim();
-                const wagesExp = document.getElementById('cand-wages-exp').value;
-                const wagesLast = document.getElementById('cand-wages-last').value;
-                const avail = document.getElementById('cand-avail').value;
 
-                if (!name || !rank || !dob || !location || !phone || !email || !wagesExp || !avail) {
-                    if (window.UI?.showToast) window.UI.showToast('Please fill out all required fields', 'error');
+                if (!name || !rank) {
+                    if (window.UI?.showToast) window.UI.showToast('Name and Rank are required', 'error');
                     return;
                 }
 
-                // Gather experiences
-                const vesselExperience = [];
-                const expRows = document.querySelectorAll('#experience-container .form-row');
-                for (const row of expRows) {
-                    const vessel = row.querySelector('.exp-vessel').value;
-                    const rankServed = row.querySelector('.exp-rank').value;
-                    const months = row.querySelector('.exp-months').value;
-                    if (vessel && rankServed && months) {
-                        vesselExperience.push({
-                            vesselType: vessel,
-                            rank: rankServed,
-                            months: parseInt(months)
-                        });
-                    }
-                }
+                const experienceYears = document.getElementById('cand-experience-years').value;
+                const expectedSalary = document.getElementById('cand-expected-salary').value;
+                const avail = document.getElementById('cand-avail').value;
 
                 const payload = {
-                    name, rank, dob, location,
-                    contactNumber: phone,
-                    email,
-                    lastWages: wagesLast ? parseFloat(wagesLast) : null,
-                    expectedWages: parseFloat(wagesExp),
-                    availabilityDate: avail,
-                    remarks: document.getElementById('cand-remarks').value.trim(),
-                    cocDetails: {
-                        number: document.getElementById('cand-coc-no').value.trim(),
-                        expiryDate: document.getElementById('cand-coc-exp').value
-                    },
-                    passportDetails: {
-                        number: document.getElementById('cand-passport-no').value.trim(),
-                        expiryDate: document.getElementById('cand-passport-exp').value
-                    },
-                    cdcDetails: {
-                        number: document.getElementById('cand-cdc-no').value.trim(),
-                        expiryDate: document.getElementById('cand-cdc-exp').value
-                    },
-                    vesselExperience
+                    name,
+                    rank,
+                    nationality: document.getElementById('cand-nationality').value.trim() || null,
+                    currentVessel: document.getElementById('cand-vessel').value.trim() || null,
+                    phone: document.getElementById('cand-phone').value.trim() || null,
+                    email: document.getElementById('cand-email').value.trim() || null,
+                    passportNumber: document.getElementById('cand-passport-no').value.trim() || null,
+                    cdcNumber: document.getElementById('cand-cdc-no').value.trim() || null,
+                    experienceYears: experienceYears ? parseInt(experienceYears, 10) : 0,
+                    availableFrom: avail || null,
+                    expectedSalary: expectedSalary ? parseFloat(expectedSalary) : null,
+                    currency: document.getElementById('cand-currency').value,
+                    notes: document.getElementById('cand-notes').value.trim() || null,
                 };
 
                 try {

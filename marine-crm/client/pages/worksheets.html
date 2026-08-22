@@ -196,8 +196,12 @@
         </div>
       </div>
 
-      <!-- Month Navigation -->
+      <!-- View filter: defaults to Today; All restores the existing month browser -->
       <div class="ws-month-nav">
+        <select id="ws-view-filter" class="form-control" style="max-width:140px;">
+          <option value="TODAY" selected>Today</option>
+          <option value="ALL">All</option>
+        </select>
         <button class="btn btn-secondary btn-sm" id="prev-month-btn">« Previous</button>
         <span class="ws-month-label" id="month-label">August 2026</span>
         <button class="btn btn-secondary btn-sm" id="next-month-btn">Next »</button>
@@ -263,6 +267,15 @@
     let calMonth = new Date().getMonth() + 1; // 1-12
     let allWorksheets = []; // cached for filter without re-fetch
     let selectedWorksheet = null;
+    // Today/All view — Today is the default per spec: only today's
+    // worksheet(s) show on page load. All restores the pre-existing
+    // month-by-month grid unchanged.
+    let viewMode = 'TODAY';
+    function todayDateStr() {
+      const d = new Date();
+      const p = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+    }
 
     // ── Helpers ───────────────────────────────────────────────────────────────
     function pad2(n) { return String(n).padStart(2, '0'); }
@@ -293,23 +306,54 @@
       const grid = document.getElementById('ws-grid');
       grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Loading…</div>';
       try {
-        const params = { year: calYear, month: calMonth };
+        const today = todayDateStr();
+        const params = viewMode === 'TODAY' ? { date: today } : { year: calYear, month: calMonth };
         if (isManager) {
           const empVal = document.getElementById('filter-employee').value;
           const deptVal = document.getElementById('filter-department').value.trim();
-          const dateVal = document.getElementById('filter-date').value;
           const statusVal = document.getElementById('filter-status').value;
           if (empVal) params.employeeId = empVal;
           if (deptVal) params.department = deptVal;
-          if (dateVal) params.date = dateVal;
           if (statusVal) params.status = statusVal;
+          if (viewMode === 'ALL') {
+            const dateVal = document.getElementById('filter-date').value;
+            if (dateVal) params.date = dateVal;
+          }
         }
         const res = await window.ApiService.employees.getWorksheets(params);
-        allWorksheets = (res && res.data) || [];
-        renderGrid(allWorksheets);
+        let data = (res && res.data) || [];
+        // The backend only applies date/month filters for Admin/Founder/COO
+        // (canManageAllWorksheets) — everyone else always gets ALL of their
+        // own worksheets regardless of query params. Filtering client-side
+        // here too is a harmless no-op for admins and the actual fix for
+        // everyone else, so "Today" is correct for every role.
+        if (viewMode === 'TODAY') {
+          data = data.filter((w) => w.date === today);
+        }
+        allWorksheets = data;
+        if (viewMode === 'TODAY') {
+          renderTodayList(allWorksheets);
+        } else {
+          renderGrid(allWorksheets);
+        }
       } catch (err) {
         grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);">Could not load worksheets. ${escapeHtml(err && err.message)}</div>`;
       }
+    }
+
+    // ── Today view: a flat list of just today's worksheet(s) — own record
+    // for regular employees, or every matching employee's for Admin/
+    // Founder/COO (still respecting their existing employee/department/
+    // status filters) — reusing the exact same card markup/actions as the
+    // month grid below. ─────────────────────────────────────────────────────
+    function renderTodayList(worksheets) {
+      const grid = document.getElementById('ws-grid');
+      if (!worksheets.length) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No worksheet submitted for today yet.</div>`;
+        return;
+      }
+      grid.innerHTML = worksheets.map((w) => renderWorksheetCard(new Date(`${w.date}T00:00:00`).getDate(), w.date, w)).join('');
+      bindCardActions();
     }
 
     // ── Admin/Founder/COO: populate the employee filter dropdown ───────────────
@@ -351,6 +395,74 @@
       return days;
     }
 
+    // Shared per-day/per-worksheet card markup — used by both the "All"
+    // month grid (may render an empty "No Worksheet Available" card) and
+    // the "Today" list (only ever renders real worksheets).
+    function renderWorksheetCard(day, date, w) {
+      const att = w && w.attendance;
+      const loggedIn  = att && att.checkIn  ? fmtTime(att.checkIn)  : 'N/A';
+      const loggedOut = att && att.checkOut ? fmtTime(att.checkOut) : 'N/A';
+      const uploaded  = w && w.submittedAt  ? fmtTimePM(w.submittedAt) : 'N/A';
+      const hasWs     = !!w;
+      const cc        = colorClass(day);
+      const wid       = w ? (w.id || w._id) : null;
+
+      const remarkHtml = hasWs ? `
+        <div class="ws-remark-box">
+          <div><span class="remark-label">Remark :</span> ${escapeHtml(w.summaryOfWork || '—')}</div>
+          ${w.reply ? `<div><span class="reply-label">Reply :</span> ${escapeHtml(w.reply)}</div>` : ''}
+        </div>` : '';
+
+      const actionBtns = `
+        <div class="ws-actions">
+          ${hasWs
+            ? `<button class="btn btn-secondary btn-sm" onclick="openDetail('${wid}')">View Worksheet</button>`
+            : `<button class="btn btn-secondary btn-sm" disabled>No Worksheet Available</button>`
+          }
+          ${hasWs && w.driveLink
+            ? `<a class="btn btn-secondary btn-sm" href="${escapeHtml(w.driveLink)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt"></i> Drive Link</a>`
+            : `<button class="btn btn-secondary btn-sm" disabled>No Drive Link Uploaded</button>`
+          }
+        </div>`;
+
+      const empLabel = isManager && w && w.employeeId && w.employeeId.name
+        ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${escapeHtml(w.employeeId.name)}</div>`
+        : '';
+
+      return `
+        <div class="ws-card">
+          <div class="ws-card-header">
+            <div class="ws-day-circle ${cc}">${pad2(day)}</div>
+            <div>
+              <div class="ws-card-date">${fmtDate(date)}</div>
+              ${empLabel}
+            </div>
+          </div>
+          <div class="ws-meta">
+            <div class="ws-meta-row">
+              <i class="fas fa-sign-in-alt" style="width:14px;color:var(--accent-primary);"></i>
+              Logged In: <span class="ws-meta-val ${loggedIn === 'N/A' ? 'na' : ''}">${loggedIn}</span>
+            </div>
+            <div class="ws-meta-row">
+              <i class="fas fa-sign-out-alt" style="width:14px;color:var(--accent-primary);"></i>
+              Logged Out: <span class="ws-meta-val ${loggedOut === 'N/A' ? 'na' : ''}">${loggedOut}</span>
+            </div>
+            <div class="ws-meta-row">
+              <i class="fas fa-upload" style="width:14px;color:var(--accent-primary);"></i>
+              Worksheet Uploaded: <span class="ws-meta-val ${uploaded === 'N/A' ? 'na' : ''}">${uploaded}</span>
+            </div>
+          </div>
+          ${remarkHtml}
+          ${actionBtns}
+        </div>`;
+    }
+
+    // No-op placeholder: card actions use inline onclick handlers (see
+    // renderWorksheetCard above), so there's nothing to bind after
+    // innerHTML is set. Kept as a named hook so both render paths read
+    // the same either way if that ever changes.
+    function bindCardActions() {}
+
     function renderGrid(worksheets) {
       const grid = document.getElementById('ws-grid');
       const days = buildDayData(worksheets);
@@ -360,64 +472,7 @@
         return;
       }
 
-      grid.innerHTML = days.map(({ day, date, worksheet: w }) => {
-        const att = w && w.attendance;
-        const loggedIn  = att && att.checkIn  ? fmtTime(att.checkIn)  : 'N/A';
-        const loggedOut = att && att.checkOut ? fmtTime(att.checkOut) : 'N/A';
-        const uploaded  = w && w.submittedAt  ? fmtTimePM(w.submittedAt) : 'N/A';
-        const hasWs     = !!w;
-        const cc        = colorClass(day);
-        const wid       = w ? (w.id || w._id) : null;
-
-        const remarkHtml = hasWs ? `
-          <div class="ws-remark-box">
-            <div><span class="remark-label">Remark :</span> ${escapeHtml(w.summaryOfWork || '—')}</div>
-            ${w.reply ? `<div><span class="reply-label">Reply :</span> ${escapeHtml(w.reply)}</div>` : ''}
-          </div>` : '';
-
-        const actionBtns = `
-          <div class="ws-actions">
-            ${hasWs
-              ? `<button class="btn btn-secondary btn-sm" onclick="openDetail('${wid}')">View Worksheet</button>`
-              : `<button class="btn btn-secondary btn-sm" disabled>No Worksheet Available</button>`
-            }
-            ${hasWs && w.driveLink
-              ? `<a class="btn btn-secondary btn-sm" href="${escapeHtml(w.driveLink)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt"></i> Drive Link</a>`
-              : `<button class="btn btn-secondary btn-sm" disabled>No Drive Link Uploaded</button>`
-            }
-          </div>`;
-
-        const empLabel = isManager && w && w.employeeId && w.employeeId.name
-          ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${escapeHtml(w.employeeId.name)}</div>`
-          : '';
-
-        return `
-          <div class="ws-card">
-            <div class="ws-card-header">
-              <div class="ws-day-circle ${cc}">${pad2(day)}</div>
-              <div>
-                <div class="ws-card-date">${fmtDate(date)}</div>
-                ${empLabel}
-              </div>
-            </div>
-            <div class="ws-meta">
-              <div class="ws-meta-row">
-                <i class="fas fa-sign-in-alt" style="width:14px;color:var(--accent-primary);"></i>
-                Logged In: <span class="ws-meta-val ${loggedIn === 'N/A' ? 'na' : ''}">${loggedIn}</span>
-              </div>
-              <div class="ws-meta-row">
-                <i class="fas fa-sign-out-alt" style="width:14px;color:var(--accent-primary);"></i>
-                Logged Out: <span class="ws-meta-val ${loggedOut === 'N/A' ? 'na' : ''}">${loggedOut}</span>
-              </div>
-              <div class="ws-meta-row">
-                <i class="fas fa-upload" style="width:14px;color:var(--accent-primary);"></i>
-                Worksheet Uploaded: <span class="ws-meta-val ${uploaded === 'N/A' ? 'na' : ''}">${uploaded}</span>
-              </div>
-            </div>
-            ${remarkHtml}
-            ${actionBtns}
-          </div>`;
-      }).join('');
+      grid.innerHTML = days.map(({ day, date, worksheet: w }) => renderWorksheetCard(day, date, w)).join('');
     }
 
     // ── Detail modal ──────────────────────────────────────────────────────────
@@ -541,8 +596,29 @@
       loadWorksheets();
     });
 
+    // ── Today/All toggle ──────────────────────────────────────────────────────
+    // Today (the default) hides the month browser entirely — it isn't
+    // relevant when only today's record(s) are shown. All reveals it and
+    // behaves exactly as the page did before this filter existed.
+    function applyViewMode() {
+      const monthNav = document.querySelectorAll('#prev-month-btn, #next-month-btn, #month-label');
+      const monthTitle = document.getElementById('month-title');
+      const showMonthUi = viewMode === 'ALL';
+      monthNav.forEach((el) => { el.style.display = showMonthUi ? '' : 'none'; });
+      monthTitle.style.display = showMonthUi ? '' : 'none';
+      const dateFilterEl = document.getElementById('filter-date');
+      if (dateFilterEl) dateFilterEl.style.display = showMonthUi ? '' : 'none';
+    }
+
+    document.getElementById('ws-view-filter').addEventListener('change', (e) => {
+      viewMode = e.target.value === 'ALL' ? 'ALL' : 'TODAY';
+      applyViewMode();
+      loadWorksheets();
+    });
+
     // ── Init ──────────────────────────────────────────────────────────────────
     updateMonthLabel();
+    applyViewMode();
     if (isManager) {
       document.getElementById('admin-filter-bar').classList.remove('hidden');
       document.getElementById('page-subtitle').textContent = 'Review employee daily work reports';

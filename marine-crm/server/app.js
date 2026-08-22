@@ -92,6 +92,17 @@ app.use(express.static(clientPath, staticOpts));
 app.use('/pages',  express.static(path.join(clientPath, 'pages'),  staticOpts));
 app.use('/public', express.static(path.join(clientPath, 'public'), staticOpts));
 // Serve uploaded files (profile photos, worksheet attachments, contracts, etc.)
+// EXCEPT documents/ and job-applications/ — those already have dedicated,
+// RBAC-gated download routes (/api/documents/:id/file, the job-applications
+// file route). Serving them here too would let anyone who knows/guesses a
+// filename bypass those authorization checks entirely and pull confidential
+// seafarer certificates, passports, or job applications with no auth at all.
+app.use('/uploads/documents', (req, res) => {
+  res.status(404).json({ success: false, message: 'Not found. Use the authenticated /api/documents/:id/file route.' });
+});
+app.use('/uploads/job-applications', (req, res) => {
+  res.status(404).json({ success: false, message: 'Not found. Use the authenticated job application file route.' });
+});
 app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOpts));
 
 // Root redirect to login

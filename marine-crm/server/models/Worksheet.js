@@ -38,7 +38,20 @@ const worksheetSchema = new mongoose.Schema(
 worksheetSchema.set('toJSON', {
   transform: (doc, ret) => {
     ret.id = ret._id ? ret._id.toString() : undefined;
-    if (ret.employeeId) ret.employeeId = ret.employeeId.toString();
+    // BUG FIX (root cause of "Unknown employee"): when .populate('employeeId')
+    // has been used, ret.employeeId is already a plain populated Employee
+    // object (with .name etc.) by the time this transform runs — calling
+    // .toString() on it collapses it to the string "[object Object]",
+    // which is why the frontend's `w.employeeId.name` lookup silently
+    // failed and fell back to "Unknown employee". Only stringify when the
+    // field was NOT populated (i.e. it's still a raw ObjectId).
+    if (ret.employeeId) {
+      if (doc.populated && doc.populated('employeeId')) {
+        if (ret.employeeId._id) ret.employeeId.id = ret.employeeId._id.toString();
+      } else {
+        ret.employeeId = ret.employeeId.toString();
+      }
+    }
     if (ret.userId) ret.userId = ret.userId.toString();
     if (ret.repliedById) ret.repliedById = ret.repliedById.toString();
     delete ret.__v;

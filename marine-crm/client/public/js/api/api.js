@@ -186,6 +186,7 @@ const ApiService = {
 
   calls: {
     list:   (params)   => api.get('/calls', { params }),
+    getAll: (params)   => api.get('/calls', { params }),
     get:    (id)       => api.get(`/calls/${id}`),
     create: (data)     => api.post('/calls', data),
     update: (id, data) => api.put(`/calls/${id}`, data),
