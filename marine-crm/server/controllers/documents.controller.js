@@ -13,11 +13,17 @@ const { ROLES, ORG_WIDE_ROLES } = require('../utils/roles');
 // queue (route-level requireRole already excludes every other department).
 async function getAllDocuments(req, res, next) {
   try {
-    const { category, status, search } = req.query;
+    const { category, status, search, candidateId, employeeId } = req.query;
     const filter = {};
     if (category) filter.category = category;
     if (status) filter.status = status;
     if (search) filter.name = { $regex: search, $options: 'i' };
+    // Supports Seafarer Profile -> Documents deep-linking
+    // (documents.html?candidateId=... or ?employeeId=...). Previously
+    // accepted but silently ignored, which made any such link a
+    // no-op placeholder.
+    if (candidateId) filter.candidateId = candidateId;
+    if (employeeId) filter.employeeId = employeeId;
 
     const role = req.currentUser?.role;
     if (role === ROLES.DOCUMENTATION_OFFICER) {
@@ -30,7 +36,18 @@ async function getAllDocuments(req, res, next) {
       .populate('uploadedBy', 'name email')
       .sort({ createdAt: -1 });
 
-    return res.status(200).json({ success: true, data: documents });
+    // Self-heal: fileUrl is computed from the working /:id/file route on
+    // every read rather than trusting whatever was stored at upload time.
+    // (createDocument() below used to persist a dead
+    // /api/documents/download-temp/:filename URL that was never routed —
+    // this repairs both old and new records without a migration.)
+    const withFreshUrls = documents.map((d) => {
+      const obj = d.toObject ? d.toObject() : d;
+      obj.fileUrl = `/api/documents/${obj._id}/file`;
+      return obj;
+    });
+
+    return res.status(200).json({ success: true, data: withFreshUrls });
   } catch (err) {
     console.error('getAllDocuments error:', err);
     return res.status(500).json({ success: false, message: err.message || 'Failed to fetch documents.' });
@@ -59,7 +76,7 @@ async function createDocument(req, res, next) {
     const doc = await Document.create({
       name: req.file.originalname,
       filePath: req.file.path,
-      fileUrl: `/api/documents/download-temp/${req.file.filename}`, // internal ref
+      fileUrl: `/uploads/documents/${req.file.filename}`, // placeholder; real value set below
       mimeType: req.file.mimetype,
       size: req.file.size,
       category: category || 'OTHER',
@@ -69,6 +86,13 @@ async function createDocument(req, res, next) {
       status: 'PENDING',
       uploadedBy: userId,
     });
+
+    // Store the actual working, auth-checked download route (not the
+    // dead /download-temp/ path this used to save) so any code path
+    // that reads fileUrl straight from the DB — not just getAllDocuments'
+    // self-heal — gets a URL that resolves.
+    doc.fileUrl = `/api/documents/${doc._id}/file`;
+    await doc.save();
 
     const populated = await doc.populate('uploadedBy', 'name email');
 

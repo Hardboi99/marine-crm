@@ -177,15 +177,26 @@
         let appointmentsList = [];
         let currentContractModal = null;
 
+        // Must match server/routes/pipeline.js requireRole(...) for the
+        // contracts write routes (POST/PUT/DELETE) exactly.
+        const CONTRACTS_WRITE_ROLES = ['ADMIN', 'DIRECTOR', 'COO', 'BDM'];
+        const _contractsUser = JSON.parse(localStorage.getItem('user') || '{}');
+        const canWriteContracts = CONTRACTS_WRITE_ROLES.includes(_contractsUser.role);
+
         document.addEventListener('DOMContentLoaded', () => {
             if (!localStorage.getItem('token')) {
                 window.location.href = '/pages/login.html';
                 return;
             }
 
-            // Direct addEventListener setup (bypasses any inline CSP restriction)
             const addBtn = document.getElementById('add-contract-btn');
-            if (addBtn) addBtn.addEventListener('click', () => openContractModal());
+            if (addBtn) {
+                if (!canWriteContracts) {
+                    addBtn.style.display = 'none';
+                } else {
+                    addBtn.addEventListener('click', () => openContractModal());
+                }
+            }
 
             const statusFilter = document.getElementById('status-filter');
             if (statusFilter) statusFilter.addEventListener('change', () => loadContracts());
@@ -309,6 +320,11 @@
                     }
                 }
 
+                const actionButtons = canWriteContracts
+                    ? `<button class="btn btn-secondary btn-sm" data-action="edit" data-id="${cid}" onclick="editContract('${cid}')">Edit</button>
+                       <button class="btn btn-danger btn-sm" data-action="delete" data-id="${cid}" onclick="deleteContract('${cid}')">Delete</button>`
+                    : '';
+
                 const fileLink = c.fileUrl ? `<a href="${c.fileUrl}" target="_blank" style="color:#0ea5e9; font-weight:500;">📄 View Document</a>` : '';
 
                 return `
@@ -321,8 +337,7 @@
         <td style="padding: 15px;">${expiryWarning}</td>
         <td style="padding: 15px; display:flex; gap:8px; align-items:center;">
             ${fileLink}
-            <button class="btn btn-secondary btn-sm" data-action="edit" data-id="${cid}" onclick="editContract('${cid}')">Edit</button>
-            <button class="btn btn-danger btn-sm" data-action="delete" data-id="${cid}" onclick="deleteContract('${cid}')">Delete</button>
+            ${actionButtons}
         </td>
     </tr>
 `;

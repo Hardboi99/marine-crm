@@ -751,7 +751,7 @@
                     <th>Login Status</th>
                     <th>Location</th>
                     <th>Joining Date</th>
-                    <th>Attendance (Today)</th>
+                    <th>Attendance (Today)</th> <!-- read-only status; In/Out actions live on the Dashboard now -->
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -868,43 +868,6 @@
           <label for="emp-joindate">Joining Date</label>
           <input id="emp-joindate" class="form-control" type="date" />
         </div>
-      </div>
-    </div>
-  </template>
-
-  <!-- CHECKOUT DAILY WORKSHEET MODAL TEMPLATE -->
-  <template id="worksheet-modal-tpl">
-    <div style="display: flex; flex-direction: column; gap: 14px">
-      <div style="
-            background: rgba(14, 165, 233, 0.1);
-            padding: 12px;
-            border-radius: 6px;
-            font-size: 0.85rem;
-            color: var(--text-secondary);
-          ">
-        <i class="fas fa-info-circle" style="color: var(--accent-blue); margin-right: 6px"></i>
-        Please fill in your daily work summary before completing check-out.
-      </div>
-      <div>
-        <label class="form-label">Summary of Work Done Today
-          <span style="color: #f87171">*</span></label>
-        <textarea id="ws-summary" class="form-control" rows="3"
-          placeholder="Describe tasks, client calls, and progress completed today…"></textarea>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
-        <div>
-          <label class="form-label">Calls / Contacts Made</label>
-          <input id="ws-calls" type="number" min="0" class="form-control" value="0" />
-        </div>
-        <div>
-          <label class="form-label">Vessel Owners Contacted</label>
-          <input id="ws-vessels" type="number" min="0" class="form-control" value="0" />
-        </div>
-      </div>
-      <div>
-        <label class="form-label">Additional Notes / Leads Followed</label>
-        <textarea id="ws-notes" class="form-control" rows="2"
-          placeholder="Any follow-up details or remarks…"></textarea>
       </div>
     </div>
   </template>
@@ -1195,16 +1158,9 @@
 
         <td style="font-size:0.85rem;">${joinDate}</td>
         <td>
+          <!-- Read-only: attendance In/Out is now controlled from the Dashboard (self-service, with location + geofence). -->
           <div style="display:flex;flex-direction:column;gap:4px;">
-            <div style="display:flex;gap:5px;">
-              <button class="btn btn-sm ${checkedIn ? "btn-secondary" : "btn-success"}" ${checkedIn ? "disabled" : ""} onclick="handleCheckIn('${e.id}')">
-                <i class="fas fa-sign-in-alt"></i> In
-              </button>
-              <button class="btn btn-sm ${!checkedIn || checkedOut ? "btn-secondary" : "btn-warning"}" ${!checkedIn || checkedOut ? "disabled" : ""} onclick="handleCheckOutModal('${e.id}','${e.name.replace(/'/g, "&#39;")}')">
-                <i class="fas fa-sign-out-alt"></i> Out
-              </button>
-            </div>
-            <div style="font-size:0.72rem;color:var(--text-muted);">
+            <div style="font-size:0.78rem;">
               ${checkedIn ? `In: <strong style="color:var(--text-primary);">${formatTime(att.checkIn)}</strong>` : '<span class="badge badge-gray">Not Checked In</span>'}
               ${checkedOut ? ` | Out: <strong style="color:var(--text-primary);">${formatTime(att.checkOut)}</strong>` : ""}
             </div>
@@ -1414,80 +1370,11 @@
       }
     }
 
-    // ─── Attendance Check In / Out ───────────────────────────────────────────
-    async function handleCheckIn(id) {
-      try {
-        const res = await window.ApiService.employees.checkIn(id);
-        attendances[id] = res.data;
-        UI.showToast("Checked in successfully.", "success");
-        renderEmployees();
-      } catch (err) {
-        console.error("Check in error:", err);
-        UI.showToast(err.message || "Check in failed.", "error");
-      }
-    }
-
-    // ─── Checkout with Daily Worksheet Popup ──────────────────────────────────
-    function handleCheckOutModal(employeeId, employeeName) {
-      const tpl = document.getElementById("worksheet-modal-tpl");
-
-      const modal = UI.createModal({
-        title: `📋 Daily Worksheet & Checkout — ${employeeName}`,
-        bodyHtml: tpl.innerHTML,
-        footerHtml: `
-      <button class="btn btn-secondary" id="ws-cancel">Cancel</button>
-      <button class="btn btn-warning"   id="ws-submit"><i class="fas fa-paper-plane"></i> Submit & Check Out</button>
-    `,
-      });
-
-      modal.querySelector("#ws-cancel").onclick = () => modal.close();
-      modal.querySelector("#ws-submit").onclick = async () => {
-        const summaryStr = modal.querySelector("#ws-summary").value.trim();
-        const callsVal = modal.querySelector("#ws-calls").value;
-        const vesselsVal = modal.querySelector("#ws-vessels").value;
-        const notesStr = modal.querySelector("#ws-notes").value.trim();
-
-        if (!summaryStr) {
-          return UI.showToast(
-            "Please provide a summary of your work done today.",
-            "error",
-          );
-        }
-
-        const submitBtn = modal.querySelector("#ws-submit");
-        submitBtn.disabled = true;
-        submitBtn.innerHTML =
-          '<i class="fas fa-spinner fa-spin"></i> Submitting…';
-
-        try {
-          // 1. Submit Worksheet
-          await window.ApiService.employees.submitWorksheet({
-            employeeId,
-            summaryOfWork: summaryStr,
-            callsMade: callsVal,
-            vesselsContacted: vesselsVal,
-            notes: notesStr,
-          });
-
-          // 2. Perform Check Out
-          const res = await window.ApiService.employees.checkOut(employeeId);
-          attendances[employeeId] = res.data;
-
-          UI.showToast(
-            "Worksheet submitted & Checked out successfully.",
-            "success",
-          );
-          modal.close();
-          renderEmployees();
-        } catch (err) {
-          console.error("Worksheet / Checkout error:", err);
-          UI.showToast(err.message || "Checkout failed.", "error");
-          submitBtn.disabled = false;
-          submitBtn.innerHTML =
-            '<i class="fas fa-paper-plane"></i> Submit & Check Out';
-        }
-      };
-    }
+    // NOTE: Attendance Check In/Out (and the Daily Worksheet & Checkout
+    // modal that used to live here) has moved to the Dashboard — it now
+    // does location-verified, geofenced self-checkin/out against the same
+    // Attendance/Worksheet backend. This page only shows today's status
+    // (read-only) via the `attendances` map already fetched above.
 
     // ─── View Worksheets History Modal ──────────────────────────────────────
     async function openWorksheetsViewModal() {

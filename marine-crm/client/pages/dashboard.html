@@ -50,6 +50,37 @@
 </head>
 
 <body>
+    <!-- Daily Worksheet & Checkout modal template — same Worksheet/Attendance
+         backend + flow as attendance.html's checkout (submit worksheet, then
+         geofenced check-out). Reused here so the Dashboard's Out button is
+         fully self-contained (no more redirect to the Employee page). -->
+    <template id="worksheet-modal-tpl">
+        <div style="display: flex; flex-direction: column; gap: 14px">
+            <div style="background: rgba(14, 165, 233, 0.1); padding: 12px; border-radius: 6px; font-size: 0.85rem; color: var(--text-secondary);">
+                <i class="fas fa-info-circle" style="color: var(--accent-blue); margin-right: 6px"></i>
+                Please fill in your daily work summary before completing check-out.
+            </div>
+            <div>
+                <label class="form-label">Summary of Work Done Today <span style="color: #f87171">*</span></label>
+                <textarea id="ws-summary" class="form-control" rows="3" placeholder="Describe tasks, client calls, and progress completed today…"></textarea>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px">
+                <div>
+                    <label class="form-label">Calls / Contacts Made</label>
+                    <input id="ws-calls" type="number" min="0" class="form-control" value="0" />
+                </div>
+                <div>
+                    <label class="form-label">Vessel Owners Contacted</label>
+                    <input id="ws-vessels" type="number" min="0" class="form-control" value="0" />
+                </div>
+            </div>
+            <div>
+                <label class="form-label">Additional Notes / Leads Followed</label>
+                <textarea id="ws-notes" class="form-control" rows="2" placeholder="Any follow-up details or remarks…"></textarea>
+            </div>
+        </div>
+    </template>
+
     <div class="app-wrapper">
         <div id="sidebar-container"></div>
         <div id="sidebar-overlay" class="sidebar-overlay"></div>
@@ -901,27 +932,137 @@
             }
             if (window.observeReveal) window.observeReveal(pageContent);
 
-            // Event Listeners for attendance in dashboard
+            // Event Listeners for attendance in dashboard — both IN and OUT
+            // go through window.ApiService.attendance / window.AttendanceService,
+            // the exact same layer attendance.html uses (which itself calls the
+            // same /employees/checkin|checkout/:id endpoints), so the Dashboard,
+            // the Attendance page, and the navbar widget all read/write one
+            // shared Attendance record. No separate attendance system here.
             const btnIn = document.getElementById('dash-checkin');
             const btnOut = document.getElementById('dash-checkout');
             if (btnIn) {
                 btnIn.addEventListener('click', async () => {
+                    btnIn.disabled = true;
+                    const originalText = btnIn.textContent;
+                    btnIn.textContent = 'Getting your location…';
                     try {
-                        await window.ApiService.employees.checkIn(profile.id || profile._id);
-                        UI.showToast('Checked in successfully.', 'success');
+                        const coords = await captureCurrentLocationDash();
+                        btnIn.textContent = 'Checking in…';
+                        await window.ApiService.attendance.checkIn(coords);
+                        UI.showToast('Checked in. Have a great day!', 'success');
+                        window.dispatchEvent(new CustomEvent('attendance:changed'));
                         reloadPersonalDashboard();
                     } catch (err) {
-                        UI.showToast(err.message || 'Check in failed.', 'error');
+                        console.error('Check in failed:', err);
+                        const outsideGeofence = err && typeof err.distanceMeters === 'number';
+                        const message = outsideGeofence
+                            ? `📍 Distance from office: ${err.distanceMeters}m — outside the ${err.radiusMeters}m attendance area. Move closer and try again.`
+                            : (err && err.message) || 'Check in failed.';
+                        UI.showToast(message, 'error');
+                        btnIn.disabled = false;
+                        btnIn.textContent = originalText;
                     }
                 });
             }
             if (btnOut) {
                 btnOut.addEventListener('click', () => {
-                    // Redirect to employee page to complete checkout worksheet
-                    UI.showToast('Redirecting to submit daily worksheet...', 'info');
-                    setTimeout(() => { window.location.href = '/pages/employee.html'; }, 1000);
+                    openDashCheckoutModal();
                 });
             }
+        }
+
+        // ── Geolocation capture (mirrors attendance.html — single one-off
+        // fix via getCurrentPosition, no watch/background tracking) ──────────
+        function captureCurrentLocationDash() {
+            return new Promise((resolve, reject) => {
+                if (!('geolocation' in navigator)) {
+                    reject(new Error('Location permission is required to record attendance. Your browser does not support location.'));
+                    return;
+                }
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+                    (err) => {
+                        let message = 'Location permission is required to record attendance.';
+                        if (err.code === err.POSITION_UNAVAILABLE) {
+                            message = 'Could not determine your location. Please check your device\'s location settings and try again.';
+                        } else if (err.code === err.TIMEOUT) {
+                            message = 'Getting your location timed out. Please try again.';
+                        }
+                        reject(new Error(message));
+                    },
+                    { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+                );
+            });
+        }
+
+        // ── Daily Worksheet & Checkout modal (same Worksheet + Attendance
+        // API calls as attendance.html's openCheckoutWorksheetModal) ─────────
+        function openDashCheckoutModal() {
+            const tpl = document.getElementById('worksheet-modal-tpl');
+            const modal = UI.createModal({
+                title: '📋 Daily Worksheet & Checkout',
+                bodyHtml: tpl.innerHTML,
+                footerHtml: `
+                    <button class="btn btn-secondary" id="ws-cancel">Cancel</button>
+                    <button class="btn btn-warning" id="ws-submit"><i class="fas fa-paper-plane"></i> Submit & Check Out</button>
+                `,
+            });
+
+            modal.querySelector('#ws-cancel').onclick = () => modal.close();
+            let worksheetSubmitted = false;
+            modal.querySelector('#ws-submit').onclick = async () => {
+                const submitBtn = modal.querySelector('#ws-submit');
+
+                if (!worksheetSubmitted) {
+                    const summaryStr = modal.querySelector('#ws-summary').value.trim();
+                    if (!summaryStr) {
+                        return UI.showToast('Please provide a summary of your work done today.', 'error');
+                    }
+                    const callsVal = modal.querySelector('#ws-calls').value;
+                    const vesselsVal = modal.querySelector('#ws-vessels').value;
+                    const notesStr = modal.querySelector('#ws-notes').value.trim();
+
+                    submitBtn.disabled = true;
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting…';
+                    try {
+                        const employeeId = await window.ApiService.attendance.getMyEmployeeId();
+                        await window.ApiService.employees.submitWorksheet({
+                            employeeId,
+                            summaryOfWork: summaryStr,
+                            callsMade: callsVal,
+                            vesselsContacted: vesselsVal,
+                            notes: notesStr,
+                        });
+                        worksheetSubmitted = true; // saved — never resubmit, even on a later retry
+                    } catch (err) {
+                        console.error('Worksheet submit failed:', err);
+                        UI.showToast((err && err.message) || 'Could not save your worksheet.', 'error');
+                        submitBtn.disabled = false;
+                        submitBtn.innerHTML = '<i class="fas fa-paper-plane"></i> Submit & Check Out';
+                        return;
+                    }
+                }
+
+                submitBtn.innerHTML = '<i class="fas fa-map-marker-alt fa-spin"></i> Getting your location…';
+                try {
+                    const coords = await captureCurrentLocationDash();
+                    submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Checking out…';
+                    await window.ApiService.attendance.checkOut(coords);
+                    UI.showToast('Worksheet submitted & checked out successfully.', 'success');
+                    modal.close();
+                    window.dispatchEvent(new CustomEvent('attendance:changed'));
+                    reloadPersonalDashboard();
+                } catch (err) {
+                    console.error('Location / checkout error:', err);
+                    const outsideGeofence = err && typeof err.distanceMeters === 'number';
+                    const msg = outsideGeofence
+                        ? `📍 Distance from office: ${err.distanceMeters}m — outside the ${err.radiusMeters}m attendance area. Move closer and try again.`
+                        : (err && err.message) || 'Checkout failed.';
+                    UI.showToast(msg, 'error');
+                    submitBtn.disabled = false;
+                    submitBtn.innerHTML = '<i class="fas fa-map-marker-alt"></i> Retry Location & Check Out';
+                }
+            };
         }
 
         function renderTasksRows(tasks) {

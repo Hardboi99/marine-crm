@@ -169,6 +169,29 @@
             margin-right: auto;
         }
 
+        /* Desktop: the 420px cap above was sized for mobile and left the
+           calendar looking like a small floating widget on a full-width
+           card — lots of empty space either side, tiny cells. Business
+           logic/markup is unchanged; this only widens the grid and scales
+           the cells/typography up so it reads as a proper desktop HR
+           calendar. */
+        @media (min-width: 900px) {
+            .cal-grid {
+                max-width: 900px;
+                gap: 10px;
+            }
+            .cal-cell {
+                max-height: 92px;
+                border-radius: var(--radius-md);
+                gap: 4px;
+            }
+            .cal-cell-date { font-size: 1rem; }
+            .cal-cell-time { font-size: 0.7rem; }
+            .cal-dow { font-size: 0.72rem; padding-bottom: 8px; }
+            .cal-toolbar { flex-wrap: nowrap; }
+            .cal-legend { font-size: 0.74rem; }
+        }
+
         .cal-dow {
             text-align: center;
             font-size: 0.66rem;
@@ -1252,11 +1275,13 @@
         }
 
         // ── Checkout worksheet gate ──────────────────────────────
-        // Mirrors employee.html's handleCheckOutModal() exactly: submit
+        // Same pattern as the Dashboard's openDashCheckoutModal(): submit
         // the worksheet first (same Worksheet model/API), and only on
         // success perform the actual attendance checkout. If the person
         // closes the modal (✕, backdrop, or Esc) without hitting Submit,
         // checkOut() is never called — attendance stays Checked In.
+        // (The Employee page's own copy of this flow was removed — Task 1
+        // moved all attendance In/Out to the Dashboard/Attendance page.)
         function openCheckoutWorksheetModal() {
             const tpl = document.getElementById('worksheet-modal-tpl');
             const isHalfDay = todayRecord && todayRecord.dayType === 'HALF_DAY';

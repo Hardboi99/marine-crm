@@ -23,6 +23,12 @@ const attendanceSchema = new mongoose.Schema({
   },
   checkIn: Date,
   checkOut: Date,
+  // BUG FIX: this field was being SET on the document in checkIn() but was
+  // never declared in the schema, so Mongoose (strict by default) silently
+  // dropped it on save — "Late" never actually persisted to the DB, which
+  // is why the calendar's ⏰ Late badge and the monthly late-mark count
+  // never worked even though the read-side code for both was correct.
+  isLate: { type: Boolean, default: false },
   checkInLocation: { type: locationPointSchema, default: null },
   checkOutLocation: { type: locationPointSchema, default: null },
   // Company policy fields (Working Days Mon-Sat, 10:00 AM start):

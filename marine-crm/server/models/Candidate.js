@@ -94,6 +94,23 @@ const candidateSchema = new mongoose.Schema(
       trim: true,
       default: 'SOURCING',
     },
+    // Which department currently "owns" this candidate as it moves through
+    // the pipeline (Sourcing -> Documentation -> Accounts -> Onboarding).
+    // Read/written by crewingController.js status transitions and by
+    // utils/accessScope.js for department-scoped queue visibility.
+    currentDepartment: {
+      type: String,
+      trim: true,
+      default: 'SOURCING',
+    },
+    // The Sourcing Manager this candidate's Sourcing Officer reports to,
+    // so the manager's record-level scope (utils/accessScope.js) can see
+    // their whole team's candidates, not just their own.
+    teamManagerId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
   },
   { timestamps: true }
 );

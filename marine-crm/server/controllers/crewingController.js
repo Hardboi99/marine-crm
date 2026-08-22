@@ -119,19 +119,20 @@ const deleteRequirement = async (req, res, next) => {
 
 const getCandidates = async (req, res, next) => {
   try {
-    const { rank, status, search, expectedWagesMax } = req.query;
+    const { rank, status, search, expectedSalaryMax } = req.query;
     const query = {};
 
     if (rank) query.rank = rank;
     if (status) query.status = status;
-    if (expectedWagesMax) query.expectedWages = { $lte: parseFloat(expectedWagesMax) };
+    if (expectedSalaryMax) query.expectedSalary = { $lte: parseFloat(expectedSalaryMax) };
 
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
-        { location: { $regex: search, $options: 'i' } },
+        { nationality: { $regex: search, $options: 'i' } },
+        { currentVessel: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
-        { contactNumber: { $regex: search, $options: 'i' } }
+        { phone: { $regex: search, $options: 'i' } }
       ];
     }
 
@@ -159,40 +160,30 @@ const getCandidates = async (req, res, next) => {
 const createCandidate = async (req, res, next) => {
   try {
     const {
-      name, rank, dob, location, cocDetails, passportDetails, cdcDetails,
-      lastWages, expectedWages, contactNumber, email, availabilityDate, vesselExperience, remarks
+      name, rank, nationality, phone, email, passportNumber, cdcNumber,
+      currentVessel, experienceYears, availableFrom, expectedSalary, currency, notes
     } = req.body;
 
-    if (!name || !rank || !dob || !location || !cocDetails?.number || !passportDetails?.number || !cdcDetails?.number || !expectedWages || !contactNumber || !email || !availabilityDate) {
-      return res.status(400).json({ success: false, message: 'Missing required seafarer fields.' });
+    if (!name || !rank) {
+      return res.status(400).json({ success: false, message: 'Name and rank are required.' });
     }
 
     const creator = req.currentUser;
     const isSourcingOfficer = creator.role === ROLES.SOURCING_OFFICER;
 
     const candidate = await Candidate.create({
-      name, rank, dob: new Date(dob), location,
-      cocDetails: {
-        number: cocDetails.number,
-        expiryDate: new Date(cocDetails.expiryDate),
-        grade: cocDetails.grade || null,
-        country: cocDetails.country || null
-      },
-      passportDetails: {
-        number: passportDetails.number,
-        expiryDate: new Date(passportDetails.expiryDate)
-      },
-      cdcDetails: {
-        number: cdcDetails.number,
-        expiryDate: new Date(cdcDetails.expiryDate),
-        country: cdcDetails.country || null
-      },
-      lastWages: lastWages ? parseFloat(lastWages) : null,
-      expectedWages: parseFloat(expectedWages),
-      contactNumber, email,
-      availabilityDate: new Date(availabilityDate),
-      vesselExperience: vesselExperience || [],
-      remarks,
+      name, rank,
+      nationality: nationality || null,
+      phone: phone || null,
+      email: email || null,
+      passportNumber: passportNumber || null,
+      cdcNumber: cdcNumber || null,
+      currentVessel: currentVessel || null,
+      experienceYears: experienceYears ? parseInt(experienceYears, 10) : 0,
+      availableFrom: availableFrom ? new Date(availableFrom) : null,
+      expectedSalary: expectedSalary ? parseFloat(expectedSalary) : null,
+      currency: currency || 'USD',
+      notes: notes || null,
       createdById: req.user.id,
       assignedToId: req.user.id,
       teamManagerId: isSourcingOfficer ? creator.reportingTo : null,
@@ -231,8 +222,8 @@ const updateCandidate = async (req, res, next) => {
     }
 
     const allowedFields = [
-      'name', 'rank', 'dob', 'location', 'cocDetails', 'passportDetails', 'cdcDetails',
-      'lastWages', 'expectedWages', 'contactNumber', 'email', 'availabilityDate', 'vesselExperience', 'status', 'remarks'
+      'name', 'rank', 'nationality', 'phone', 'email', 'passportNumber', 'cdcNumber',
+      'currentVessel', 'experienceYears', 'availableFrom', 'expectedSalary', 'currency', 'status', 'notes'
     ];
     const updateData = {};
     for (const field of allowedFields) {
@@ -297,18 +288,9 @@ const updateCandidate = async (req, res, next) => {
       });
     }
 
-    if (updateData.dob) updateData.dob = new Date(updateData.dob);
-    if (updateData.availabilityDate) updateData.availabilityDate = new Date(updateData.availabilityDate);
-
-    if (updateData.cocDetails) {
-      if (updateData.cocDetails.expiryDate) updateData.cocDetails.expiryDate = new Date(updateData.cocDetails.expiryDate);
-    }
-    if (updateData.passportDetails) {
-      if (updateData.passportDetails.expiryDate) updateData.passportDetails.expiryDate = new Date(updateData.passportDetails.expiryDate);
-    }
-    if (updateData.cdcDetails) {
-      if (updateData.cdcDetails.expiryDate) updateData.cdcDetails.expiryDate = new Date(updateData.cdcDetails.expiryDate);
-    }
+    if (updateData.availableFrom) updateData.availableFrom = new Date(updateData.availableFrom);
+    if (updateData.experienceYears !== undefined) updateData.experienceYears = parseInt(updateData.experienceYears, 10);
+    if (updateData.expectedSalary !== undefined) updateData.expectedSalary = updateData.expectedSalary ? parseFloat(updateData.expectedSalary) : null;
 
     const candidate = await Candidate.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
@@ -351,26 +333,27 @@ const matchCandidates = async (req, res, next) => {
     // Matching criteria:
     // 1. Rank matches
     // 2. Status is AVAILABLE or SHORTLISTED (not proposed/onboarded)
-    // 3. Vessel Type matching experience exists in candidate's vesselExperience list
+    // 3. experienceYears meets the requirement's minimum (converted from months)
+    // NOTE: the Candidate schema does not track experience per-vessel-type
+    // (there is no vesselExperience list), only a single currentVessel and
+    // an overall experienceYears count, so vessel-type-specific matching
+    // isn't possible without extending the schema — this matches on the
+    // closest real data available instead of crashing.
+    const minExperienceYears = requirement.experienceMonthsRequired
+      ? requirement.experienceMonthsRequired / 12
+      : 0;
+
     const query = {
       rank: requirement.rank,
-      status: { $in: ['AVAILABLE', 'SHORTLISTED'] }
+      status: { $in: ['AVAILABLE', 'SHORTLISTED'] },
+      experienceYears: { $gte: minExperienceYears },
     };
 
     // Only match against candidates this user is actually allowed to see.
     const scope = await getDataScope(req.currentUser, 'CANDIDATE');
     Object.assign(query, scope);
 
-    const candidates = await Candidate.find(query);
-
-    // Filter by vessel type experience and experience duration if needed
-    const matched = candidates.filter(candidate => {
-      const experienceEntry = candidate.vesselExperience.find(
-        exp => exp.vesselType.toLowerCase() === requirement.vesselType.toLowerCase()
-      );
-      if (!experienceEntry) return false;
-      return experienceEntry.months >= requirement.experienceMonthsRequired;
-    });
+    const matched = await Candidate.find(query);
 
     res.json({ success: true, data: matched });
   } catch (err) {
