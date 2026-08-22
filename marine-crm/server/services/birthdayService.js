@@ -1,8 +1,8 @@
 // Birthday Service — Marine CRM
-// Sends professional birthday emails via SMTP. Never hard-codes credentials.
+// Sends professional birthday emails via SMTP using shared email config.
 
-const nodemailer = require('nodemailer');
 require('dotenv').config();
+const { sendEmail } = require('../config/email');
 
 // In-memory dedup set: "employeeId:YYYY-MM-DD" → prevents duplicate sends within same server process
 const sentToday = new Set();
@@ -20,24 +20,8 @@ function clearSentSetIfNewDay() {
   }
 }
 
-function createTransport() {
-  if (!process.env.SMTP_HOST || !process.env.SMTP_USER || !process.env.SMTP_PASS ||
-      process.env.SMTP_USER === 'your@gmail.com') {
-    return null; // SMTP not configured
-  }
-  return nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: parseInt(process.env.SMTP_PORT || '587'),
-    secure: false,
-    auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-  });
-}
-
 async function sendBirthdayEmail(employee) {
   if (!employee.email) return { sent: false, reason: 'no email' };
-
-  const transport = createTransport();
-  if (!transport) return { sent: false, reason: 'SMTP not configured' };
 
   const firstName = employee.name.split(' ')[0];
   const html = `
@@ -61,14 +45,13 @@ async function sendBirthdayEmail(employee) {
 </div>
 </body></html>`;
 
-  await transport.sendMail({
-    from: `"Marine CRM" <${process.env.SMTP_USER}>`,
-    to: employee.email,
-    subject: `🎉 Happy Birthday, ${firstName}! — Marine CRM Team`,
-    html,
-  });
+  const info = await sendEmail(
+    employee.email,
+    `🎉 Happy Birthday, ${firstName}! — Marine CRM Team`,
+    html
+  );
 
-  return { sent: true };
+  return { sent: !!info };
 }
 
 async function runDailyBirthdayCheck() {

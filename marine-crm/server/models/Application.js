@@ -16,6 +16,9 @@ const applicationSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// M7: Enforce unique proposal per candidate per requirement
+applicationSchema.index({ candidateId: 1, requirementId: 1 }, { unique: true });
+
 applicationSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {

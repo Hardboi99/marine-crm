@@ -248,6 +248,17 @@ const UI = {
     `;
   },
 
+  // ─── XSS PROTECTION / HTML ESCAPING ─────────────────────────
+  escapeHtml: (str) => {
+    if (str === null || str === undefined) return '';
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  },
+
   // ─── AUTH GUARD ──────────────────────────────────────────────
   requireAuth: () => {
     const token = localStorage.getItem('token');
@@ -265,3 +276,4 @@ const UI = {
 };
 
 window.UI = UI;
+window.escapeHtml = UI.escapeHtml;

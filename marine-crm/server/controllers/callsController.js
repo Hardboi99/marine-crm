@@ -262,6 +262,9 @@ const setAppointmentOutcome = async (req, res, next) => {
         reasonId: reasonId || null,
         status: 'PENDING',
         nextFollowupDate: req.body.nextFollowupDate ? new Date(req.body.nextFollowupDate) : null,
+        createdById: req.user.id,
+        assignedToId: req.user.id,
+        department: 'COMMERCIAL',
       });
     }
 
@@ -364,6 +367,9 @@ const getFollowUps = async (req, res, next) => {
     if (status) where.status = status;
     if (sourceType) where.sourceType = sourceType;
 
+    const scope = await getDataScope(req.currentUser, 'FOLLOWUP');
+    Object.assign(where, scope);
+
     const [followUps, total] = await Promise.all([
       FollowUp.find(where)
         .sort({ nextFollowupDate: 1 })
@@ -396,6 +402,46 @@ const getFollowUps = async (req, res, next) => {
   }
 };
 
+const getFollowUpsDue = async (req, res, next) => {
+  try {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+
+    const where = {
+      status: 'PENDING',
+      nextFollowupDate: { $lte: today, $ne: null }
+    };
+
+    const scope = await getDataScope(req.currentUser, 'FOLLOWUP');
+    Object.assign(where, scope);
+
+    const followUps = await FollowUp.find(where)
+      .sort({ nextFollowupDate: 1 })
+      .populate('reasonId')
+      .populate({
+        path: 'appointmentId',
+        populate: { path: 'companyId', select: 'name' },
+      });
+
+    const data = followUps.map((f) => {
+      const obj = f.toJSON();
+      obj.reason = f.reasonId;
+      if (f.appointmentId) {
+        const apptObj = f.appointmentId.toJSON();
+        apptObj.company = f.appointmentId.companyId ? { name: f.appointmentId.companyId.name } : null;
+        obj.appointment = apptObj;
+      } else {
+        obj.appointment = null;
+      }
+      return obj;
+    });
+
+    res.json({ success: true, data });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const createFollowUp = async (req, res, next) => {
   try {
     const { appointmentId, status, nextFollowupDate, notes } = req.body;
@@ -406,6 +452,9 @@ const createFollowUp = async (req, res, next) => {
       status: status || 'PENDING',
       nextFollowupDate: nextFollowupDate && nextFollowupDate !== 'null' ? new Date(nextFollowupDate) : null,
       notes: notes?.trim() || null,
+      createdById: req.user.id,
+      assignedToId: req.user.id,
+      department: 'COMMERCIAL',
     });
 
     if (followUp.appointmentId) {
@@ -432,6 +481,14 @@ const createFollowUp = async (req, res, next) => {
 
 const updateFollowUp = async (req, res, next) => {
   try {
+    const existing = await FollowUp.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'FollowUp not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'FOLLOWUP');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this follow-up.' });
+    }
+
     const { status, nextFollowupDate, notes } = req.body;
     const data = {};
     if (status) data.status = status;
@@ -462,6 +519,14 @@ const updateFollowUp = async (req, res, next) => {
 
 const deleteFollowUp = async (req, res, next) => {
   try {
+    const existing = await FollowUp.findById(req.params.id);
+    if (!existing) return res.status(404).json({ success: false, message: 'FollowUp not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'FOLLOWUP');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this follow-up.' });
+    }
+
     const followUp = await FollowUp.findByIdAndDelete(req.params.id);
     if (!followUp) return res.status(404).json({ success: false, message: 'FollowUp not found.' });
     res.json({ success: true, message: 'FollowUp deleted.' });
@@ -483,6 +548,7 @@ module.exports = {
   getReasons,
   createReason,
   getFollowUps,
+  getFollowUpsDue,
   createFollowUp,
   updateFollowUp,
   deleteFollowUp,

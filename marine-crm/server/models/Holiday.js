@@ -9,6 +9,8 @@ const holidaySchema = new mongoose.Schema(
     date: { type: String, required: true, unique: true, trim: true }, // YYYY-MM-DD
     name: { type: String, required: true, trim: true },
     description: { type: String, trim: true, default: '' },
+    // Drives calendar colour-coding (Task 6): National = red, Company = orange.
+    type: { type: String, enum: ['NATIONAL', 'COMPANY'], default: 'COMPANY' },
     createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
     createdByName: { type: String, trim: true },
   },
@@ -21,6 +23,17 @@ holidaySchema.set('toJSON', {
     ret.id = ret._id;
     delete ret._id;
     delete ret.__v;
+    return ret;
+  },
+});
+
+holidaySchema.set('toObject', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    ret.id = ret._id;
+    delete ret._id;
+    delete ret.__v;
+    return ret;
   },
 });
 

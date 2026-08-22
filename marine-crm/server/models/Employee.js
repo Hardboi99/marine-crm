@@ -18,11 +18,21 @@ const employeeSchema = new mongoose.Schema(
       required: true,
     },
     email: { type: String, lowercase: true, trim: true, default: null },
-    password: { type: String, default: null },
+    address: { type: String, trim: true, default: null },
     location: { type: String, trim: true, default: null },
     position: { type: String, trim: true, default: null },
     joinDate: { type: Date, default: null },
     dateOfBirth: { type: Date, default: null },
+    gender: {
+      type: String,
+      enum: ['MALE', 'FEMALE', 'OTHER', null],
+      default: null,
+    },
+    bloodGroup: {
+      type: String,
+      enum: ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-', null],
+      default: null,
+    },
 
     // ── Offboarding / Exit ────────────────────────────────────────────────
     status: {
@@ -43,7 +53,6 @@ const employeeSchema = new mongoose.Schema(
 );
 
 // 🔥 Index
-employeeSchema.index({ employeeId: 1 });
 employeeSchema.index({ status: 1 });
 
 employeeSchema.set('toJSON', {

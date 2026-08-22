@@ -6,12 +6,18 @@ const followUpSchema = new mongoose.Schema(
     sourceId: { type: mongoose.Schema.Types.ObjectId, default: null },
     appointmentId: { type: mongoose.Schema.Types.ObjectId, ref: 'Appointment', default: null },
     reasonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Reason', default: null },
-    status: { type: String, enum: ['PENDING', 'COMPLETED', 'REJECTED'], default: 'PENDING' },
     nextFollowupDate: { type: Date, default: null },
     notes: { type: String, default: null },
+    createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    assignedToId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
+    department: { type: String, trim: true, default: 'COMMERCIAL' },
   },
   { timestamps: true }
 );
+
+followUpSchema.index({ createdById: 1 });
+followUpSchema.index({ assignedToId: 1 });
+followUpSchema.index({ status: 1 });
 
 followUpSchema.set('toJSON', {
   virtuals: true,

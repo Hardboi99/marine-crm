@@ -33,8 +33,12 @@ const hashToken = (rawToken) =>
 const sendVerificationEmail = async (user, rawToken, baseUrl) => {
   const verifyUrl = `${baseUrl}/pages/verify-email.html?token=${rawToken}`;
 
-  // Always log so admins can copy it from the console when SMTP is offline.
-  console.log(`[EmailVerification] Verify URL for ${user.email} -> ${verifyUrl}`);
+  // Log verification URL only in development/test environments; never leak raw tokens in production logs.
+  if (process.env.NODE_ENV !== 'production') {
+    console.log(`[EmailVerification] (DEV) Verify URL for ${user.email} -> ${verifyUrl}`);
+  } else {
+    console.log(`[EmailVerification] Verification email dispatched to ${user.email}`);
+  }
 
   const html = `<!DOCTYPE html>
 <html lang="en">

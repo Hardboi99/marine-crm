@@ -10,6 +10,13 @@ const worksheetSchema = new mongoose.Schema(
     vesselsContacted: { type: Number, default: 0 },
     notes: { type: String, trim: true, default: '' },
     submittedAt: { type: Date, default: Date.now },
+    // Optional link to the full worksheet/report stored externally
+    // (e.g. Google Drive) — surfaced on the worksheet card.
+    driveLink: { type: String, trim: true, default: null },
+    // Uploaded worksheet file, stored via the existing multer uploads
+    // pipeline (same as profile photos / contracts).
+    uploadedFileUrl: { type: String, trim: true, default: null },
+    uploadedFileName: { type: String, trim: true, default: null },
     // Denormalized at submission time purely for display in worksheet
     // history/review lists (avoids a join back to Attendance for every
     // row) — the Attendance record itself remains the source of truth.

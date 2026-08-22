@@ -22,6 +22,11 @@ const {
 const { ROLES, DEPARTMENTS } = require('./utils/roles');
 
 async function main() {
+  if (process.env.NODE_ENV === 'production' && !process.argv.includes('--force-prod-seed')) {
+    console.error('❌ Refusing to run destructive seed in PRODUCTION environment without --force-prod-seed.');
+    process.exit(1);
+  }
+
   console.log('🌱 Starting comprehensive BDM Sales Pipeline seeding...');
 
   await connectDB();

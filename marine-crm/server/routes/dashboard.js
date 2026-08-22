@@ -1,6 +1,5 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate, loadCurrentUser } = require('../middlewares/auth');
 const { requireRole } = require('../middlewares/roleCheck');
 const {
   getDashboardStats, getCallsByStatus, getCountryPipeline, getMonthlyContracts, getRecentActivity,
@@ -8,8 +7,6 @@ const {
   getRejectionReasonReport, getDailyReport, getCountryWiseReport,
   getEmployeeDashboard,
 } = require('../controllers/dashboardController');
-
-router.use(authenticate, loadCurrentUser);
 
 // Employee personal dashboard (BDM)
 router.get('/dashboard/employee', getEmployeeDashboard);

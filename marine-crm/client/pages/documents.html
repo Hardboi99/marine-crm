@@ -263,7 +263,7 @@
         }
 
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const DOCS_ALLOWED_ROLES = ['MANAGER_DOCS', 'ADMIN'];
+        const DOCS_ALLOWED_ROLES = ['ADMIN', 'DIRECTOR', 'COO', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER', 'HR'];
         if (!DOCS_ALLOWED_ROLES.includes(user.role)) {
             window.location.href = '/pages/dashboard.html';
         }
@@ -346,19 +346,20 @@
                 return;
             }
 
+            const esc = window.escapeHtml || (s => s || '');
             body.innerHTML = filtered.map(d => `
                 <tr>
                     <td>
                         <div class="doc-name-cell">
                             <span class="doc-file-icon">${fileIcon(d.name)}</span>
                             <div>
-                                <div class="doc-name-text">${d.name || 'Untitled'}</div>
-                                ${d.notes ? `<div class="doc-meta-text">${d.notes}</div>` : ''}
+                                <div class="doc-name-text">${esc(d.name || 'Untitled')}</div>
+                                ${d.notes ? `<div class="doc-meta-text">${esc(d.notes)}</div>` : ''}
                             </div>
                         </div>
                     </td>
-                    <td style="font-size:0.85rem;">${(d.category || 'OTHER').replace('_', ' ')}</td>
-                    <td style="font-size:0.85rem;">${d.uploadedBy?.name || d.uploadedByName || '—'}</td>
+                    <td style="font-size:0.85rem;">${esc((d.category || 'OTHER').replace('_', ' '))}</td>
+                    <td style="font-size:0.85rem;">${esc(d.uploadedBy?.name || d.uploadedByName || '—')}</td>
                     <td style="font-size:0.85rem;">${d.createdAt ? new Date(d.createdAt).toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}</td>
                     <td>${statusBadge(d.status)}</td>
                     <td>

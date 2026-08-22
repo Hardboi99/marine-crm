@@ -9,14 +9,17 @@ const {
   listHolidays, createHoliday, updateHoliday, deleteHoliday,
   submitWorksheet, getWorksheets, replyToWorksheet, respondToWorksheetReply,
   createTask, getTasks, updateTaskStatus,
-  getMyProfile,
+  getMyProfile, updateMyProfile,
   bulkImportEmployees,
   getUpcomingBirthdays,
   checkMyBirthdayToday,
 } = require('../controllers/employeeController');
 
-// ── Own profile (BDM convenience) ────────────────────────────────────────────
+// ── Own profile (self-service profile read/update) ───────────────────────────
 router.get('/me', authenticate, getMyProfile);
+router.get('/me/profile', authenticate, getMyProfile);
+router.patch('/me/profile', authenticate, updateMyProfile);
+router.put('/me/profile', authenticate, updateMyProfile);
 router.get('/me/birthday-check', authenticate, checkMyBirthdayToday);
 
 // ── Directory (filtered by role + ?status= inside handler) ────────────────────
@@ -39,7 +42,7 @@ router.delete('/holidays/:id', authenticate, requireRole('ADMIN', 'HR'), deleteH
 // ── Worksheets (filtered by role inside handler) ──────────────────────────────
 router.post('/worksheet',  authenticate, submitWorksheet);
 router.get('/worksheets',  authenticate, getWorksheets);
-router.patch('/worksheets/:id/reply',    authenticate, requireRole('ADMIN', 'HR'), replyToWorksheet);
+router.patch('/worksheets/:id/reply',    authenticate, requireRole('ADMIN', 'DIRECTOR', 'COO'), replyToWorksheet);
 router.patch('/worksheets/:id/response', authenticate, respondToWorksheetReply);
 
 // ── Tasks (Admin/HR create; everyone can read/update own) ─────────────────────

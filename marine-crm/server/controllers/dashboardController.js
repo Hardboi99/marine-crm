@@ -45,19 +45,24 @@ const getDashboardStats = async (req, res, next) => {
     const role = req.currentUser?.role;
     const canSeeBdmAndFinance = ORG_WIDE_ROLES.has(role) || role === ROLES.BDM || role === ROLES.ACCOUNTS_OFFICER;
 
-    const [requirementScope, candidateScope] = await Promise.all([
+    const [requirementScope, candidateScope, callScope, followupScope, apptScope, contractScope, companyScope] = await Promise.all([
       getDataScope(req.currentUser, 'REQUIREMENT'),
       getDataScope(req.currentUser, 'CANDIDATE'),
+      getDataScope(req.currentUser, 'CALL'),
+      getDataScope(req.currentUser, 'FOLLOWUP'),
+      getDataScope(req.currentUser, 'APPOINTMENT'),
+      getDataScope(req.currentUser, 'CONTRACT'),
+      getDataScope(req.currentUser, 'COMPANY'),
     ]);
 
     const bdmStatsPromise = canSeeBdmAndFinance
       ? Promise.all([
-          Call.countDocuments({ callDate: { $gte: todayStart, $lt: todayEnd } }),
-          FollowUp.countDocuments({ status: 'PENDING' }),
-          Appointment.countDocuments({ scheduledAt: { $gte: now }, outcome: null }),
-          Contract.countDocuments({ status: 'ACTIVE' }),
-          Company.countDocuments({ createdAt: { $gte: monthStart }, status: 'CLIENT' }),
-          Company.countDocuments(),
+          Call.countDocuments({ ...callScope, callDate: { $gte: todayStart, $lt: todayEnd } }),
+          FollowUp.countDocuments({ ...followupScope, status: 'PENDING' }),
+          Appointment.countDocuments({ ...apptScope, scheduledAt: { $gte: now }, outcome: null }),
+          Contract.countDocuments({ ...contractScope, status: 'ACTIVE' }),
+          Company.countDocuments({ ...companyScope, createdAt: { $gte: monthStart }, status: 'CLIENT' }),
+          Company.countDocuments(companyScope),
           (role === ROLES.ACCOUNTS_OFFICER || ORG_WIDE_ROLES.has(role))
             ? Invoice.aggregate([{ $group: { _id: null, total: { $sum: '$amount' } } }])
             : Promise.resolve([]),

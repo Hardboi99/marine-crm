@@ -1,4 +1,6 @@
 const bcrypt = require('bcryptjs');
+const fs = require('fs');
+const path = require('path');
 const { User } = require('../models');
 const { signToken } = require('../config/jwt');
 const { logActivity } = require('../utils/activityLogger');
@@ -99,6 +101,94 @@ const getMe = async (req, res, next) => {
     const user = await User.findById(req.user.id).select('-passwordHash');
     if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
     res.json({ success: true, data: user });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Update the logged-in user's own account fields (name, phone, department).
+ * Deliberately does NOT accept role/email/isActive — those stay admin-only.
+ * PATCH /api/auth/me
+ */
+const updateMe = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const { name, phone, department } = req.body;
+    if (name !== undefined && name !== null && String(name).trim()) user.name = String(name).trim();
+    if (phone !== undefined) user.phone = phone ? String(phone).trim() : null;
+    if (department !== undefined) user.department = department ? String(department).trim() : null;
+
+    await user.save();
+    await logActivity({
+      userId: user.id,
+      userName: user.name,
+      action: 'PROFILE_UPDATED',
+      details: 'Updated own profile details.',
+    }).catch(() => {});
+
+    res.json({ success: true, data: user, message: 'Profile updated successfully.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Upload/replace the logged-in user's profile photo.
+ * Stores the file via the existing multer uploads pipeline, saves the
+ * public URL on User.avatarUrl, and removes the previous photo (if it
+ * was a locally-stored file) so uploads/ doesn't accumulate orphans.
+ * POST /api/auth/me/avatar  (multipart/form-data, field name: "avatar")
+ */
+const uploadAvatar = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No image file was uploaded.' });
+    }
+    if (!req.file.mimetype.startsWith('image/')) {
+      fs.unlink(req.file.path, () => {});
+      return res.status(400).json({ success: false, message: 'Profile photo must be an image (JPEG, PNG, or WEBP).' });
+    }
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const previousUrl = user.avatarUrl;
+    user.avatarUrl = `/uploads/${req.file.filename}`;
+    await user.save();
+
+    // Best-effort cleanup of the old locally-stored avatar file.
+    if (previousUrl && previousUrl.startsWith('/uploads/')) {
+      const oldPath = path.join(__dirname, '..', 'uploads', path.basename(previousUrl));
+      fs.unlink(oldPath, () => {});
+    }
+
+    res.json({ success: true, data: user, message: 'Profile photo updated.' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+/**
+ * Remove the logged-in user's profile photo, reverting to initials avatar.
+ * DELETE /api/auth/me/avatar
+ */
+const removeAvatar = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+    if (!user) return res.status(404).json({ success: false, message: 'User not found.' });
+
+    const previousUrl = user.avatarUrl;
+    user.avatarUrl = null;
+    await user.save();
+
+    if (previousUrl && previousUrl.startsWith('/uploads/')) {
+      const oldPath = path.join(__dirname, '..', 'uploads', path.basename(previousUrl));
+      fs.unlink(oldPath, () => {});
+    }
+
+    res.json({ success: true, data: user, message: 'Profile photo removed.' });
   } catch (err) {
     next(err);
   }
@@ -217,6 +307,6 @@ const resendVerification = async (req, res, next) => {
   }
 };
 
-module.exports = { login, register, logout, getMe, verifyEmail, resendVerification };
+module.exports = { login, register, logout, getMe, updateMe, uploadAvatar, removeAvatar, verifyEmail, resendVerification };
 
 

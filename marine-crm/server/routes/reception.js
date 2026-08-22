@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
-const { authenticate } = require('../middlewares/auth');
+const { authenticate, loadCurrentUser } = require('../middlewares/auth');
+const { requireRole } = require('../middlewares/roleCheck');
 
 const {
   listVisitors, createVisitor, checkOutVisitor,
@@ -8,6 +9,9 @@ const {
   listPpeStock, updatePpeStock, listPpeIssuances, issuePpe, returnPpe,
   listDocIntakes, createDocIntake, updateDocIntakeStatus
 } = require('../controllers/receptionController');
+
+// All reception routes require authentication and staff/reception/admin roles
+router.use(authenticate, loadCurrentUser, requireRole('ADMIN', 'HR', 'ADMIN_OFFICER', 'DIRECTOR', 'COO', 'RECEPTION'));
 
 // Visitors
 router.get('/visitors', authenticate, listVisitors);

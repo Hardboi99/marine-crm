@@ -4,23 +4,17 @@ const express = require('express');
 const router = express.Router();
 
 const { documentUpload } = require('../middlewares/documentUpload');
-const { getAllDocuments, createDocument } = require('../controllers/documents.controller');
+const { getAllDocuments, createDocument, downloadDocumentFile, updateDocumentStatus, deleteDocument } = require('../controllers/documents.controller');
 const { authenticate, loadCurrentUser } = require('../middlewares/auth');
 const { requireRole } = require('../middlewares/roleCheck');
 
-// authenticate populates req.user ({ id, email, role, name }) from the JWT;
-// loadCurrentUser fetches the live DB user so getAllDocuments can apply
-// record-level scoping (never trust department/role from a stale JWT).
-// requireRole restricts access to ADMIN, the Documentation team, and
-// organisation-wide roles. 'MANAGER_DOCS' is kept for legacy DB records
-// mid-migration — requireRole() also accepts its current equivalent
-// (DOCUMENTATION_MANAGER) automatically. See utils/roles.js.
 router.use(authenticate, loadCurrentUser, requireRole('ADMIN', 'DIRECTOR', 'COO', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER', 'MANAGER_DOCS'));
 
 router.get('/', getAllDocuments);
-
-// documentUpload.single('file') processes multipart payload before createDocument
 router.post('/', documentUpload.single('file'), createDocument);
+router.get('/:id/file', downloadDocumentFile);
+router.patch('/:id/status', updateDocumentStatus);
+router.delete('/:id', deleteDocument);
 
 // Handle multer file upload errors with descriptive JSON
 router.use((err, req, res, next) => {

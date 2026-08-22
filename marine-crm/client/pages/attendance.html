@@ -225,37 +225,63 @@
             margin-top: 1px;
         }
 
-        /* Status color-washes — reuse the same tint tokens as everywhere else in the CRM */
+        /* Status color-washes — reuse the same tint tokens as everywhere else in the CRM.
+           Colour scheme (per spec): Green=Present, Yellow=Half Day,
+           Red=National Holiday, Orange=Company Holiday, Gray=Absent/No
+           Attendance, Blue=Worksheet Submitted (shown as a small dot/ring
+           overlay rather than a full-cell colour, since a day can be both
+           Present AND have a submitted worksheet at once). */
         .cal-cell.status-present { background: var(--green-light); border-color: rgba(52, 211, 153, 0.28); }
         .cal-cell.status-present .cal-cell-dot { background: var(--green); }
         .cal-cell.status-present .cal-cell-date { color: var(--green); }
 
-        .cal-cell.status-absent { background: var(--red-light); border-color: rgba(248, 113, 113, 0.28); }
-        .cal-cell.status-absent .cal-cell-dot { background: var(--red); }
-        .cal-cell.status-absent .cal-cell-date { color: var(--red); }
+        /* Gray = Absent / No Attendance (was red — updated per calendar colour spec). */
+        .cal-cell.status-absent { background: var(--bg-input); border-color: var(--border-color); }
+        .cal-cell.status-absent .cal-cell-dot { background: var(--text-muted); }
+        .cal-cell.status-absent .cal-cell-date { color: var(--text-muted); }
 
-        .cal-cell.status-holiday { background: var(--yellow-light); border-color: rgba(242, 197, 114, 0.32); }
-        .cal-cell.status-holiday .cal-cell-dot { background: var(--yellow); }
-        .cal-cell.status-holiday .cal-cell-date,
-        .cal-cell.status-holiday .cal-cell-time { color: var(--yellow); }
+        /* Red = National Holiday */
+        .cal-cell.status-holiday-national { background: var(--red-light); border-color: rgba(248, 113, 113, 0.32); }
+        .cal-cell.status-holiday-national .cal-cell-dot { background: var(--red); }
+        .cal-cell.status-holiday-national .cal-cell-date,
+        .cal-cell.status-holiday-national .cal-cell-time { color: var(--red); }
+
+        /* Orange = Company Holiday. No existing --orange token in the
+           shared theme, so this is scoped locally to this page only
+           (styles1.css is untouched). */
+        .cal-cell.status-holiday-company { background: rgba(251, 146, 60, 0.14); border-color: rgba(251, 146, 60, 0.32); }
+        .cal-cell.status-holiday-company .cal-cell-dot { background: #fb923c; }
+        .cal-cell.status-holiday-company .cal-cell-date,
+        .cal-cell.status-holiday-company .cal-cell-time { color: #fb923c; }
 
         .cal-cell.status-weekoff { background: var(--purple-light); border-color: rgba(167, 139, 250, 0.3); }
         .cal-cell.status-weekoff .cal-cell-dot { background: var(--purple); }
         .cal-cell.status-weekoff .cal-cell-date,
         .cal-cell.status-weekoff .cal-cell-time { color: var(--purple); }
 
-        /* No existing --orange token in the shared theme, so this is scoped
-           locally to this page only (styles1.css is untouched). */
-        .cal-cell.status-halfday { background: rgba(251, 146, 60, 0.14); border-color: rgba(251, 146, 60, 0.32); }
-        .cal-cell.status-halfday .cal-cell-dot { background: #fb923c; }
+        /* Yellow = Half Day */
+        .cal-cell.status-halfday { background: var(--yellow-light); border-color: rgba(242, 197, 114, 0.32); }
+        .cal-cell.status-halfday .cal-cell-dot { background: var(--yellow); }
         .cal-cell.status-halfday .cal-cell-date,
-        .cal-cell.status-halfday .cal-cell-time { color: #fb923c; }
+        .cal-cell.status-halfday .cal-cell-time { color: var(--yellow); }
 
         .cal-cell-late-badge {
             position: absolute;
             bottom: 3px; right: 3px;
             font-size: 0.5rem;
             line-height: 1;
+        }
+
+        /* Blue = Worksheet Submitted — a small ring overlay so it layers on
+           top of any base status colour instead of replacing it. */
+        .cal-cell.has-worksheet { box-shadow: inset 0 0 0 2px var(--blue); }
+        .cal-cell.has-worksheet.is-today { box-shadow: inset 0 0 0 2px var(--blue), inset 0 0 0 4px rgba(34, 211, 238, 0.35); }
+        .cal-cell-ws-badge {
+            position: absolute;
+            top: 3px; right: 3px;
+            width: 7px; height: 7px;
+            border-radius: 50%;
+            background: var(--blue);
         }
 
         /* No .badge-orange in the shared stylesheet — scoped here only,
@@ -268,7 +294,7 @@
         .cal-cell.status-none .cal-cell-dot { background: var(--text-muted); opacity: 0.5; }
 
         .cal-cell.status-present .cal-cell-time { color: var(--green); }
-        .cal-cell.status-absent .cal-cell-time { color: var(--red); }
+        .cal-cell.status-absent .cal-cell-time { color: var(--text-muted); }
 
         .cal-cell.is-today {
             box-shadow: inset 0 0 0 2px var(--blue);
@@ -441,7 +467,7 @@
                                 </div>
                             </div>
                         </div>
-                        <div class="today-action">
+                        <div class="today-action" id="today-action-wrap">
                             <button class="btn checkio-btn in" id="checkio-btn">Check In</button>
                             <div class="attendance-status-note" id="attendance-status-note"></div>
                         </div>
@@ -465,12 +491,13 @@
                             </div>
                             <div class="cal-legend">
                                 <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--green);"></span><span>Present</span></span>
-                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--red);"></span><span>Absent</span></span>
-                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--yellow);"></span><span>Holiday</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--text-muted);"></span><span>Absent</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--red);"></span><span>National Holiday</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#fb923c;"></span><span>Company Holiday</span></span>
                                 <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--purple);"></span><span>Week Off</span></span>
-                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:#fb923c;"></span><span>Half Day</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--yellow);"></span><span>Half Day</span></span>
+                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--blue);box-shadow:0 0 0 2px var(--blue) inset;"></span><span>Worksheet Submitted</span></span>
                                 <span class="cal-legend-item"><span style="font-size:0.7rem;">⏰</span><span>Late</span></span>
-                                <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--blue);box-shadow:0 0 0 2px var(--blue) inset;"></span><span>Today</span></span>
                                 <span class="cal-legend-item"><span class="cal-legend-dot" style="background:var(--text-muted);opacity:0.5;"></span><span>No data</span></span>
                             </div>
                         </div>
@@ -593,6 +620,12 @@
         // a separate future task). Showing this to other roles would let them
         // pick another employee only to have the backend 403 the request.
         const ATTENDANCE_ADMIN_ROLES = ['ADMIN', 'HR'];
+        // Founder (DIRECTOR) monitors attendance reports only — no
+        // check-in/out of their own, and never listed as an attendance
+        // subject. Kept as its own constant (rather than folded into
+        // ATTENDANCE_ADMIN_ROLES) since it hides UI rather than granting it.
+        const ATTENDANCE_EXEMPT_ROLES = ['DIRECTOR'];
+        const isAttendanceExempt = ATTENDANCE_EXEMPT_ROLES.includes(currentUser.role);
 
         let viewingEmployeeId = ''; // '' = self
         let calYear, calMonth; // calMonth is 1-12
@@ -714,8 +747,8 @@
             // silently to "Myself only" if it isn't available.
             try {
                 let employees = [];
-                if (window.ApiService && window.ApiService.employees && window.ApiService.employees.getAll) {
-                    const res = await window.ApiService.employees.getAll();
+                if (window.ApiService && window.ApiService.employees && window.ApiService.employees.list) {
+                    const res = await window.ApiService.employees.list();
                     employees = (res && res.data && res.data.data) || (res && res.data) || res || [];
                 } else {
                     const token = localStorage.getItem('token');
@@ -726,6 +759,9 @@
                     }
                 }
                 employees.forEach(emp => {
+                    // Founder (DIRECTOR) is monitoring-only — never a
+                    // selectable attendance subject.
+                    if (emp.userRole === 'DIRECTOR') return;
                     const opt = document.createElement('option');
                     opt.value = emp.id || emp._id || '';
                     opt.textContent = emp.name || emp.fullName || 'Unnamed';
@@ -1160,8 +1196,10 @@
                 note.textContent = isSelf ? 'Working duration updates automatically.' : '';
             } else if (record && record.status === 'HOLIDAY') {
                 totalEl.innerHTML = '<span class="dim">—</span>';
-                badge.className = 'badge badge-yellow';
-                badge.textContent = record.holidayName ? `Holiday — ${record.holidayName}` : 'Holiday';
+                badge.className = record.holidayType === 'NATIONAL' ? 'badge badge-red' : 'badge badge-orange';
+                badge.textContent = record.holidayName
+                    ? `${record.holidayType === 'NATIONAL' ? 'National' : 'Company'} Holiday — ${record.holidayName}`
+                    : 'Holiday';
                 btn.className = 'btn checkio-btn done';
                 btn.textContent = 'Holiday';
                 btn.disabled = true;
@@ -1383,7 +1421,7 @@
         function statusClassFor(record, dateIso, todayIso) {
             if (dateIso && todayIso && dateIso > todayIso) return 'status-future';
             if (!record) return 'status-none';
-            if (record.status === 'HOLIDAY') return 'status-holiday';
+            if (record.status === 'HOLIDAY') return record.holidayType === 'NATIONAL' ? 'status-holiday-national' : 'status-holiday-company';
             if (record.status === 'WEEK_OFF') return 'status-weekoff';
             if (record.status === 'HALF_DAY') return 'status-halfday';
             if (record.checkInTime || record.status === 'PRESENT') return 'status-present';
@@ -1425,8 +1463,10 @@
                     hint = record.checkInTime ? formatClockTime(record.checkInTime) : 'Present';
                 } else if (statusClass === 'status-halfday') {
                     hint = record && record.checkInTime ? formatClockTime(record.checkInTime) : 'Half Day';
-                } else if (statusClass === 'status-holiday') {
-                    hint = record && record.holidayName ? record.holidayName : 'Holiday';
+                } else if (statusClass === 'status-holiday-national') {
+                    hint = record && record.holidayName ? record.holidayName : 'National Holiday';
+                } else if (statusClass === 'status-holiday-company') {
+                    hint = record && record.holidayName ? record.holidayName : 'Company Holiday';
                 } else if (statusClass === 'status-weekoff') {
                     hint = 'Week Off';
                 } else if (statusClass === 'status-absent') {
@@ -1434,14 +1474,18 @@
                 } else if (statusClass === 'status-future') {
                     hint = 'Future';
                 }
+                const hasWorksheet = !!(record && record.worksheetSubmitted);
+                if (hasWorksheet) hint = hint ? `${hint} · Worksheet ✓` : 'Worksheet Submitted';
                 const hintHtml = hint ? `<div class="cal-cell-time" title="${hint.replace(/"/g, '&quot;')}">${hint}</div>` : '<div class="cal-cell-dot"></div>';
                 const lateBadge = record && record.isLate ? `<span class="cal-cell-late-badge" title="Late check-in">⏰</span>` : '';
+                const wsBadge = hasWorksheet ? `<span class="cal-cell-ws-badge" title="Worksheet submitted"></span>` : '';
 
                 html += `
-                    <div class="cal-cell ${statusClass} ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" data-date="${dateIso}">
+                    <div class="cal-cell ${statusClass} ${hasWorksheet ? 'has-worksheet' : ''} ${isToday ? 'is-today' : ''} ${isSelected ? 'is-selected' : ''}" data-date="${dateIso}">
                         <div class="cal-cell-date">${day}</div>
                         ${hintHtml}
                         ${lateBadge}
+                        ${wsBadge}
                     </div>`;
             }
 
@@ -1503,7 +1547,7 @@
             const todayIso = isoDateOnly(new Date());
             const statusLabel = dateIso > todayIso ? 'Future'
                 : !record ? 'No Data'
-                : record.status === 'HOLIDAY' ? (record.holidayName ? `Holiday — ${record.holidayName}` : 'Holiday')
+                : record.status === 'HOLIDAY' ? (record.holidayName ? `${record.holidayType === 'NATIONAL' ? 'National' : 'Company'} Holiday — ${record.holidayName}` : (record.holidayType === 'NATIONAL' ? 'National Holiday' : 'Company Holiday'))
                 : record.status === 'WEEK_OFF' ? 'Week Off'
                 : record.status === 'ABSENT' ? 'Absent'
                 : record.status === 'HALF_DAY' ? 'Half Day'
@@ -1530,6 +1574,9 @@
                 : (record && record.checkOutTime
                     ? `<div class="day-detail-row"><span class="day-detail-label">Worksheet</span><span class="day-detail-value dim">Not found</span></div>`
                     : '');
+            const driveLinkRow = dayWorksheet && dayWorksheet.driveLink
+                ? `<div class="day-detail-row"><span class="day-detail-label">Drive Link</span><span class="day-detail-value"><a href="${dayWorksheet.driveLink}" target="_blank" rel="noopener noreferrer" style="color:var(--accent-primary);">Open</a></span></div>`
+                : '';
 
             body.innerHTML = `
                 <div class="day-detail-row"><span class="day-detail-label">Status</span><span class="day-detail-value">${statusLabel}</span></div>
@@ -1541,6 +1588,7 @@
                 <div class="day-detail-row"><span class="day-detail-label">Total Hours</span><span class="day-detail-value">${formatMinutesAsHM(totalMins) || '—'}</span></div>
                 ${lateRow}
                 ${worksheetRow}
+                ${driveLinkRow}
             `;
 
             if (dayWorksheet) {
