@@ -57,8 +57,12 @@ function isRoleAllowedForStatus(role, to) {
   return gate.includes(role);
 }
 
+const CANDIDATE_STATUSES = Object.keys(CANDIDATE_STATUS_TRANSITIONS);
+
 module.exports = {
+  CANDIDATE_STATUSES,
   CANDIDATE_STATUS_TRANSITIONS,
+  STATUS_ROLE_GATE,
   isValidTransition,
   isRoleAllowedForStatus,
 };

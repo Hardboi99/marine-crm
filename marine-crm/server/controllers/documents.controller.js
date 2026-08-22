@@ -54,15 +54,17 @@ async function createDocument(req, res, next) {
       return res.status(401).json({ success: false, message: 'Authentication required. No valid user session found.' });
     }
 
-    const { category, notes } = req.body;
+    const { category, notes, candidateId, employeeId } = req.body;
 
     const doc = await Document.create({
       name: req.file.originalname,
       filePath: req.file.path,
-      fileUrl: `/uploads/documents/${req.file.filename}`,
+      fileUrl: `/api/documents/download-temp/${req.file.filename}`, // internal ref
       mimeType: req.file.mimetype,
       size: req.file.size,
       category: category || 'OTHER',
+      candidateId: candidateId || null,
+      employeeId: employeeId || null,
       notes: notes ? notes.trim() : '',
       status: 'PENDING',
       uploadedBy: userId,
@@ -88,4 +90,62 @@ async function createDocument(req, res, next) {
   }
 }
 
-module.exports = { getAllDocuments, createDocument };
+// GET /api/documents/:id/file
+async function downloadDocumentFile(req, res, next) {
+  try {
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
+
+    const role = req.currentUser?.role;
+    const uid = (req.currentUser?._id || req.user?.id || '').toString();
+    if (role === ROLES.DOCUMENTATION_OFFICER && doc.uploadedBy.toString() !== uid) {
+      return res.status(403).json({ success: false, message: 'Access denied.' });
+    }
+
+    if (!doc.filePath || !fs.existsSync(doc.filePath)) {
+      return res.status(404).json({ success: false, message: 'File not found on disk.' });
+    }
+
+    return res.download(doc.filePath, doc.name);
+  } catch (err) {
+    next(err);
+  }
+}
+
+// PATCH /api/documents/:id/status
+async function updateDocumentStatus(req, res, next) {
+  try {
+    const { status, notes } = req.body;
+    const allowed = ['PENDING', 'APPROVED', 'REJECTED'];
+    if (status && !allowed.includes(status)) {
+      return res.status(400).json({ success: false, message: 'Invalid status value.' });
+    }
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
+
+    if (status) doc.status = status;
+    if (notes !== undefined) doc.notes = notes;
+    await doc.save();
+    return res.json({ success: true, data: doc });
+  } catch (err) {
+    next(err);
+  }
+}
+
+// DELETE /api/documents/:id
+async function deleteDocument(req, res, next) {
+  try {
+    const doc = await Document.findById(req.params.id);
+    if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
+
+    if (doc.filePath && fs.existsSync(doc.filePath)) {
+      fs.unlink(doc.filePath, () => {});
+    }
+    await Document.findByIdAndDelete(req.params.id);
+    return res.json({ success: true, message: 'Document deleted successfully.' });
+  } catch (err) {
+    next(err);
+  }
+}
+
+module.exports = { getAllDocuments, createDocument, downloadDocumentFile, updateDocumentStatus, deleteDocument };

@@ -34,7 +34,9 @@ async function findApplication(idParam) {
     }
     return await JobApplication.findOne({ applicationId: idParam });
 }
-// const { requireAuth } = require('../middleware/auth'); // <- your existing auth middleware
+
+const { authenticate, loadCurrentUser } = require('../middlewares/auth');
+const { requireRole } = require('../middlewares/roleCheck');
 
 const router = express.Router();
 
@@ -218,11 +220,9 @@ router.post('/', uploadFields, async (req, res) => {
 });
 
 /* ============================================================
-   The routes below are for your Reception / CRM staff and should
-   sit behind your existing auth middleware, e.g.:
-     router.use(requireAuth);
-   placed just above this comment block.
+   The routes below are for Reception / HR / Admin staff and require authentication.
 ============================================================ */
+router.use(authenticate, loadCurrentUser, requireRole('ADMIN', 'HR', 'ADMIN_OFFICER', 'DIRECTOR', 'COO'));
 
 /** GET / — list applications (filters: status, department, rank, search, page, limit) */
 router.get('/', async (req, res) => {
@@ -289,7 +289,11 @@ router.patch('/:id/status', async (req, res) => {
         doc.status = status;
         doc.reviewedAt = new Date();
         if (internalNotes !== undefined) doc.internalNotes = internalNotes;
-        if (req.user && req.user._id) doc.reviewedBy = req.user._id;
+        if (req.currentUser && req.currentUser._id) {
+            doc.reviewedBy = req.currentUser._id;
+        } else if (req.user && (req.user.id || req.user._id)) {
+            doc.reviewedBy = req.user.id || req.user._id;
+        }
 
         await doc.save();
         return res.json({ data: doc });

@@ -1,71 +1,34 @@
 const bcrypt = require("bcryptjs");
-const { Employee, Attendance, Holiday, User, Worksheet, Task } = require("../models");
+const { Employee, Attendance, Holiday, User, Worksheet, Task, Notification } = require("../models");
 const { logActivity } = require("../utils/activityLogger");
 const { generateVerificationToken, sendVerificationEmail } = require("../services/emailService");
 
-const ALLOWED_ROLES = ['ADMIN', 'BDM', 'MANAGER_DOCS', 'MANAGER_SOURCING', 'HR'];
+const { ALL_ROLES, ROLE_GROUPS } = require("../utils/roles");
+
 const getBaseUrl = (req) => `${req.protocol}://${req.get('host')}`;
 
 const getTodayDateStr = () => new Date().toISOString().split("T")[0];
 
-// ── Helper: resolve the Employee document for the calling user (BDM) ──────────
-const getMyEmployee = async (userId) => {
-  return Employee.findOne({ userId });
-};
-
-// ── Helper: resolve OR auto-provision the calling user's own Employee record ──
-// getMyEmployee() above is a pure lookup and stays that way everywhere else
-// (listEmployees, checkIn/checkOut authorization, dashboard) — unchanged.
-// This variant is used only by the two self-service entry points that were
-// hitting "No employee profile found" for any account that never went
-// through the Admin "Create Employee" flow (which is every seeded account,
-// ADMIN included — seed.js creates Users but no Employee docs at all).
-//   1. Employee.findOne({ userId })              — already linked, use it.
-//   2. Employee.findOne({ email, userId: null })  — a profile exists under
-//      this account's email but isn't linked yet → link it instead of
-//      creating a duplicate.
-//   3. Otherwise auto-create one, using the SAME employeeId-generation
-//      convention as createEmployee() above, sourced from the User doc.
-const getOrCreateMyEmployee = async (req) => {
-  const existing = await Employee.findOne({ userId: req.user.id });
-  if (existing) return existing;
-
-  const email = (req.user.email || "").toLowerCase().trim();
-  if (email) {
-    const unlinked = await Employee.findOne({ email, userId: null });
-    if (unlinked) {
-      unlinked.userId = req.user.id;
-      await unlinked.save();
-      return unlinked;
-    }
+// ── Helper: resolve the Employee document for the calling user ──────────
+const getMyEmployee = async (userId, email) => {
+  let emp = await Employee.findOne({ userId });
+  if (!emp && email) {
+    emp = await Employee.findOne({ email: email.toLowerCase().trim() });
   }
-
-  const userDoc = await User.findById(req.user.id);
-  if (!userDoc) return null; // token valid but the account no longer exists
-
-  const count = await Employee.countDocuments();
-  let candidate = `EMP-${String(count + 1).padStart(3, "0")}`;
-  let attempt = count + 1;
-  while (await Employee.findOne({ employeeId: candidate })) {
-    attempt++;
-    candidate = `EMP-${String(attempt).padStart(3, "0")}`;
-  }
-
-  return Employee.create({
-    name: userDoc.name,
-    employeeId: candidate,
-    phone: userDoc.phone || "N/A",
-    email: email || null,
-    position: userDoc.department || null,
-    joinDate: new Date(),
-    userId: userDoc._id,
-    createdById: userDoc._id,
-    createdByName: userDoc.name,
-  });
+  return emp;
 };
 
 // ── Helper: is this an admin/HR request? ────────────────────────────────────
 const isManager = (req) => ["ADMIN", "HR"].includes(req.user.role);
+
+// ── Helper: can this request see/manage EVERY employee's worksheets? ───────
+// Deliberately narrower than isManager() — HR manages employee CRUD/tasks/
+// holidays but, per the worksheet-visibility spec, only ever sees its own
+// worksheets, same as BDM/Recruitment/Crewing.
+const canManageAllWorksheets = (req) => ROLE_GROUPS.WORKSHEET_ALL_ACCESS.includes(req.user.role);
+
+// ── Helper: is this role excluded from attendance entirely (Founder)? ──────
+const isAttendanceExempt = (role) => ROLE_GROUPS.ATTENDANCE_EXCLUDED.includes(role);
 
 // ─────────────────────────────────────────────────────────────────────────────
 // LIST  GET /api/employees
@@ -143,7 +106,13 @@ const createEmployee = async (req, res, next) => {
     }
 
     // Validate role if provided
-    const assignedRole = role && ALLOWED_ROLES.includes(role) ? role : 'BDM';
+    if (role && !ALL_ROLES.includes(role)) {
+      return res.status(400).json({
+        success: false,
+        message: `Invalid role "${role}". Allowed roles are: ${ALL_ROLES.join(', ')}`,
+      });
+    }
+    const assignedRole = role || 'BDM';
 
     // ── Determine final employeeId ──────────────────────────────────────────
     let finalEmployeeId = employeeId ? employeeId.trim() : null;
@@ -301,7 +270,13 @@ const updateEmployee = async (req, res, next) => {
         }
 
         // Role change (ADMIN/HR only — already enforced at route level)
-        if (role && ALLOWED_ROLES.includes(role)) {
+        if (role) {
+          if (!ALL_ROLES.includes(role)) {
+            return res.status(400).json({
+              success: false,
+              message: `Invalid role "${role}". Allowed roles are: ${ALL_ROLES.join(', ')}`,
+            });
+          }
           linkedUser.role = role;
         }
 
@@ -584,26 +559,37 @@ const haversineDistanceMeters = (lat1, lon1, lat2, lon2) => {
   return R * c;
 };
 
-// Returns null if inside the geofence (or no coordinates were provided —
-// e.g. employee.html's admin-driven checkin/checkout, which never sends
-// location and must keep working unaffected by this rule), otherwise an
-// object describing exactly how far outside they are for the error message.
-const checkGeofence = (location) => {
-  if (!location) return null; // no coords supplied — nothing to enforce here
+// Returns null if inside the geofence (no violation), otherwise an object describing violation/distance.
+const checkGeofence = (locationOrLat, maybeLng) => {
+  let lat, lng;
+  if (typeof locationOrLat === "number" && typeof maybeLng === "number") {
+    lat = locationOrLat;
+    lng = maybeLng;
+  } else if (locationOrLat && typeof locationOrLat === "object") {
+    lat = locationOrLat.latitude;
+    lng = locationOrLat.longitude;
+  }
+
+  if (typeof lat !== "number" || typeof lng !== "number" || isNaN(lat) || isNaN(lng)) {
+    return { inRange: false, distance: Infinity, missing: true };
+  }
+
   const distance = haversineDistanceMeters(
-    location.latitude, location.longitude, OFFICE_LATITUDE, OFFICE_LONGITUDE
+    lat, lng, OFFICE_LATITUDE, OFFICE_LONGITUDE
   );
   if (distance <= OFFICE_RADIUS_METERS) return null;
-  return { distance: Math.round(distance) };
+  return { inRange: false, distance: Math.round(distance) };
 };
 
-const resolveLocationFromBody = async (body) => {
-  if (body == null) return { ok: true, location: null };
+const resolveLocationFromBody = async (body, allowMissing = false) => {
+  if (body == null || (body.latitude === undefined && body.longitude === undefined)) {
+    if (allowMissing) return { ok: true, location: null };
+    return { ok: false, missing: true };
+  }
   const lat = typeof body.latitude === "string" ? parseFloat(body.latitude) : body.latitude;
   const lng = typeof body.longitude === "string" ? parseFloat(body.longitude) : body.longitude;
-  if (lat === undefined && lng === undefined) return { ok: true, location: null };
-  if (!isValidCoordinate(lat, lng)) {
-    return { ok: false };
+  if (lat === undefined || lng === undefined || isNaN(lat) || isNaN(lng) || !isValidCoordinate(lat, lng)) {
+    return { ok: false, invalid: true };
   }
   const address = await reverseGeocode(lat, lng);
   return { ok: true, location: { latitude: lat, longitude: lng, address, capturedAt: new Date() } };
@@ -651,13 +637,23 @@ const classifyByDuration = (totalWorkingMinutes) =>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CHECK-IN  POST /api/employees/checkin/:id
-//   Admin/HR → any employee; BDM → only themselves
+//   Admin/HR → any employee; Other roles → only themselves
 // ─────────────────────────────────────────────────────────────────────────────
 const checkIn = async (req, res, next) => {
   try {
     const employeeId = req.params.id;
 
-    // BDM: must match their own employee record
+    // Founder (DIRECTOR) is monitoring-only — never creates attendance,
+    // for themselves or (since isManager doesn't include DIRECTOR anyway)
+    // anyone else.
+    if (isAttendanceExempt(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Founders do not have attendance check-in/out — this role only monitors reports.",
+      });
+    }
+
+    // Must match their own employee record unless Admin/HR
     if (!isManager(req)) {
       const myEmp = await getMyEmployee(req.user.id);
       if (!myEmp || myEmp._id.toString() !== employeeId) {
@@ -681,21 +677,27 @@ const checkIn = async (req, res, next) => {
       });
     }
 
-    const locationResult = await resolveLocationFromBody(req.body);
+    const allowMissing = isManager(req) && (req.body.latitude === undefined && req.body.longitude === undefined);
+    const locationResult = await resolveLocationFromBody(req.body, allowMissing);
     if (!locationResult.ok) {
       return res.status(400).json({
         success: false,
-        message: "Invalid location coordinates.",
+        message: locationResult.missing
+          ? "Location coordinates (latitude and longitude) are required for check-in."
+          : "Invalid location coordinates.",
       });
     }
-    const geofenceViolation = checkGeofence(locationResult.location);
-    if (geofenceViolation) {
-      return res.status(403).json({
-        success: false,
-        message: `Check In is not allowed. You must be within ${OFFICE_RADIUS_METERS} meters of the office. Distance from office: ${geofenceViolation.distance} meters.`,
-        distanceMeters: geofenceViolation.distance,
-        radiusMeters: OFFICE_RADIUS_METERS,
-      });
+
+    if (locationResult.location) {
+      const geofenceViolation = checkGeofence(locationResult.location);
+      if (geofenceViolation) {
+        return res.status(403).json({
+          success: false,
+          message: `Check In is not allowed. You must be within ${OFFICE_RADIUS_METERS} meters of the office. Distance from office: ${geofenceViolation.distance} meters.`,
+          distanceMeters: geofenceViolation.distance,
+          radiusMeters: OFFICE_RADIUS_METERS,
+        });
+      }
     }
 
     const today = getTodayDateStr();
@@ -726,17 +728,27 @@ const checkIn = async (req, res, next) => {
       message: "Checked in successfully.",
     });
   } catch (err) {
+    if (err.code === 11000) {
+      return res.status(400).json({ success: false, message: "Already checked in today." });
+    }
     next(err);
   }
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
 // CHECK-OUT  POST /api/employees/checkout/:id
-//   Admin/HR → any employee; BDM → only themselves
+//   Admin/HR → any employee; Other roles → only themselves
 // ─────────────────────────────────────────────────────────────────────────────
 const checkOut = async (req, res, next) => {
   try {
     const employeeId = req.params.id;
+
+    if (isAttendanceExempt(req.user.role)) {
+      return res.status(403).json({
+        success: false,
+        message: "Founders do not have attendance check-in/out — this role only monitors reports.",
+      });
+    }
 
     if (!isManager(req)) {
       const myEmp = await getMyEmployee(req.user.id);
@@ -761,29 +773,33 @@ const checkOut = async (req, res, next) => {
         .json({ success: false, message: "Already checked out today." });
     }
 
-    const locationResult = await resolveLocationFromBody(req.body);
+    const allowMissing = isManager(req) && (req.body.latitude === undefined && req.body.longitude === undefined);
+    const locationResult = await resolveLocationFromBody(req.body, allowMissing);
     if (!locationResult.ok) {
       return res.status(400).json({
         success: false,
-        message: "Invalid location coordinates.",
+        message: locationResult.missing
+          ? "Location coordinates (latitude and longitude) are required for check-out."
+          : "Invalid location coordinates.",
       });
     }
-    const geofenceViolation = checkGeofence(locationResult.location);
-    if (geofenceViolation) {
-      return res.status(403).json({
-        success: false,
-        message: `Check Out is not allowed. You must be within ${OFFICE_RADIUS_METERS} meters of the office. Distance from office: ${geofenceViolation.distance} meters.`,
-        distanceMeters: geofenceViolation.distance,
-        radiusMeters: OFFICE_RADIUS_METERS,
-      });
+
+    if (locationResult.location) {
+      const geofenceViolation = checkGeofence(locationResult.location);
+      if (geofenceViolation) {
+        return res.status(403).json({
+          success: false,
+          message: `Check Out is not allowed. You must be within ${OFFICE_RADIUS_METERS} meters of the office. Distance from office: ${geofenceViolation.distance} meters.`,
+          distanceMeters: geofenceViolation.distance,
+          radiusMeters: OFFICE_RADIUS_METERS,
+        });
+      }
     }
 
     const checkOutAt = new Date();
     const totalWorkingMinutes = Math.round((checkOutAt - record.checkIn) / 60000);
     record.checkOut = checkOutAt;
     record.checkOutLocation = locationResult.location;
-    // Final classification — the ONLY moment dayType is decided, based on
-    // actual worked duration, per the 9-hour rule (never check-in time alone).
     record.dayType = classifyByDuration(totalWorkingMinutes);
     await record.save();
     await Worksheet.updateMany(
@@ -879,7 +895,7 @@ const resolveEmployeeIdForQuery = async (req) => {
     if (isManager(req)) {
       return { ok: true, employeeId: queryEmployeeId };
     }
-    const myEmp = await getMyEmployee(req.user.id);
+    const myEmp = await getMyEmployee(req.user.id, req.user?.email);
     if (!myEmp || myEmp._id.toString() !== queryEmployeeId) {
       return {
         ok: false,
@@ -890,7 +906,7 @@ const resolveEmployeeIdForQuery = async (req) => {
     return { ok: true, employeeId: queryEmployeeId };
   }
 
-  const myEmp = await getOrCreateMyEmployee(req);
+  const myEmp = await getMyEmployee(req.user.id, req.user?.email);
   return { ok: true, employeeId: myEmp ? myEmp._id.toString() : null };
 };
 
@@ -913,12 +929,16 @@ const buildMonthAttendance = async (employeeId, year, month) => {
   const monthStr = String(month).padStart(2, "0");
   const prefix = `${year}-${monthStr}-`;
 
-  const [records, holidays] = await Promise.all([
+  const [records, holidays, worksheets] = await Promise.all([
     Attendance.find({
       employeeId,
       date: { $gte: `${prefix}01`, $lte: `${prefix}31` },
     }).sort({ date: 1 }),
     Holiday.find({ date: { $gte: `${prefix}01`, $lte: `${prefix}31` } }),
+    Worksheet.find({
+      employeeId,
+      date: { $gte: `${prefix}01`, $lte: `${prefix}31` },
+    }).select('date driveLink status'),
   ]);
 
   const recordMap = {};
@@ -928,6 +948,10 @@ const buildMonthAttendance = async (employeeId, year, month) => {
   const holidayMap = {};
   holidays.forEach((h) => {
     holidayMap[h.date] = h;
+  });
+  const worksheetMap = {};
+  worksheets.forEach((w) => {
+    worksheetMap[w.date] = w;
   });
 
   const empDoc = await Employee.findById(employeeId).select("joinDate");
@@ -946,8 +970,13 @@ const buildMonthAttendance = async (employeeId, year, month) => {
 
     const doc = recordMap[dateStr];
     const holiday = holidayMap[dateStr];
+    const worksheet = worksheetMap[dateStr];
     const dayOfWeek = new Date(`${dateStr}T00:00:00`).getDay();
     const isWeekOff = WEEK_OFF_DAYS.includes(dayOfWeek);
+    const worksheetFields = {
+      worksheetSubmitted: !!worksheet,
+      worksheetDriveLink: worksheet ? worksheet.driveLink || null : null,
+    };
 
     if (holiday) {
       // A company holiday always wins for display — it's never Absent —
@@ -955,9 +984,9 @@ const buildMonthAttendance = async (employeeId, year, month) => {
       const base = doc
         ? await normalizeAttendanceRecord(doc)
         : { date: dateStr, checkInTime: null, checkOutTime: null, totalMinutes: null, checkInLocation: null, checkOutLocation: null };
-      result.push({ ...base, date: dateStr, status: "HOLIDAY", holidayName: holiday.name });
+      result.push({ ...base, ...worksheetFields, date: dateStr, status: "HOLIDAY", holidayName: holiday.name, holidayType: holiday.type || 'COMPANY' });
     } else if (doc) {
-      result.push(await normalizeAttendanceRecord(doc));
+      result.push({ ...(await normalizeAttendanceRecord(doc)), ...worksheetFields });
     } else if (isWeekOff) {
       result.push({
         date: dateStr,
@@ -968,6 +997,7 @@ const buildMonthAttendance = async (employeeId, year, month) => {
         holidayName: null,
         checkInLocation: null,
         checkOutLocation: null,
+        ...worksheetFields,
       });
     } else if (dateStr !== todayStr) {
       result.push({
@@ -979,6 +1009,7 @@ const buildMonthAttendance = async (employeeId, year, month) => {
         holidayName: null,
         checkInLocation: null,
         checkOutLocation: null,
+        ...worksheetFields,
       });
     }
     // today with no record yet is intentionally omitted — the
@@ -1157,7 +1188,7 @@ const createHoliday = async (req, res, next) => {
         message: "Only Admin/HR can manage holidays.",
       });
     }
-    const { date, name, description } = req.body;
+    const { date, name, description, type } = req.body;
     if (!date || !name) {
       return res.status(400).json({
         success: false,
@@ -1176,6 +1207,7 @@ const createHoliday = async (req, res, next) => {
       date: dateStr,
       name: name.trim(),
       description: description ? description.trim() : "",
+      type: type === 'NATIONAL' ? 'NATIONAL' : 'COMPANY',
       createdById: req.user.id,
       createdByName: req.user.name,
     });
@@ -1200,10 +1232,11 @@ const updateHoliday = async (req, res, next) => {
     if (!holiday) {
       return res.status(404).json({ success: false, message: "Holiday not found." });
     }
-    const { date, name, description } = req.body;
+    const { date, name, description, type } = req.body;
     if (date) holiday.date = new Date(date).toISOString().split("T")[0];
     if (name) holiday.name = name.trim();
     if (description !== undefined) holiday.description = description ? description.trim() : "";
+    if (type !== undefined) holiday.type = type === 'NATIONAL' ? 'NATIONAL' : 'COMPANY';
     await holiday.save();
     res.json({ success: true, data: holiday, message: "Holiday updated." });
   } catch (err) {
@@ -1283,47 +1316,95 @@ const submitWorksheet = async (req, res, next) => {
   }
 };
 
+// ── Filters available to Admin/Founder/COO on GET /worksheets ──────────────
+//   employeeId — exact employee
+//   department — matches the employee's linked User.department
+//   date       — exact YYYY-MM-DD
+//   month      — YYYY-MM (all worksheets in that month)
+//   status     — SUBMITTED | REVIEWED
 const getWorksheets = async (req, res, next) => {
   try {
     let filter = {};
-    if (isManager(req)) {
-      // Admin/HR: optional filter by employeeId query param
+    if (canManageAllWorksheets(req)) {
+      // Admin/Founder/COO: full visibility, plus optional filters.
       if (req.query.employeeId) filter.employeeId = req.query.employeeId;
+      if (req.query.date) filter.date = req.query.date;
+      if (req.query.month) filter.date = { $regex: `^${req.query.month}` }; // YYYY-MM prefix
+      if (req.query.status) filter.status = req.query.status;
+
+      if (req.query.department) {
+        // Department lives on User, not Employee — resolve matching
+        // employees first, then filter worksheets by their ids.
+        const usersInDept = await User.find({ department: req.query.department }).select('_id');
+        const userIds = usersInDept.map((u) => u._id);
+        const employeesInDept = await Employee.find({ userId: { $in: userIds } }).select('_id');
+        filter.employeeId = { $in: employeesInDept.map((e) => e._id) };
+      }
     } else {
-      // BDM: only their own worksheets
-      const myEmp = await getMyEmployee(req.user.id);
+      // Everyone else (BDM/HR/Recruitment/Crewing/etc.): only their own.
+      const myEmp = await getMyEmployee(req.user.id, req.user.email);
       if (!myEmp) return res.json({ success: true, data: [] });
       filter.employeeId = myEmp._id;
     }
     const worksheets = await Worksheet.find(filter)
       .populate("employeeId", "name position employeeId")
       .sort({ createdAt: -1 });
-    res.json({ success: true, data: worksheets });
+
+    // Enrich each worksheet with that day's attendance (check-in/out,
+    // worked minutes) so the worksheet card can show them without a
+    // separate Attendance model/route on the frontend.
+    const pairs = worksheets
+      .filter((w) => w.employeeId)
+      .map((w) => ({ employeeId: w.employeeId._id.toString(), date: w.date }));
+    const attendanceDocs = pairs.length
+      ? await Attendance.find({ $or: pairs.map((p) => ({ employeeId: p.employeeId, date: p.date })) })
+      : [];
+    const attendanceMap = {};
+    attendanceDocs.forEach((a) => {
+      attendanceMap[`${a.employeeId.toString()}_${a.date}`] = a;
+    });
+
+    const enriched = await Promise.all(worksheets.map(async (w) => {
+      const obj = w.toJSON();
+      if (w.employeeId) {
+        const key = `${w.employeeId._id.toString()}_${w.date}`;
+        const att = attendanceMap[key];
+        if (att) {
+          const norm = await normalizeAttendanceRecord(att);
+          obj.attendance = {
+            checkIn: norm.checkInTime,
+            checkOut: norm.checkOutTime,
+            totalMinutes: norm.totalMinutes,
+          };
+        }
+      }
+      return obj;
+    }));
+
+    res.json({ success: true, data: enriched });
   } catch (err) {
     next(err);
   }
 };
 
-// ── Manager/COO/Admin reply to a worksheet ────────────────────────────────────
-// PATCH /api/employees/worksheets/:id/reply — ADMIN/HR only (same isManager
-// gate as everywhere else in this controller). Changing :id to a worksheet
-// outside their authorized scope isn't a bypass here since isManager
-// already governs the whole review surface the same way it governs
-// listEmployees/attendance — a normal employee can never reach this route
-// (requireRole enforces that at the router level too).
+// ── Founder/COO/Admin reply to a worksheet ────────────────────────────────────
+// PATCH /api/employees/worksheets/:id/reply — Admin/Founder/COO only, per
+// Task 2's worksheet-visibility table (HR is intentionally excluded — HR
+// cannot see other employees' worksheets, so it can't reply to them either).
+// Creates a popup notification for the worksheet's employee.
 const replyToWorksheet = async (req, res, next) => {
   try {
-    if (!isManager(req)) {
+    if (!canManageAllWorksheets(req)) {
       return res.status(403).json({
         success: false,
-        message: "Only Admin/HR can reply to worksheets.",
+        message: "Only Admin, Founder, or COO can reply to worksheets.",
       });
     }
     const { reply } = req.body;
     if (!reply || !reply.trim()) {
       return res.status(400).json({ success: false, message: "Reply text is required." });
     }
-    const worksheet = await Worksheet.findById(req.params.id);
+    const worksheet = await Worksheet.findById(req.params.id).populate('employeeId', 'userId email name');
     if (!worksheet) {
       return res.status(404).json({ success: false, message: "Worksheet not found." });
     }
@@ -1333,6 +1414,31 @@ const replyToWorksheet = async (req, res, next) => {
     worksheet.repliedAt = new Date();
     worksheet.status = "REVIEWED";
     await worksheet.save();
+
+    // Notify the assigned employee (only them) so they get an immediate
+    // popup after login, per Task 4.
+    try {
+      let targetUserId = worksheet.employeeId && worksheet.employeeId.userId;
+      if (!targetUserId && worksheet.employeeId && worksheet.employeeId.email) {
+        const u = await User.findOne({ email: worksheet.employeeId.email.toLowerCase().trim() });
+        targetUserId = u && u._id;
+      }
+      if (targetUserId) {
+        const prettyDate = new Date(`${worksheet.date}T00:00:00`).toLocaleDateString('en-GB', {
+          day: '2-digit', month: 'short', year: 'numeric',
+        });
+        await Notification.create({
+          userId: targetUserId,
+          type: 'WORKSHEET_REPLY',
+          message: `${req.user.name} replied to your worksheet for ${prettyDate}.`,
+          link: `/pages/worksheets.html?worksheetId=${worksheet._id}`,
+        });
+      }
+    } catch (notifyErr) {
+      // Never fail the reply itself over a notification hiccup.
+      console.error('Failed to create worksheet-reply notification:', notifyErr);
+    }
+
     res.json({ success: true, data: worksheet, message: "Reply sent." });
   } catch (err) {
     next(err);
@@ -1467,17 +1573,54 @@ const updateTaskStatus = async (req, res, next) => {
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
-// MY PROFILE  GET /api/employees/me  (BDM convenience endpoint)
+// MY PROFILE  GET /api/employees/me & /api/employees/me/profile (Strictly Read-Only)
 // ─────────────────────────────────────────────────────────────────────────────
 const getMyProfile = async (req, res, next) => {
   try {
-    const emp = await getOrCreateMyEmployee(req);
+    let emp = await Employee.findOne({ userId: req.user.id });
+    if (!emp && req.user.email) {
+      emp = await Employee.findOne({ email: req.user.email.toLowerCase().trim() });
+    }
     if (!emp)
       return res.status(404).json({
         success: false,
         message: "No employee profile found for your account.",
       });
     res.json({ success: true, data: emp });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// UPDATE MY PROFILE  PATCH /api/employees/me/profile
+// ─────────────────────────────────────────────────────────────────────────────
+const updateMyProfile = async (req, res, next) => {
+  try {
+    let emp = await Employee.findOne({ userId: req.user.id });
+    if (!emp && req.user.email) {
+      emp = await Employee.findOne({ email: req.user.email.toLowerCase().trim() });
+    }
+    if (!emp)
+      return res.status(404).json({
+        success: false,
+        message: "No employee profile found for your account.",
+      });
+
+    const { phone, location, address, dateOfBirth, gender, bloodGroup } = req.body;
+    if (phone) emp.phone = phone.trim();
+    if (location !== undefined) emp.location = location ? location.trim() : null;
+    if (address !== undefined) emp.address = address ? address.trim() : null;
+    if (dateOfBirth !== undefined) emp.dateOfBirth = dateOfBirth ? new Date(dateOfBirth) : null;
+    if (gender !== undefined) emp.gender = gender || null;
+    if (bloodGroup !== undefined) emp.bloodGroup = bloodGroup || null;
+
+    await emp.save();
+    res.json({
+      success: true,
+      data: emp,
+      message: "Profile updated successfully.",
+    });
   } catch (err) {
     next(err);
   }
@@ -1682,7 +1825,9 @@ module.exports = {
   getTasks,
   updateTaskStatus,
   getMyProfile,
+  updateMyProfile,
   bulkImportEmployees,
   getUpcomingBirthdays,
   checkMyBirthdayToday,
+  checkGeofence,
 };

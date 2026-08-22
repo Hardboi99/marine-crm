@@ -1,0 +1,563 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Worksheets — Marine CRM</title>
+  <link rel="stylesheet" href="/public/css/styles1.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    /* ── Page-scoped styles (do not affect other pages) ── */
+    .ws-month-nav {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+      margin-bottom: 4px;
+    }
+    .ws-month-nav .btn { min-width: 90px; }
+    .ws-month-label {
+      font-size: 1rem;
+      font-weight: 700;
+      min-width: 130px;
+      text-align: center;
+      color: var(--text-primary);
+    }
+    .ws-month-title {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin: 12px 0 20px;
+      color: var(--text-primary);
+    }
+    .ws-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px;
+    }
+    @media (max-width: 900px) { .ws-grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 580px) { .ws-grid { grid-template-columns: 1fr; } }
+
+    .ws-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 18px 18px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      transition: box-shadow var(--transition);
+    }
+    .ws-card:hover { box-shadow: var(--shadow-md); }
+
+    .ws-card-header {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+    .ws-day-circle {
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.15rem;
+      font-weight: 800;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    /* Cycle through colors by day-of-month remainder */
+    .ws-day-circle.c0 { background: #3b82f6; }
+    .ws-day-circle.c1 { background: #ef4444; }
+    .ws-day-circle.c2 { background: #f59e0b; }
+    .ws-day-circle.c3 { background: #10b981; }
+    .ws-day-circle.c4 { background: #8b5cf6; }
+    .ws-day-circle.c5 { background: #ec4899; }
+    .ws-day-circle.c6 { background: #0ea5e9; }
+
+    .ws-card-date {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    .ws-meta { font-size: 0.82rem; color: var(--text-secondary); display: flex; flex-direction: column; gap: 3px; }
+    .ws-meta-row { display: flex; align-items: center; gap: 6px; }
+    .ws-meta-val { font-weight: 700; color: var(--accent-primary); }
+    .ws-meta-val.na { color: var(--text-muted); font-weight: 500; }
+
+    .ws-remark-box {
+      border-left: 3px solid var(--border-color);
+      padding: 6px 10px;
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+      border-radius: 0 4px 4px 0;
+      background: var(--bg-input);
+    }
+    .ws-remark-box .remark-label { font-weight: 700; color: var(--text-primary); }
+    .ws-remark-box .reply-label { color: var(--accent-primary); font-weight: 600; }
+
+    .ws-actions {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-top: 4px;
+    }
+    .ws-actions .btn {
+      flex: 1;
+      min-width: 120px;
+      font-size: 0.8rem;
+    }
+
+    .ws-filter-bar {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      align-items: center;
+      margin-bottom: 18px;
+    }
+
+    /* Detail modal */
+    .ws-detail-modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 9999;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+    }
+    .ws-detail-modal-overlay.open { display: flex; }
+    .ws-detail-box {
+      background: var(--bg-card);
+      border-radius: var(--radius-md);
+      width: 100%;
+      max-width: 560px;
+      max-height: 88vh;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+    .ws-detail-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky; top: 0;
+      background: var(--bg-card);
+      z-index: 1;
+    }
+    .ws-detail-header h2 { font-size: 1rem; font-weight: 700; margin: 0; }
+    .ws-detail-body { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+    .ws-detail-row { display: flex; justify-content: space-between; gap: 8px; font-size: 0.85rem; border-bottom: 1px solid var(--border-color); padding-bottom: 10px; }
+    .ws-detail-row:last-child { border-bottom: none; padding-bottom: 0; }
+    .ws-detail-label { color: var(--text-muted); font-weight: 600; min-width: 130px; }
+    .ws-detail-value { color: var(--text-primary); text-align: right; flex: 1; word-break: break-word; }
+    .ws-section-title { font-weight: 700; font-size: 0.85rem; color: var(--text-primary); padding-top: 4px; border-top: 2px solid var(--border-color); }
+    .ws-thread { display: flex; flex-direction: column; gap: 10px; }
+    .ws-thread-msg { border-radius: var(--radius-sm); padding: 10px 12px; font-size: 0.83rem; }
+    .ws-thread-msg.employee { background: var(--bg-input); border: 1px solid var(--border-color); }
+    .ws-thread-msg.manager  { background: rgba(14,165,233,0.09); border: 1px solid rgba(14,165,233,0.2); }
+    .ws-thread-msg .msg-who { font-weight: 700; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+    .ws-thread-msg.manager .msg-who { color: var(--accent-primary); }
+    .reply-input-area { display: flex; flex-direction: column; gap: 8px; padding-top: 10px; border-top: 1px solid var(--border-color); }
+
+    /* Admin review panel */
+    .ws-admin-filter { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .ws-admin-filter .form-control { flex: 1; min-width: 140px; }
+    .ws-review-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; flex-wrap: wrap;
+      padding: 12px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      margin-bottom: 8px;
+    }
+    .ws-review-row .emp-name { font-weight: 700; }
+    .ws-review-row .ws-meta-small { font-size: 0.78rem; color: var(--text-muted); }
+    .badge-submitted { background: rgba(249,115,22,0.12); color: #f97316; border: 1px solid rgba(249,115,22,0.28); padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .badge-reviewed  { background: var(--green-light); color: var(--green); border: 1px solid rgba(52,211,153,0.28); padding: 2px 8px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; }
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="main-content">
+    <div id="navbar-container"></div>
+    <main class="page-content">
+      <div class="page-header">
+        <div>
+          <h1 class="page-title" id="page-title">Worksheets</h1>
+          <p class="page-subtitle" id="page-subtitle">Your daily work reports</p>
+        </div>
+      </div>
+
+      <!-- Month Navigation -->
+      <div class="ws-month-nav">
+        <button class="btn btn-secondary btn-sm" id="prev-month-btn">« Previous</button>
+        <span class="ws-month-label" id="month-label">August 2026</span>
+        <button class="btn btn-secondary btn-sm" id="next-month-btn">Next »</button>
+      </div>
+
+      <!-- Admin/Founder/COO filter bar -->
+      <div class="ws-filter-bar hidden" id="admin-filter-bar">
+        <select id="filter-employee" class="form-control" style="max-width:220px;">
+          <option value="">All employees</option>
+        </select>
+        <input type="text" id="filter-department" class="form-control" placeholder="Filter by department" style="max-width:180px;" />
+        <input type="date" id="filter-date" class="form-control" style="max-width:160px;" />
+        <select id="filter-status" class="form-control" style="max-width:170px;">
+          <option value="">All statuses</option>
+          <option value="SUBMITTED">Pending Review</option>
+          <option value="REVIEWED">Reply Sent</option>
+        </select>
+      </div>
+
+      <!-- Month title -->
+      <h2 class="ws-month-title" id="month-title">August 2026</h2>
+
+      <!-- Worksheet grid -->
+      <div id="ws-grid" class="ws-grid">
+        <div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">
+          Loading worksheets…
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Worksheet detail modal -->
+  <div class="ws-detail-modal-overlay" id="ws-detail-overlay">
+    <div class="ws-detail-box" id="ws-detail-box">
+      <div class="ws-detail-header">
+        <h2 id="ws-detail-title">Worksheet</h2>
+        <button class="modal-close" id="ws-detail-close" aria-label="Close">✕</button>
+      </div>
+      <div class="ws-detail-body" id="ws-detail-body">
+        <!-- populated by JS -->
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="/public/js/api/api.js"></script>
+  <script src="/public/js/components/ui.js"></script>
+  <script src="/public/js/components/sidebar.js"></script>
+  <script>
+    // ── Auth guard ────────────────────────────────────────────────────────────
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/pages/login.html'; }
+    const currentUser = JSON.parse(localStorage.getItem('user') || '{}');
+
+    // Matches backend's WORKSHEET_ALL_ACCESS (utils/roles.js) — Admin,
+    // Founder (DIRECTOR), and COO see every employee's worksheets; HR and
+    // everyone else only see their own, per the worksheet-visibility spec.
+    const ADMIN_ROLES = ['ADMIN', 'DIRECTOR', 'COO'];
+    const isManager = ADMIN_ROLES.includes(currentUser.role);
+
+    // ── Month state ───────────────────────────────────────────────────────────
+    let calYear = new Date().getFullYear();
+    let calMonth = new Date().getMonth() + 1; // 1-12
+    let allWorksheets = []; // cached for filter without re-fetch
+    let selectedWorksheet = null;
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function pad2(n) { return String(n).padStart(2, '0'); }
+    function monthName(m) {
+      return new Date(2000, m - 1, 1).toLocaleString(undefined, { month: 'long' });
+    }
+    function fmtTime(iso) {
+      if (!iso) return 'N/A';
+      return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false });
+    }
+    function fmtTimePM(iso) {
+      if (!iso) return 'N/A';
+      return new Date(iso).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit', hour12: true }).toUpperCase();
+    }
+    function fmtDate(dateStr) {
+      if (!dateStr) return '';
+      const [y, m, d] = dateStr.split('-');
+      return `${y}-${m}-${d}`;
+    }
+    function escapeHtml(str) {
+      if (!str) return '';
+      return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+    function colorClass(day) { return 'c' + (day % 7); }
+
+    // ── Fetch and render ──────────────────────────────────────────────────────
+    async function loadWorksheets() {
+      const grid = document.getElementById('ws-grid');
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">Loading…</div>';
+      try {
+        const params = { year: calYear, month: calMonth };
+        if (isManager) {
+          const empVal = document.getElementById('filter-employee').value;
+          const deptVal = document.getElementById('filter-department').value.trim();
+          const dateVal = document.getElementById('filter-date').value;
+          const statusVal = document.getElementById('filter-status').value;
+          if (empVal) params.employeeId = empVal;
+          if (deptVal) params.department = deptVal;
+          if (dateVal) params.date = dateVal;
+          if (statusVal) params.status = statusVal;
+        }
+        const res = await window.ApiService.employees.getWorksheets(params);
+        allWorksheets = (res && res.data) || [];
+        renderGrid(allWorksheets);
+      } catch (err) {
+        grid.innerHTML = `<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--red);">Could not load worksheets. ${escapeHtml(err && err.message)}</div>`;
+      }
+    }
+
+    // ── Admin/Founder/COO: populate the employee filter dropdown ───────────────
+    async function initEmployeeFilter() {
+      if (!isManager) return;
+      const select = document.getElementById('filter-employee');
+      try {
+        const res = await window.ApiService.employees.list();
+        const employees = (res && res.data) || [];
+        employees.forEach(emp => {
+          const opt = document.createElement('option');
+          opt.value = emp.id || emp._id || '';
+          opt.textContent = emp.name || 'Unnamed';
+          if (opt.value) select.appendChild(opt);
+        });
+      } catch (err) {
+        console.warn('Could not load employee filter list.', err);
+      }
+    }
+
+    function applyFilters() {
+      // Filters are sent to the server (getWorksheets already scopes by
+      // role there too) rather than filtered client-side, so Admin/
+      // Founder/COO can filter by employee/department/date/status without
+      // first downloading every worksheet in the system.
+      loadWorksheets();
+    }
+
+    // Build all dates in the month and merge with actual worksheets
+    function buildDayData(worksheets) {
+      const daysInMonth = new Date(calYear, calMonth, 0).getDate();
+      const dayMap = {};
+      worksheets.forEach(w => { dayMap[w.date] = w; });
+      const days = [];
+      for (let d = 1; d <= daysInMonth; d++) {
+        const dateStr = `${calYear}-${pad2(calMonth)}-${pad2(d)}`;
+        days.push({ day: d, date: dateStr, worksheet: dayMap[dateStr] || null });
+      }
+      return days;
+    }
+
+    function renderGrid(worksheets) {
+      const grid = document.getElementById('ws-grid');
+      const days = buildDayData(worksheets);
+
+      if (!days.length) {
+        grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--text-muted);">No data for this month.</div>';
+        return;
+      }
+
+      grid.innerHTML = days.map(({ day, date, worksheet: w }) => {
+        const att = w && w.attendance;
+        const loggedIn  = att && att.checkIn  ? fmtTime(att.checkIn)  : 'N/A';
+        const loggedOut = att && att.checkOut ? fmtTime(att.checkOut) : 'N/A';
+        const uploaded  = w && w.submittedAt  ? fmtTimePM(w.submittedAt) : 'N/A';
+        const hasWs     = !!w;
+        const cc        = colorClass(day);
+        const wid       = w ? (w.id || w._id) : null;
+
+        const remarkHtml = hasWs ? `
+          <div class="ws-remark-box">
+            <div><span class="remark-label">Remark :</span> ${escapeHtml(w.summaryOfWork || '—')}</div>
+            ${w.reply ? `<div><span class="reply-label">Reply :</span> ${escapeHtml(w.reply)}</div>` : ''}
+          </div>` : '';
+
+        const actionBtns = `
+          <div class="ws-actions">
+            ${hasWs
+              ? `<button class="btn btn-secondary btn-sm" onclick="openDetail('${wid}')">View Worksheet</button>`
+              : `<button class="btn btn-secondary btn-sm" disabled>No Worksheet Available</button>`
+            }
+            ${hasWs && w.driveLink
+              ? `<a class="btn btn-secondary btn-sm" href="${escapeHtml(w.driveLink)}" target="_blank" rel="noopener noreferrer"><i class="fas fa-external-link-alt"></i> Drive Link</a>`
+              : `<button class="btn btn-secondary btn-sm" disabled>No Drive Link Uploaded</button>`
+            }
+          </div>`;
+
+        const empLabel = isManager && w && w.employeeId && w.employeeId.name
+          ? `<div style="font-size:0.75rem;color:var(--text-muted);margin-top:2px;">${escapeHtml(w.employeeId.name)}</div>`
+          : '';
+
+        return `
+          <div class="ws-card">
+            <div class="ws-card-header">
+              <div class="ws-day-circle ${cc}">${pad2(day)}</div>
+              <div>
+                <div class="ws-card-date">${fmtDate(date)}</div>
+                ${empLabel}
+              </div>
+            </div>
+            <div class="ws-meta">
+              <div class="ws-meta-row">
+                <i class="fas fa-sign-in-alt" style="width:14px;color:var(--accent-primary);"></i>
+                Logged In: <span class="ws-meta-val ${loggedIn === 'N/A' ? 'na' : ''}">${loggedIn}</span>
+              </div>
+              <div class="ws-meta-row">
+                <i class="fas fa-sign-out-alt" style="width:14px;color:var(--accent-primary);"></i>
+                Logged Out: <span class="ws-meta-val ${loggedOut === 'N/A' ? 'na' : ''}">${loggedOut}</span>
+              </div>
+              <div class="ws-meta-row">
+                <i class="fas fa-upload" style="width:14px;color:var(--accent-primary);"></i>
+                Worksheet Uploaded: <span class="ws-meta-val ${uploaded === 'N/A' ? 'na' : ''}">${uploaded}</span>
+              </div>
+            </div>
+            ${remarkHtml}
+            ${actionBtns}
+          </div>`;
+      }).join('');
+    }
+
+    // ── Detail modal ──────────────────────────────────────────────────────────
+    function openDetail(wid) {
+      const w = allWorksheets.find(x => (x.id || x._id) === wid);
+      if (!w) return;
+      selectedWorksheet = w;
+      const att = w.attendance;
+      const empName = isManager && w.employeeId && w.employeeId.name
+        ? escapeHtml(w.employeeId.name) : (currentUser.name || 'You');
+
+      document.getElementById('ws-detail-title').textContent = `Worksheet — ${w.date}`;
+      const body = document.getElementById('ws-detail-body');
+      const canReply = isManager;
+      const canRespond = !isManager && w.reply && !w.employeeResponse;
+
+      body.innerHTML = `
+        <div class="ws-detail-row"><span class="ws-detail-label">Employee</span><span class="ws-detail-value">${empName}</span></div>
+        <div class="ws-detail-row"><span class="ws-detail-label">Date</span><span class="ws-detail-value">${w.date}</span></div>
+        <div class="ws-detail-row"><span class="ws-detail-label">Attendance Type</span><span class="ws-detail-value">${w.dayType ? (w.dayType === 'HALF_DAY' ? '🟠 Half Day' : '🟢 Full Day') : '—'}</span></div>
+        <div class="ws-detail-row"><span class="ws-detail-label">Check In</span><span class="ws-detail-value">${att && att.checkIn ? fmtTime(att.checkIn) : '—'}</span></div>
+        <div class="ws-detail-row"><span class="ws-detail-label">Check Out</span><span class="ws-detail-value">${att && att.checkOut ? fmtTime(att.checkOut) : '—'}</span></div>
+        <div class="ws-detail-row"><span class="ws-detail-label">Worksheet Submitted</span><span class="ws-detail-value">${w.submittedAt ? fmtTimePM(w.submittedAt) : '—'}</span></div>
+        ${w.driveLink ? `<div class="ws-detail-row"><span class="ws-detail-label">Drive Link</span><span class="ws-detail-value"><a href="${escapeHtml(w.driveLink)}" target="_blank" rel="noopener noreferrer">Open</a></span></div>` : ''}
+        <div class="ws-section-title" style="margin-top:4px;">Today's Work</div>
+        <div style="font-size:0.85rem;white-space:pre-wrap;">${escapeHtml(w.summaryOfWork || '—')}</div>
+        ${w.notes ? `<div class="ws-section-title">Notes</div><div style="font-size:0.85rem;white-space:pre-wrap;">${escapeHtml(w.notes)}</div>` : ''}
+        <div class="ws-detail-row"><span class="ws-detail-label">Calls Made</span><span class="ws-detail-value">${w.callsMade || 0}</span></div>
+        <div class="ws-detail-row"><span class="ws-detail-label">Vessels Contacted</span><span class="ws-detail-value">${w.vesselsContacted || 0}</span></div>
+        <div class="ws-section-title">Conversation</div>
+        <div class="ws-thread">
+          <div class="ws-thread-msg employee">
+            <div class="msg-who">📝 ${empName} — Work Summary</div>
+            <div>${escapeHtml(w.summaryOfWork)}</div>
+          </div>
+          ${w.reply ? `
+            <div class="ws-thread-msg manager">
+              <div class="msg-who">💬 ${escapeHtml(w.repliedByName || 'Manager')} replied${w.repliedAt ? ' · ' + fmtTimePM(w.repliedAt) : ''}</div>
+              <div>${escapeHtml(w.reply)}</div>
+            </div>` : ''}
+          ${w.employeeResponse ? `
+            <div class="ws-thread-msg employee">
+              <div class="msg-who">↩ ${empName} responded${w.employeeRespondedAt ? ' · ' + fmtTimePM(w.employeeRespondedAt) : ''}</div>
+              <div>${escapeHtml(w.employeeResponse)}</div>
+            </div>` : ''}
+          ${canReply ? `
+            <div class="reply-input-area">
+              <label class="form-label">Reply to this worksheet</label>
+              <textarea id="reply-input" class="form-control" rows="2" placeholder="Write your reply…">${w.reply ? escapeHtml(w.reply) : ''}</textarea>
+              <button class="btn btn-primary btn-sm" id="send-reply-btn"><i class="fas fa-paper-plane"></i> Send Reply</button>
+            </div>` : ''}
+          ${canRespond ? `
+            <div class="reply-input-area">
+              <label class="form-label">Your Response</label>
+              <textarea id="response-input" class="form-control" rows="2" placeholder="Reply to your manager…"></textarea>
+              <button class="btn btn-primary btn-sm" id="send-response-btn"><i class="fas fa-paper-plane"></i> Send Response</button>
+            </div>` : ''}
+        </div>
+      `;
+
+      if (canReply) {
+        document.getElementById('send-reply-btn').addEventListener('click', async () => {
+          const text = document.getElementById('reply-input').value.trim();
+          if (!text) return window.UI && UI.showToast('Please write a reply first.', 'error');
+          try {
+            await window.ApiService.employees.replyToWorksheet(w.id || w._id, text);
+            UI.showToast && UI.showToast('Reply sent.', 'success');
+            closeDetail();
+            loadWorksheets();
+          } catch (err) {
+            UI.showToast && UI.showToast((err && err.message) || 'Could not send reply.', 'error');
+          }
+        });
+      }
+      if (canRespond) {
+        document.getElementById('send-response-btn').addEventListener('click', async () => {
+          const text = document.getElementById('response-input').value.trim();
+          if (!text) return UI.showToast && UI.showToast('Please write a response first.', 'error');
+          try {
+            await window.ApiService.employees.respondToWorksheet(w.id || w._id, text);
+            UI.showToast && UI.showToast('Response saved.', 'success');
+            closeDetail();
+            loadWorksheets();
+          } catch (err) {
+            UI.showToast && UI.showToast((err && err.message) || 'Could not save response.', 'error');
+          }
+        });
+      }
+
+      document.getElementById('ws-detail-overlay').classList.add('open');
+      document.body.classList.add('no-scroll');
+    }
+
+    function closeDetail() {
+      document.getElementById('ws-detail-overlay').classList.remove('open');
+      document.body.classList.remove('no-scroll');
+    }
+
+    document.getElementById('ws-detail-close').addEventListener('click', closeDetail);
+    document.getElementById('ws-detail-overlay').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('ws-detail-overlay')) closeDetail();
+    });
+
+    // ── Month navigation ──────────────────────────────────────────────────────
+    function updateMonthLabel() {
+      const label = `${monthName(calMonth)} ${calYear}`;
+      document.getElementById('month-label').textContent = label;
+      document.getElementById('month-title').textContent = label;
+    }
+
+    document.getElementById('prev-month-btn').addEventListener('click', () => {
+      calMonth--;
+      if (calMonth < 1) { calMonth = 12; calYear--; }
+      updateMonthLabel();
+      loadWorksheets();
+    });
+    document.getElementById('next-month-btn').addEventListener('click', () => {
+      calMonth++;
+      if (calMonth > 12) { calMonth = 1; calYear++; }
+      updateMonthLabel();
+      loadWorksheets();
+    });
+
+    // ── Init ──────────────────────────────────────────────────────────────────
+    updateMonthLabel();
+    if (isManager) {
+      document.getElementById('admin-filter-bar').classList.remove('hidden');
+      document.getElementById('page-subtitle').textContent = 'Review employee daily work reports';
+      initEmployeeFilter();
+      ['filter-employee', 'filter-department', 'filter-date', 'filter-status'].forEach(id => {
+        document.getElementById(id).addEventListener('change', applyFilters);
+      });
+      document.getElementById('filter-department').addEventListener('input', () => {
+        // debounce the free-text field so we don't hit the API on every keystroke
+        clearTimeout(window.__wsDeptFilterTimer);
+        window.__wsDeptFilterTimer = setTimeout(applyFilters, 400);
+      });
+    }
+    loadWorksheets();
+  </script>
+  <script src="/public/js/components/cursor.js"></script>
+</body>
+</html>

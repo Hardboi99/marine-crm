@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>My Profile — Marine CRM</title>
+  <link rel="stylesheet" href="/public/css/styles1.css" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+  <style>
+    .hidden { display: none !important; }
+    .profile-card {
+      max-width: 640px;
+      margin: 0 auto;
+    }
+    .profile-avatar-wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+      padding: 24px 0 16px;
+    }
+    .profile-avatar {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid var(--accent-primary);
+    }
+    .profile-avatar-initials {
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: var(--accent-primary);
+      color: #fff;
+      font-size: 2rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 3px solid var(--accent-primary);
+    }
+    .profile-name {
+      font-size: 1.3rem;
+      font-weight: 800;
+      color: var(--text-primary);
+    }
+    .profile-role {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+    .profile-fields { display: flex; flex-direction: column; gap: 12px; padding: 0 20px 20px; }
+    .profile-field-row { display: flex; flex-direction: column; gap: 4px; }
+    .profile-field-label { font-size: 0.78rem; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; }
+    .profile-field-value { font-size: 0.9rem; color: var(--text-primary); font-weight: 500; }
+    .profile-divider { border: none; border-top: 1px solid var(--border-color); margin: 0 20px 16px; }
+    .profile-edit-section { padding: 0 20px 20px; }
+    .avatar-url-note { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+    .profile-emp-section { margin-top: 4px; }
+
+    /* Task 9 — responsive pass: card already scales via max-width:640px
+       + column layout, but the two-up Gender/Blood Group row and the
+       photo action buttons need to wrap on narrow phones. */
+    @media (max-width: 420px) {
+      .profile-edit-section > div[style*="display:flex"] { flex-wrap: wrap; }
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar-container"></div>
+  <div class="main-wrapper">
+    <div id="navbar-container"></div>
+    <main class="page-content">
+      <div class="page-header">
+        <h1 class="page-title">My Profile</h1>
+        <p class="page-subtitle">View and update your personal information</p>
+      </div>
+
+      <div class="card profile-card" data-reveal>
+        <!-- Avatar + name -->
+        <div class="profile-avatar-wrap">
+          <div id="avatar-display" style="position:relative;"></div>
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:center;">
+            <button class="btn btn-secondary btn-sm" id="change-photo-btn" type="button">
+              <i class="fas fa-camera"></i> Change Photo
+            </button>
+            <button class="btn btn-secondary btn-sm" id="remove-photo-btn" type="button" style="display:none;">
+              <i class="fas fa-trash"></i> Remove
+            </button>
+          </div>
+          <input type="file" id="avatar-file-input" accept="image/png,image/jpeg,image/webp" class="hidden" />
+          <div class="profile-name" id="profile-name-display">—</div>
+          <div class="profile-role" id="profile-role-display">—</div>
+        </div>
+
+        <hr class="profile-divider" />
+
+        <!-- Read-only fields from User + Employee -->
+        <div class="profile-fields">
+          <div class="profile-field-row">
+            <span class="profile-field-label">Email</span>
+            <span class="profile-field-value" id="pf-email">—</span>
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">Phone</span>
+            <span class="profile-field-value" id="pf-phone">—</span>
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">Department</span>
+            <span class="profile-field-value" id="pf-dept">—</span>
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">Employee ID</span>
+            <span class="profile-field-value" id="pf-empid">—</span>
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">Designation</span>
+            <span class="profile-field-value" id="pf-position">—</span>
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">Join Date</span>
+            <span class="profile-field-value" id="pf-joindate">—</span>
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">Address</span>
+            <span class="profile-field-value" id="pf-address">—</span>
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">Gender</span>
+            <span class="profile-field-value" id="pf-gender">—</span>
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">Blood Group</span>
+            <span class="profile-field-value" id="pf-bloodgroup">—</span>
+          </div>
+          <div class="profile-field-row">
+            <span class="profile-field-label">Member Since</span>
+            <span class="profile-field-value" id="pf-since">—</span>
+          </div>
+        </div>
+
+        <hr class="profile-divider" />
+
+        <!-- Editable section -->
+        <div class="profile-edit-section">
+          <h3 style="font-size:0.9rem;font-weight:700;margin-bottom:14px;color:var(--text-primary);">Edit Profile</h3>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <div>
+              <label class="form-label">Full Name</label>
+              <input id="edit-name" class="form-control" type="text" placeholder="Your name" />
+            </div>
+            <div>
+              <label class="form-label">Phone Number</label>
+              <input id="edit-phone" class="form-control" type="tel" placeholder="+91 XXXXX XXXXX" />
+            </div>
+            <div>
+              <label class="form-label">Department</label>
+              <input id="edit-dept" class="form-control" type="text" placeholder="e.g. Crewing" />
+            </div>
+            <div>
+              <label class="form-label">Address</label>
+              <input id="edit-address" class="form-control" type="text" placeholder="Your address" />
+            </div>
+            <div style="display:flex; gap:12px;">
+              <div style="flex:1;">
+                <label class="form-label">Gender</label>
+                <select id="edit-gender" class="form-control">
+                  <option value="">—</option>
+                  <option value="MALE">Male</option>
+                  <option value="FEMALE">Female</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+              <div style="flex:1;">
+                <label class="form-label">Blood Group</label>
+                <select id="edit-bloodgroup" class="form-control">
+                  <option value="">—</option>
+                  <option value="A+">A+</option>
+                  <option value="A-">A-</option>
+                  <option value="B+">B+</option>
+                  <option value="B-">B-</option>
+                  <option value="AB+">AB+</option>
+                  <option value="AB-">AB-</option>
+                  <option value="O+">O+</option>
+                  <option value="O-">O-</option>
+                </select>
+              </div>
+            </div>
+            <button class="btn btn-primary" id="save-profile-btn">
+              <i class="fas fa-save"></i> Save Changes
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+  <script src="/public/js/api/api.js"></script>
+  <script src="/public/js/components/ui.js"></script>
+  <script src="/public/js/components/sidebar.js"></script>
+  <script>
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href = '/pages/login.html'; }
+
+    function initials(name) {
+      if (!name) return 'U';
+      return name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase();
+    }
+    function fmtDate(iso) {
+      if (!iso) return '—';
+      return new Date(iso).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
+    function renderAvatar(user) {
+      const el = document.getElementById('avatar-display');
+      if (user.avatarUrl) {
+        el.innerHTML = `<img class="profile-avatar" src="${user.avatarUrl}" alt="Profile photo" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';" /><div class="profile-avatar-initials" style="display:none;">${initials(user.name)}</div>`;
+      } else {
+        el.innerHTML = `<div class="profile-avatar-initials">${initials(user.name)}</div>`;
+      }
+      const removeBtn = document.getElementById('remove-photo-btn');
+      if (removeBtn) removeBtn.style.display = user.avatarUrl ? '' : 'none';
+    }
+
+    function persistUserLocally(patch) {
+      const stored = JSON.parse(localStorage.getItem('user') || '{}');
+      const updated = { ...stored, ...patch };
+      localStorage.setItem('user', JSON.stringify(updated));
+      return updated;
+    }
+
+    async function loadProfile() {
+      try {
+        const [userRes, empRes] = await Promise.all([
+          window.ApiService.getMe(),
+          window.ApiService.employees.getMyProfile().catch(() => ({ data: null })),
+        ]);
+        const user = userRes.data || userRes;
+        const emp = (empRes && empRes.data) || null;
+
+        renderAvatar(user);
+        document.getElementById('profile-name-display').textContent = user.name || '—';
+        document.getElementById('profile-role-display').textContent = user.role || '—';
+        document.getElementById('pf-email').textContent = user.email || '—';
+        document.getElementById('pf-phone').textContent = user.phone || '—';
+        document.getElementById('pf-dept').textContent = user.department || '—';
+        document.getElementById('pf-since').textContent = fmtDate(user.createdAt);
+
+        if (emp) {
+          document.getElementById('pf-empid').textContent = emp.employeeId || '—';
+          document.getElementById('pf-position').textContent = emp.position || '—';
+          document.getElementById('pf-joindate').textContent = fmtDate(emp.joinDate);
+          document.getElementById('pf-address').textContent = emp.address || '—';
+          document.getElementById('pf-gender').textContent = emp.gender ? (emp.gender.charAt(0) + emp.gender.slice(1).toLowerCase()) : '—';
+          document.getElementById('pf-bloodgroup').textContent = emp.bloodGroup || '—';
+        }
+
+        // Pre-fill edit form
+        document.getElementById('edit-name').value = user.name || '';
+        document.getElementById('edit-phone').value = user.phone || '';
+        document.getElementById('edit-dept').value = user.department || '';
+        document.getElementById('edit-address').value = (emp && emp.address) || '';
+        document.getElementById('edit-gender').value = (emp && emp.gender) || '';
+        document.getElementById('edit-bloodgroup').value = (emp && emp.bloodGroup) || '';
+
+      } catch (err) {
+        if (window.UI) UI.showToast('Could not load profile.', 'error');
+      }
+    }
+
+    document.getElementById('save-profile-btn').addEventListener('click', async () => {
+      const btn = document.getElementById('save-profile-btn');
+      btn.disabled = true;
+      try {
+        const userPayload = {
+          name: document.getElementById('edit-name').value.trim(),
+          phone: document.getElementById('edit-phone').value.trim(),
+          department: document.getElementById('edit-dept').value.trim(),
+        };
+        const empPayload = {
+          address: document.getElementById('edit-address').value.trim(),
+          gender: document.getElementById('edit-gender').value || null,
+          bloodGroup: document.getElementById('edit-bloodgroup').value || null,
+        };
+
+        const [userRes] = await Promise.all([
+          window.ApiService.updateMe(userPayload),
+          window.ApiService.employees.updateMyProfile(empPayload).catch(() => null), // employee record may not exist for every account
+        ]);
+
+        // Persist updates to localStorage so sidebar/navbar reflect immediately
+        persistUserLocally(userPayload);
+        if (window.UI) UI.showToast('Profile updated successfully.', 'success');
+        await loadProfile();
+      } catch (err) {
+        if (window.UI) UI.showToast((err && err.message) || 'Could not save profile.', 'error');
+      } finally {
+        btn.disabled = false;
+      }
+    });
+
+    // ── Profile photo upload / remove ───────────────────────────────
+    document.getElementById('change-photo-btn').addEventListener('click', () => {
+      document.getElementById('avatar-file-input').click();
+    });
+
+    document.getElementById('avatar-file-input').addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const changeBtn = document.getElementById('change-photo-btn');
+      changeBtn.disabled = true;
+      try {
+        const res = await window.ApiService.uploadAvatar(file);
+        const updatedUser = res.data || res;
+        persistUserLocally({ avatarUrl: updatedUser.avatarUrl });
+        renderAvatar(updatedUser);
+        if (window.UI) UI.showToast('Profile photo updated.', 'success');
+      } catch (err) {
+        if (window.UI) UI.showToast((err && err.message) || 'Could not upload photo.', 'error');
+      } finally {
+        changeBtn.disabled = false;
+        e.target.value = '';
+      }
+    });
+
+    document.getElementById('remove-photo-btn').addEventListener('click', async () => {
+      const removeBtn = document.getElementById('remove-photo-btn');
+      removeBtn.disabled = true;
+      try {
+        const res = await window.ApiService.removeAvatar();
+        const updatedUser = res.data || res;
+        persistUserLocally({ avatarUrl: null });
+        renderAvatar(updatedUser);
+        if (window.UI) UI.showToast('Profile photo removed.', 'success');
+      } catch (err) {
+        if (window.UI) UI.showToast((err && err.message) || 'Could not remove photo.', 'error');
+      } finally {
+        removeBtn.disabled = false;
+      }
+    });
+
+    loadProfile();
+  </script>
+  <script src="/public/js/components/cursor.js"></script>
+</body>
+</html>

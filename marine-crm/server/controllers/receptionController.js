@@ -223,15 +223,19 @@ const issuePpe = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Quantity must be greater than zero.' });
     }
 
-    // Verify stock availability
-    const stock = await PpeStock.findOne({ itemName });
-    if (!stock || stock.availableQuantity < qty) {
-      return res.status(400).json({ success: false, message: `Insufficient stock for ${itemName}. Available: ${stock ? stock.availableQuantity : 0}` });
+    // Atomic deduction with stock guard: guarantees availableQuantity never drops below zero
+    const stock = await PpeStock.findOneAndUpdate(
+      { itemName, availableQuantity: { $gte: qty } },
+      { $inc: { availableQuantity: -qty } },
+      { new: true }
+    );
+    if (!stock) {
+      const currentStock = await PpeStock.findOne({ itemName });
+      return res.status(400).json({
+        success: false,
+        message: `Insufficient stock for ${itemName}. Available: ${currentStock ? currentStock.availableQuantity : 0}`
+      });
     }
-
-    // Deduct stock
-    stock.availableQuantity -= qty;
-    await stock.save();
 
     const issuance = await PpeIssuance.create({
       employeeId,
@@ -267,12 +271,11 @@ const returnPpe = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'PPE is already returned.' });
     }
 
-    // Return stock
-    const stock = await PpeStock.findOne({ itemName: issuance.itemName });
-    if (stock) {
-      stock.availableQuantity += issuance.quantity;
-      await stock.save();
-    }
+    // Atomic return stock increment
+    await PpeStock.findOneAndUpdate(
+      { itemName: issuance.itemName },
+      { $inc: { availableQuantity: issuance.quantity } }
+    );
 
     issuance.status = 'RETURNED';
     issuance.returnDate = new Date();

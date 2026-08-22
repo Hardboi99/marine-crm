@@ -30,9 +30,11 @@ const attendanceSchema = new mongoose.Schema({
   //             but still within the Full Day window (before 2:00 PM).
   //   dayType — FULL_DAY (checked in before 2:00 PM) or HALF_DAY (checked
   //             in at/after 2:00 PM). Decided once at check-in time.
-  isLate: { type: Boolean, default: false },
   dayType: { type: String, enum: ['FULL_DAY', 'HALF_DAY'], default: 'FULL_DAY' }
 }, { timestamps: true });
+
+// M8: Enforce one attendance record per employee per day
+attendanceSchema.index({ employeeId: 1, date: 1 }, { unique: true });
 
 // Ensure employeeId is always serialized as a plain string
 attendanceSchema.set('toJSON', {

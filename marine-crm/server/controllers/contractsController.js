@@ -1,3 +1,5 @@
+const path = require('path');
+const fs = require('fs');
 const { Contract, Company } = require('../models');
 const { logActivity } = require('../utils/activityLogger');
 const { getDataScope, canAccessRecord } = require('../utils/accessScope');
@@ -199,4 +201,31 @@ const deleteContract = async (req, res, next) => {
   }
 };
 
-module.exports = { getContracts, getContract, createContract, updateContract, deleteContract };
+const downloadContractFile = async (req, res, next) => {
+  try {
+    const contract = await Contract.findById(req.params.id);
+    if (!contract) return res.status(404).json({ success: false, message: 'Contract not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, contract, 'CONTRACT');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this contract.' });
+    }
+
+    if (!contract.fileUrl) {
+      return res.status(404).json({ success: false, message: 'No file attached to this contract.' });
+    }
+
+    const filename = path.basename(contract.fileUrl);
+    const absPath = path.join(__dirname, '..', 'uploads', filename);
+    if (!fs.existsSync(absPath)) {
+      return res.status(404).json({ success: false, message: 'File not found on disk.' });
+    }
+
+    const safeTitle = (contract.title || 'contract').replace(/[^a-zA-Z0-9.\-_]/g, '_');
+    return res.download(absPath, `${safeTitle}${path.extname(filename)}`);
+  } catch (err) {
+    next(err);
+  }
+};
+
+module.exports = { getContracts, getContract, createContract, updateContract, deleteContract, downloadContractFile };

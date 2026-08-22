@@ -137,6 +137,13 @@ const ApiService = {
   register:           (data)        => api.post('/auth/register', data),
   logout:             ()            => api.post('/auth/logout'),
   getMe:              ()            => api.get('/auth/me'),
+  updateMe:           (data)        => api.patch('/auth/me', data),
+  uploadAvatar:       (file)        => {
+    const form = new FormData();
+    form.append('avatar', file);
+    return api.post('/auth/me/avatar', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  },
+  removeAvatar:       ()            => api.delete('/auth/me/avatar'),
   verifyEmail:        (token)       => api.get('/auth/verify-email', { params: { token } }),
   resendVerification: (email)       => api.post('/auth/resend-verification', { email }),
 
@@ -183,6 +190,8 @@ const ApiService = {
     create: (data)     => api.post('/calls', data),
     update: (id, data) => api.put(`/calls/${id}`, data),
     delete: (id)       => api.delete(`/calls/${id}`),
+    remove: (id)       => api.delete(`/calls/${id}`),
+    getFollowupsDue: () => api.get('/followups/due'),
   },
 
   // ── Appointments (flat + namespaced) ─────────────────────────────────────
@@ -211,13 +220,15 @@ const ApiService = {
   },
 
   // ── Follow-ups (flat + namespaced) ────────────────────────────────────────
-  getFollowUps:   (params)   => api.get('/followups', { params }),
-  createFollowUp: (data)     => api.post('/followups', data),
-  updateFollowUp: (id, data) => api.patch(`/followups/${id}`, data),
-  deleteFollowUp: (id)       => api.delete(`/followups/${id}`),
+  getFollowUps:    (params)   => api.get('/followups', { params }),
+  getFollowUpsDue: ()         => api.get('/followups/due'),
+  createFollowUp:  (data)     => api.post('/followups', data),
+  updateFollowUp:  (id, data) => api.patch(`/followups/${id}`, data),
+  deleteFollowUp:  (id)       => api.delete(`/followups/${id}`),
 
   followups: {
     list:   (params)   => api.get('/followups', { params }),
+    getDue: ()         => api.get('/followups/due'),
     create: (data)     => api.post('/followups', data),
     update: (id, data) => api.patch(`/followups/${id}`, data),
     delete: (id)       => api.delete(`/followups/${id}`),
@@ -261,10 +272,11 @@ const ApiService = {
       match:   (id)       => api.get(`/crewing/requirements/${id}/match`),
     },
     candidates: {
-      getAll:  (params)   => api.get('/crewing/candidates', { params }),
-      create:  (data)     => api.post('/crewing/candidates', data),
-      update:  (id, data) => api.put(`/crewing/candidates/${id}`, data),
-      delete:  (id)       => api.delete(`/crewing/candidates/${id}`),
+      getAll:   (params)   => api.get('/crewing/candidates', { params }),
+      create:   (data)     => api.post('/crewing/candidates', data),
+      update:   (id, data) => api.put(`/crewing/candidates/${id}`, data),
+      reassign: (id, data) => api.patch(`/crewing/candidates/${id}/reassign`, data),
+      delete:   (id)       => api.delete(`/crewing/candidates/${id}`),
     },
     applications: {
       getAll:  (params)   => api.get('/crewing/applications', { params }),
@@ -279,7 +291,11 @@ const ApiService = {
       getStats:     ()         => api.get('/recruitment/job-applications/stats/summary'),
       get:          (id)       => api.get(`/recruitment/job-applications/${id}`),
       updateStatus: (id, data) => api.patch(`/recruitment/job-applications/${id}/status`, data),
-      getFileUrl:   (id, field) => `${API_BASE_URL}/recruitment/job-applications/${id}/files/${field}`
+      getFileUrl:   (id, field) => {
+        const token = localStorage.getItem('token');
+        const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+        return `${API_BASE_URL}/recruitment/job-applications/${id}/files/${field}${tokenQuery}`;
+      }
     }
   },
 
@@ -329,6 +345,8 @@ const ApiService = {
     create: (data)     => api.post('/employees', data),
     update: (id, data) => api.put(`/employees/${id}`, data),
     delete: (id)       => api.delete(`/employees/${id}`),
+    getMyProfile:       ()     => api.get('/employees/me/profile'),
+    updateMyProfile:    (data) => api.patch('/employees/me/profile', data),
     getTodayAttendance: ()   => api.get('/employees/attendance/today'),
     checkIn:            (id) => api.post(`/employees/checkin/${id}`),
     checkOut:           (id) => api.post(`/employees/checkout/${id}`),
@@ -355,11 +373,6 @@ const ApiService = {
   },
 
   // ── Attendance (navbar IN/OUT button + attendance.html) ────────────────────
-  // Backed by the SAME /api/employees/* attendance architecture as
-  // ApiService.employees.getTodayAttendance/checkIn/checkOut above —
-  // this just adds the self/normalized + month/summary views that
-  // page needs. window.AttendanceService in sidebar.js auto-detects
-  // and prefers this namespace over its own placeholder fetch() calls.
   attendance: {
     getToday: () => api.get('/employees/attendance/me/today'),
     checkIn: async (coords) => {
@@ -378,12 +391,7 @@ const ApiService = {
     getSummary: (year, month, employeeId) => api.get('/employees/attendance/summary', {
       params: { year, month, ...(employeeId ? { employeeId } : {}) },
     }),
-    // Lets attendance.html check up-front whether this account can
-    // check in/out at all, instead of surfacing the failure only on click.
     checkMyEmployeeLink,
-    // Exposes the resolved (and cached) Employee._id for this account —
-    // needed by the checkout worksheet flow, which must submit the
-    // worksheet under the same employeeId before calling checkOut.
     getMyEmployeeId: () => resolveMyEmployeeId(),
   },
 
@@ -397,3 +405,4 @@ const ApiService = {
 };
 
 window.ApiService = ApiService;
+window.api = ApiService;

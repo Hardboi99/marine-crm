@@ -1,4 +1,4 @@
-const { Onboarding, Candidate, Requirement, Invoice, Company } = require('../models');
+const { Onboarding, Candidate, Requirement, Invoice, Company, Application } = require('../models');
 const { logActivity } = require('../utils/activityLogger');
 const { getDataScope, canAccessRecord } = require('../utils/accessScope');
 const { isRoleAllowedForStatus } = require('../utils/workflow');
@@ -57,6 +57,42 @@ const updateOnboarding = async (req, res, next) => {
       return res.status(403).json({ success: false, message: 'Your role is not permitted to complete onboarding.' });
     }
 
+    // Load candidate to verify current workflow stage
+    const candidate = await Candidate.findById(existing.candidateId);
+    if (!candidate) return res.status(404).json({ success: false, message: 'Linked candidate not found.' });
+
+    // When marking status as COMPLETED, verify candidate is in ONBOARDING and checklist is complete
+    if (updateData.status === 'COMPLETED') {
+      if (candidate.status !== 'ONBOARDING') {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot complete onboarding: candidate status is "${candidate.status}", but must be "ONBOARDING".`,
+        });
+      }
+
+      // Check checklist items from updateData merged over existing doc
+      const merged = { ...existing.toObject(), ...updateData };
+      const missingItems = [];
+      if (!merged.contractPrepared) missingItems.push('contractPrepared');
+      if (!merged.contractSigned) missingItems.push('contractSigned');
+      if (!merged.cdcValidityChecked) missingItems.push('cdcValidityChecked');
+      if (!merged.passportValidityChecked) missingItems.push('passportValidityChecked');
+      if (!merged.medicalCleared) missingItems.push('medicalCleared');
+      if (!merged.visaProcessed) missingItems.push('visaProcessed');
+      if (!merged.ticketBooked) missingItems.push('ticketBooked');
+      if (!merged.flightDetails) missingItems.push('flightDetails');
+      if (!merged.vesselName) missingItems.push('vesselName');
+      if (!merged.portOfJoining) missingItems.push('portOfJoining');
+      if (!merged.reportingDate) missingItems.push('reportingDate');
+
+      if (missingItems.length > 0) {
+        return res.status(400).json({
+          success: false,
+          message: `Cannot complete onboarding. The following checklist items are incomplete: ${missingItems.join(', ')}.`,
+        });
+      }
+    }
+
     if (updateData.reportingDate) updateData.reportingDate = new Date(updateData.reportingDate);
 
     // Save update who edited
@@ -71,20 +107,14 @@ const updateOnboarding = async (req, res, next) => {
 
     if (!onboarding) return res.status(404).json({ success: false, message: 'Onboarding record not found.' });
 
-    // Auto-update Candidate status if Onboarding checklist items are fully completed
-    const candidate = await Candidate.findById(onboarding.candidateId._id);
-    if (candidate) {
-      if (onboarding.status === 'COMPLETED') {
-        candidate.status = 'ONBOARDED';
-        candidate.workflowStage = 'ONBOARDED';
-        await candidate.save();
+    // Transition candidate to ONBOARDED and requirement to FULFILLED only when checklist completed
+    if (onboarding.status === 'COMPLETED') {
+      candidate.status = 'ONBOARDED';
+      candidate.workflowStage = 'ONBOARDED';
+      await candidate.save();
 
-        // Mark requirement as fulfilled too
-        await Requirement.findByIdAndUpdate(onboarding.requirementId._id, { status: 'FULFILLED' });
-      } else {
-        candidate.status = 'DOCUMENTATION';
-        await candidate.save();
-      }
+      // Mark requirement as fulfilled too
+      await Requirement.findByIdAndUpdate(onboarding.requirementId._id, { status: 'FULFILLED' });
     }
 
     await logActivity({
@@ -132,6 +162,38 @@ const createInvoice = async (req, res, next) => {
     const { companyId, candidateId, requirementId, amount, candidateCharges, salaryAgreed, dueDate } = req.body;
     if (!companyId || !candidateId || !requirementId || !amount || !dueDate) {
       return res.status(400).json({ success: false, message: 'companyId, candidateId, requirementId, amount, and dueDate are required.' });
+    }
+
+    // M10: Validate that requirement belongs to the specified company
+    const reqDoc = await Requirement.findOne({ _id: requirementId, companyId });
+    if (!reqDoc) {
+      return res.status(400).json({
+        success: false,
+        message: 'Requirement not found or does not belong to the specified company.',
+      });
+    }
+
+    // M10: Validate that candidate has an accepted application for this requirement
+    const appDoc = await Application.findOne({
+      candidateId,
+      requirementId,
+      status: 'CLIENT_ACCEPTED',
+    });
+    if (!appDoc) {
+      return res.status(400).json({
+        success: false,
+        message: 'Candidate does not have an accepted application for this requirement.',
+      });
+    }
+
+    // M10: Verify candidate is in an eligible post-selection workflow stage
+    const candidateDoc = await Candidate.findById(candidateId);
+    const eligibleStatuses = ['DOCUMENTATION', 'ACCOUNTS', 'ONBOARDING', 'ONBOARDED', 'APPROVED'];
+    if (!candidateDoc || !eligibleStatuses.includes(candidateDoc.status)) {
+      return res.status(400).json({
+        success: false,
+        message: `Candidate status "${candidateDoc?.status}" is not eligible for invoicing. Must be one of: ${eligibleStatuses.join(', ')}.`,
+      });
     }
 
     // Generate unique invoice number

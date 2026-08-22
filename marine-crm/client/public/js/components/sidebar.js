@@ -51,7 +51,9 @@ const NAV_GROUPS = [
     items: [
       { href: '/pages/employee.html', icon: '👨‍✈️', label: 'Employees', match: 'employee' },
       { href: '/pages/hr-operations.html', icon: '🛠️', label: 'HR Operations', match: 'hr-operations' },
-      { href: '/pages/tasks.html', icon: '📋', label: 'Task Management', match: 'tasks' }
+      { href: '/pages/tasks.html', icon: '📋', label: 'Task Management', match: 'tasks' },
+      { href: '/pages/worksheets.html', icon: '📋', label: 'Worksheets', match: 'worksheets' },
+      { href: '/pages/profile.html', icon: '👤', label: 'My Profile', match: 'profile' },
     ]
   },
   {
@@ -103,93 +105,147 @@ function buildNavGroups(currentPath, userRole) {
   const isActive = (keyword) => currentPath.includes(keyword);
   let groups = NAV_GROUPS.map(g => ({ ...g, items: [...g.items] }));
 
-  // Reports & Analytics: ADMIN / HR / MANAGER only
-  if (['ADMIN', 'HR', 'MANAGER'].includes(userRole)) {
-    groups.find(g => g.id === 'updates').items.push(
-      {
-        href: '/pages/reports.html',
-        icon: '📈',
-        label: 'Reports & Analytics',
-        match: 'reports'
-      }
-    );
+  // Reports & Analytics: ADMIN / DIRECTOR / COO / HR
+  if (['ADMIN', 'DIRECTOR', 'COO', 'HR'].includes(userRole)) {
+    const updateGroup = groups.find(g => g.id === 'updates');
+    if (updateGroup) {
+      updateGroup.items.push(
+        {
+          href: '/pages/reports.html',
+          icon: '📈',
+          label: 'Reports & Analytics',
+          match: 'reports'
+        }
+      );
+    }
   }
 
-  // BDM Sales Executive: Sales Pipeline + Employees + Tasks only
-  if (userRole === 'BDM') {
+  // Role-based visibility using canonical roles
+  if (['ADMIN', 'DIRECTOR', 'COO'].includes(userRole)) {
+    // Org-wide roles see all groups plus documents
+    groups.push({
+      id: 'docs',
+      label: 'Documents',
+      icon: '📄',
+      items: [
+        {
+          href: '/pages/documents.html',
+          icon: '📄',
+          label: 'Documents',
+          match: 'documents'
+        }
+      ]
+    });
+  } else if (userRole === 'BDM') {
     groups = groups.filter(g =>
-      ['sales-pipeline', 'hr-employees'].includes(g.id)
+      ['sales-pipeline', 'hr-employees', 'updates'].includes(g.id)
+    );
+  } else if (['SOURCING_MANAGER', 'SOURCING_OFFICER'].includes(userRole)) {
+    groups = groups
+      .map(g => {
+        if (g.id === 'crewing') return g;
+        if (g.id === 'frontdesk') return g;
+
+        if (g.id === 'hr-employees') {
+          return {
+            ...g,
+            items: g.items.filter(i =>
+              ['employee', 'hr-operations', 'tasks', 'worksheets', 'profile'].includes(i.match)
+            )
+          };
+        }
+
+        if (g.id === 'updates') {
+          return {
+            ...g,
+            items: g.items.filter(i => ['followups'].includes(i.match))
+          };
+        }
+
+        return { ...g, items: [] };
+      })
+      .filter(g => g.items.length > 0);
+  } else if (['DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'].includes(userRole)) {
+    groups = groups
+      .map(g => {
+        if (g.id === 'crewing') {
+          return {
+            ...g,
+            items: g.items.filter(i => ['candidates', 'requirements'].includes(i.match))
+          };
+        }
+        if (g.id === 'hr-employees') {
+          return {
+            ...g,
+            items: g.items.filter(i =>
+              ['employee', 'tasks', 'worksheets', 'profile'].includes(i.match)
+            )
+          };
+        }
+        return { ...g, items: [] };
+      })
+      .filter(g => g.items.length > 0);
+
+    groups.push({
+      id: 'docs',
+      label: 'Documents',
+      icon: '📄',
+      items: [
+        {
+          href: '/pages/documents.html',
+          icon: '📄',
+          label: 'Documents',
+          match: 'documents'
+        }
+      ]
+    });
+  } else if (userRole === 'ACCOUNTS_OFFICER') {
+    groups = groups
+      .map(g => {
+        if (g.id === 'compliance') return g;
+        if (g.id === 'crewing') {
+          return {
+            ...g,
+            items: g.items.filter(i => ['candidates'].includes(i.match))
+          };
+        }
+        if (g.id === 'hr-employees') {
+          return {
+            ...g,
+            items: g.items.filter(i =>
+              ['tasks', 'worksheets', 'profile'].includes(i.match)
+            )
+          };
+        }
+        return { ...g, items: [] };
+      })
+      .filter(g => g.items.length > 0);
+  } else if (['ADMIN_OFFICER', 'RECEPTION'].includes(userRole)) {
+    groups = groups
+      .map(g => {
+        if (g.id === 'frontdesk') return g;
+        if (g.id === 'crewing') {
+          return {
+            ...g,
+            items: g.items.filter(i => ['job-applicants'].includes(i.match))
+          };
+        }
+        if (g.id === 'hr-employees') {
+          return {
+            ...g,
+            items: g.items.filter(i =>
+              ['tasks', 'worksheets', 'profile'].includes(i.match)
+            )
+          };
+        }
+        return { ...g, items: [] };
+      })
+      .filter(g => g.items.length > 0);
+  } else if (userRole === 'HR') {
+    groups = groups.filter(g =>
+      ['hr-employees', 'crewing', 'frontdesk', 'updates'].includes(g.id)
     );
   }
-  // Sourcing Manager: Crewing + Task Management + Front Desk + Follow-up Queue
-  // Reports & Analytics remains hidden because it is ADMIN/HR/MANAGER-only.
-  if (userRole === 'SOURCING_MANAGER' || userRole === 'MANAGER_SOURCING') {
-  groups = groups
-    .map(g => {
-      if (g.id === 'crewing') return g;
-      if (g.id === 'frontdesk') return g;
-
-      if (g.id === 'hr-employees') {
-        return {
-          ...g,
-          items: g.items.filter(i =>
-            ['employee', 'hr-operations', 'tasks'].includes(i.match)
-          )
-        };
-      }
-
-      if (g.id === 'updates') {
-        return {
-          ...g,
-          items: g.items.filter(i => ['candidates', 'job-applicants', 'requirements', 'followups'].includes(i.match))
-        };
-      }
-
-      return { ...g, items: [] };
-    })
-    .filter(g => g.items.length > 0);
-}
-
-
-// Manager - Docs
-if (userRole === 'MANAGER_DOCS') {
-  groups = groups
-    .map(g => {
-
-      if (g.id === 'hr-employees') {
-        return {
-          ...g,
-          items: g.items.filter(i =>
-            ['employee', 'hr-operations', 'tasks'].includes(i.match)
-          )
-        };
-      }
-
-      if (g.id === 'crewing') {
-        return {
-          ...g,
-          items: g.items.filter(i => ['candidates', 'job-applicants'].includes(i.match))
-        };
-      }
-
-      return { ...g, items: [] };
-    })
-    .filter(g => g.items.length > 0);
-
-  groups.push({
-    id: 'docs',
-    label: 'Documents',
-    icon: '📄',
-    items: [
-      {
-        href: '/pages/documents.html',
-        icon: '📄',
-        label: 'Documents',
-        match: 'documents'
-      }
-    ]
-  });
-}
   let activeGroupId = null;
 
   const groupsHtml = groups.map(group => {
@@ -256,13 +312,13 @@ function renderSidebar() {
       </div>
 
       <div style="padding: 12px 8px; border-top: 1px solid rgba(255,255,255,0.05);">
-        <div style="padding: 10px; display:flex; align-items:center; gap:10px; border-radius: var(--radius-sm);">
-          <div id="sidebar-user-avatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0EA5E9,#6366F1);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#fff;flex-shrink:0;">U</div>
+        <a href="/pages/profile.html" id="sidebar-profile-link" title="My Profile" style="padding: 10px; display:flex; align-items:center; gap:10px; border-radius: var(--radius-sm); text-decoration:none; cursor:pointer; transition: background 0.15s;" onmouseover="this.style.background='rgba(255,255,255,0.05)'" onmouseout="this.style.background='transparent'">
+          <div id="sidebar-user-avatar" style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#0EA5E9,#6366F1);display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:700;color:#fff;flex-shrink:0;overflow:hidden;">U</div>
           <div class="logo-text">
             <div id="sidebar-user-name" style="font-size:0.8rem;font-weight:600;color:var(--text-primary);white-space:nowrap;"></div>
             <div id="sidebar-user-role" style="font-size:0.68rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;white-space:nowrap;"></div>
           </div>
-        </div>
+        </a>
       </div>
     </div>
   `;
@@ -273,7 +329,13 @@ function renderSidebar() {
       const el = document.getElementById('sidebar-user-avatar');
       const nameEl = document.getElementById('sidebar-user-name');
       const roleEl = document.getElementById('sidebar-user-role');
-      if (el) el.textContent = user.name.charAt(0).toUpperCase();
+      if (el) {
+        if (user.avatarUrl) {
+          el.innerHTML = `<img src="${user.avatarUrl}" alt="" style="width:100%;height:100%;object-fit:cover;" onerror="this.parentElement.textContent='${user.name.charAt(0).toUpperCase()}';" />`;
+        } else {
+          el.textContent = user.name.charAt(0).toUpperCase();
+        }
+      }
       if (nameEl) nameEl.textContent = user.name;
       if (roleEl) roleEl.textContent = user.role || 'BDM';
     }
@@ -562,6 +624,9 @@ function renderNavbar() {
   if (!navbarContainer) return;
 
   const initials = user.name ? user.name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : 'U';
+  const navAvatarHtml = user.avatarUrl
+    ? `<img src="${user.avatarUrl}" alt="" style="width:100%;height:100%;object-fit:cover;border-radius:50%;" onerror="this.parentElement.textContent='${initials}';" />`
+    : initials;
 
   navbarContainer.innerHTML = `
     <nav class="navbar">
@@ -579,8 +644,8 @@ function renderNavbar() {
           <span class="navbar-label">Org Chart</span>
         </button>
 
-        <div class="user-menu" id="user-menu-btn" title="${user.name || 'User'}">
-          <div class="user-avatar">${initials}</div>
+        <div class="user-menu" id="user-menu-btn" title="${user.name || 'User'}" style="cursor:pointer;">
+          <div class="user-avatar" style="overflow:hidden;">${navAvatarHtml}</div>
           <div class="user-info">
             <div class="user-name">${user.name || 'User'}</div>
             <div class="user-role">${user.role || 'BDM'}</div>
@@ -636,6 +701,13 @@ function renderNavbar() {
       localStorage.setItem('sidebarCollapsed', collapsed ? 'true' : 'false');
     }
   });
+
+  const userMenuBtn = document.getElementById('user-menu-btn');
+  if (userMenuBtn) {
+    userMenuBtn.addEventListener('click', () => {
+      window.location.href = '/pages/profile.html';
+    });
+  }
 
   document.getElementById('logout-btn').addEventListener('click', async () => {
     const confirmed = await UI.confirm({
@@ -760,6 +832,7 @@ document.addEventListener('DOMContentLoaded', () => {
   renderSidebar();
   renderNavbar();
   renderFooter();
+  initWorksheetReplyPopups();
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -781,7 +854,84 @@ document.addEventListener('DOMContentLoaded', () => {
   window.setTimeout(() => window.observeReveal(), 50);
 });
 
-// ── Lightweight SPA-style page-out transition on nav clicks ─────
+// ── Worksheet reply popup notifications (Task 4) ────────────────────────────
+// Runs on every page (sidebar.js is loaded everywhere). Fetches this user's
+// unread notifications on load and shows a popup for each unread
+// WORKSHEET_REPLY, one at a time. A popup stays up until the employee
+// dismisses it or clicks "View Reply" — either action marks it read via the
+// existing /api/notifications/:id/read endpoint, so it will not reappear on
+// the next page load or login.
+async function initWorksheetReplyPopups() {
+  if (!window.ApiService || !window.ApiService.getNotifications) return;
+
+  let notifications = [];
+  try {
+    const res = await window.ApiService.getNotifications();
+    notifications = (res && res.data) || [];
+  } catch (e) {
+    return; // fail silently — never block page load over notifications
+  }
+
+  const unreadReplies = notifications.filter(
+    (n) => !n.isRead && n.type === 'WORKSHEET_REPLY'
+  );
+  if (!unreadReplies.length) return;
+
+  let queue = [...unreadReplies];
+
+  function showNext() {
+    const n = queue.shift();
+    if (!n) return;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'modal-overlay';
+    overlay.id = 'worksheet-reply-popup-overlay';
+
+    const dateLabel = n.createdAt
+      ? new Date(n.createdAt).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })
+      : '';
+
+    overlay.innerHTML = `
+      <div class="modal modal-lg" style="max-width:440px;">
+        <div class="modal-header">
+          <h3 class="modal-title">💬 New Reply on Your Worksheet</h3>
+          <button class="modal-close" id="wsp-close" aria-label="Close">✕</button>
+        </div>
+        <div class="modal-body">
+          <p style="font-size:0.85rem;color:var(--text-muted);margin-bottom:6px;">${dateLabel}</p>
+          <p style="font-size:0.92rem;color:var(--text-primary);line-height:1.5;">${n.message ? n.message.replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c])) : ''}</p>
+        </div>
+        <div class="modal-footer">
+          <button class="btn btn-secondary btn-sm" id="wsp-dismiss">Dismiss</button>
+          <button class="btn btn-primary btn-sm" id="wsp-view">View Reply</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+
+    const markRead = () => {
+      window.ApiService.markNotificationRead(n.id || n._id).catch(() => {});
+    };
+
+    document.getElementById('wsp-close').addEventListener('click', () => {
+      markRead();
+      overlay.remove();
+      showNext();
+    });
+    document.getElementById('wsp-dismiss').addEventListener('click', () => {
+      markRead();
+      overlay.remove();
+      showNext();
+    });
+    document.getElementById('wsp-view').addEventListener('click', () => {
+      markRead();
+      overlay.remove();
+      window.location.href = n.link || '/pages/worksheets.html';
+    });
+  }
+
+  showNext();
+}
 document.addEventListener('DOMContentLoaded', () => {
   const page = document.querySelector('.page-content');
   if (!page) return;

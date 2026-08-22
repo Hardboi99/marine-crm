@@ -22,6 +22,8 @@ const jobApplicationsRoutes = require('./routes/jobApplications.routes');
 const documentsRoutes = require('./routes/documents.routes');
 
 
+const { authenticate, loadCurrentUser } = require('./middlewares/auth');
+
 const app = express();
 
 // Security headers — CSP configured to allow CDN scripts, FontAwesome, inline script attributes, and media
@@ -59,12 +61,20 @@ app.use(helmet({
   },
 }));
 
-// CORS — dynamically allow origins in development
+// CORS — explicit allowed origins with credentials support
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(',').map((o) => o.trim())
+  : ['http://localhost:5000', 'http://127.0.0.1:5000', 'http://localhost:3000', 'http://127.0.0.1:3000'];
+
 app.use(cors({
-  origin: true,
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin) || process.env.NODE_ENV === 'development') {
+      return callback(null, true);
+    }
+    return callback(new Error('CORS policy: origin not allowed'));
+  },
   credentials: true,
 }));
-
 
 // Request logging
 if (process.env.NODE_ENV !== 'test') {
@@ -75,21 +85,19 @@ if (process.env.NODE_ENV !== 'test') {
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
-// Static files (uploaded contracts)
-app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
-
 // Serve frontend client files — no-cache during development so edits are always picked up
 const clientPath = path.join(__dirname, '../client');
 const staticOpts = { etag: false, lastModified: false, setHeaders: (res) => { res.setHeader('Cache-Control', 'no-store'); } };
 app.use(express.static(clientPath, staticOpts));
 app.use('/pages',  express.static(path.join(clientPath, 'pages'),  staticOpts));
 app.use('/public', express.static(path.join(clientPath, 'public'), staticOpts));
+// Serve uploaded files (profile photos, worksheet attachments, contracts, etc.)
+app.use('/uploads', express.static(path.join(__dirname, 'uploads'), staticOpts));
 
 // Root redirect to login
 app.get('/', (req, res) => {
   res.redirect('/pages/login.html');
 });
-
 
 // Auth rate limiting
 const authLimiter = rateLimit({
@@ -112,18 +120,23 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+// Authenticated API router group for BDM, Pipeline, and Dashboard routes
+const bdmPipelineRouter = express.Router();
+bdmPipelineRouter.use(authenticate, loadCurrentUser);
+bdmPipelineRouter.use(bdmRoutes);
+bdmPipelineRouter.use(pipelineRoutes);
+bdmPipelineRouter.use(dashboardRoutes);
+
 // API routes
 app.use('/api/auth', authRoutes);
-app.use('/api', bdmRoutes);
-app.use('/api', pipelineRoutes);
-app.use('/api', dashboardRoutes);
+app.use('/api/recruitment/job-applications', jobApplicationsRoutes);
+app.use('/api', bdmPipelineRouter);
 app.use('/api/employees', employeeRoutes);
 app.use('/employees', employeeRoutes); // alias path for employee routes
 app.use('/api/crewing', crewingRoutes);
 app.use('/api/ops', opsRoutes);
 app.use('/api/reception', receptionRoutes);
 app.use('/api/birthdays', birthdayRoutes);
-app.use('/api/recruitment/job-applications', jobApplicationsRoutes);
 app.use('/api/documents', documentsRoutes);
 // NOTE: Attendance is served entirely by the existing /api/employees/*
 // router (employeeController.js) — see checkin/checkout/attendance/*

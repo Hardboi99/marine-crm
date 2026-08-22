@@ -53,17 +53,17 @@
       --font-body: "Inter", "Segoe UI", sans-serif;
 
       /* ============================================================
-     FIX 1 — "Day mode" text/controls staying dark & unreadable.
-     Without this, the browser infers native-control theming
-     (dropdown/select popups, <input type="date"> calendar
-     pickers, checkboxes, scrollbars) from the OS-level color
-     scheme — NOT from your custom CSS. So on a device/browser
-     set to system dark mode, those native popups render with
-     dark backgrounds + dark text even while the rest of the page
-     correctly shows your light theme, making them unreadable.
-     Declaring color-scheme explicitly forces native controls to
-     match whichever theme is actually active on the page.
-     ============================================================ */
+      FIX 1 — "Day mode" text/controls staying dark & unreadable.
+      Without this, the browser infers native-control theming
+      (dropdown/select popups, <input type="date"> calendar
+      pickers, checkboxes, scrollbars) from the OS-level color
+      scheme — NOT from your custom CSS. So on a device/browser
+      set to system dark mode, those native popups render with
+      dark backgrounds + dark text even while the rest of the page
+      correctly shows your light theme, making them unreadable.
+      Declaring color-scheme explicitly forces native controls to
+      match whichever theme is actually active on the page.
+      ============================================================ */
       color-scheme: light;
     }
 
@@ -86,7 +86,7 @@
       --shadow-lg: 0 24px 60px rgba(0, 0, 0, 0.45);
 
       /* FIX 1 (continued) — flip native controls to dark only when
-     the page itself is actually in dark mode. */
+      the page itself is actually in dark mode. */
       color-scheme: dark;
     }
 
@@ -1361,10 +1361,10 @@
               <span class="vp-dot"></span><span class="vp-label">Personal</span>
             </div>
             <div class="voyage-point" data-step="2">
-              <span class="vp-dot"></span><span class="vp-label">Documents</span>
+              <span class="vp-dot"></span><span class="vp-label">Experience</span>
             </div>
             <div class="voyage-point" data-step="3">
-              <span class="vp-dot"></span><span class="vp-label">Experience</span>
+              <span class="vp-dot"></span><span class="vp-label">Documents</span>
             </div>
             <div class="voyage-point" data-step="4">
               <span class="vp-dot"></span><span class="vp-label">Certificates</span>
@@ -1383,22 +1383,6 @@
       </div>
 
       <form id="applicationForm" class="form-card" novalidate>
-        <!-- ============================================================
-           FIX 2 — Submit form glitch: honeypot autofill collision.
-           The old field was named/labeled "companyWebsite" /
-           "Company Website" — a name+label combo that Chrome's
-           autofill heuristics frequently match against a saved
-           "Company" / organization value and silently fill in,
-           even though the field is visually hidden. When that
-           happens, the submit handler's honeypot check below sees
-           a non-empty value and treats a genuine applicant as a
-           bot, blocking the submission with a generic
-           "Something went wrong" toast and no real explanation.
-           Renamed to a non-autofill-prone id/name and given a
-           neutral label + autocomplete="off" + explicit
-           autocapitalize/spellcheck off, which stops browsers from
-           pattern-matching it to any saved profile field.
-           ============================================================ -->
         <div class="hp-field" aria-hidden="true">
           <label for="hpConfirmField">Leave this field empty</label>
           <input type="text" id="hpConfirmField" name="hp_confirm_field" tabindex="-1" autocomplete="off"
@@ -1520,73 +1504,8 @@
           </div>
         </section>
 
-        <!-- ===== STEP 2 — Identity & Travel Documents ===== -->
+        <!-- ===== STEP 2 — Rank & Sailing Experience ===== -->
         <section class="form-step" data-step="2">
-          <div class="step-head">
-            <span class="step-icon">🛂</span>
-            <h2>Identity &amp; Travel Documents</h2>
-            <p>
-              If you're a fresher without a CDC yet, leave those fields blank.
-            </p>
-          </div>
-          <div class="field-grid">
-            <div class="field">
-              <label for="passportNumber">Passport Number <span class="req">*</span></label>
-              <input type="text" id="passportNumber" name="passportNumber" required />
-              <div class="err-msg">Please enter your passport number.</div>
-            </div>
-            <div class="field">
-              <label for="passportIssuePlace">Place of Issue <span class="opt">(optional)</span></label>
-              <input type="text" id="passportIssuePlace" name="passportIssuePlace" />
-            </div>
-            <div class="field">
-              <label for="passportIssueDate">Passport Issue Date
-                <span class="opt">(optional)</span></label>
-              <input type="date" id="passportIssueDate" name="passportIssueDate" />
-            </div>
-            <div class="field">
-              <label for="passportExpiryDate">Passport Expiry Date <span class="req">*</span></label>
-              <input type="date" id="passportExpiryDate" name="passportExpiryDate" required />
-              <div class="err-msg">
-                Please enter your passport expiry date.
-              </div>
-            </div>
-            <div class="field">
-              <label for="cdcNumber">CDC Number <span class="opt">(if held)</span></label>
-              <input type="text" id="cdcNumber" name="cdcNumber" />
-            </div>
-            <div class="field">
-              <label for="indosNumber">INDoS / National Seafarer Reg. No.
-                <span class="opt">(if applicable)</span></label>
-              <input type="text" id="indosNumber" name="indosNumber" />
-            </div>
-            <div class="field">
-              <label for="cdcIssueDate">CDC Issue Date <span class="opt">(optional)</span></label>
-              <input type="date" id="cdcIssueDate" name="cdcIssueDate" />
-            </div>
-            <div class="field">
-              <label for="cdcExpiryDate">CDC Expiry Date <span class="opt">(optional)</span></label>
-              <input type="date" id="cdcExpiryDate" name="cdcExpiryDate" />
-            </div>
-            <div class="field">
-              <label for="usVisaStatus">US C1/D Visa Status
-                <span class="opt">(optional)</span></label>
-              <select id="usVisaStatus" name="usVisaStatus">
-                <option value="">Not applicable</option>
-                <option>Valid</option>
-                <option>Applied / In process</option>
-                <option>Expired</option>
-              </select>
-            </div>
-            <div class="field" id="usVisaExpiryField" style="display: none">
-              <label for="usVisaExpiry">US Visa Expiry Date</label>
-              <input type="date" id="usVisaExpiry" name="usVisaExpiry" />
-            </div>
-          </div>
-        </section>
-
-        <!-- ===== STEP 3 — Rank & Sailing Experience ===== -->
-        <section class="form-step" data-step="3">
           <div class="step-head">
             <span class="step-icon">⚙️</span>
             <h2>Rank &amp; Sailing Experience</h2>
@@ -1689,31 +1608,17 @@
                 <span class="opt">(select all that apply)</span>
               </legend>
               <div class="chip-group">
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Bulk Carrier" /><span>Bulk
-                    Carrier</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Oil Tanker" /><span>Oil
-                    Tanker</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
-                    value="Chemical Tanker" /><span>Chemical Tanker</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
-                    value="Gas Carrier (LPG/LNG)" /><span>Gas Carrier (LPG/LNG)</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
-                    value="Container" /><span>Container</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
-                    value="General Cargo" /><span>General Cargo</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
-                    value="RoRo" /><span>Ro-Ro</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
-                    value="Offshore / OSV" /><span>Offshore / OSV</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
-                    value="Passenger / Cruise" /><span>Passenger / Cruise</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
-                    value="Reefer" /><span>Reefer</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Tug / Dredger" /><span>Tug
-                    / Dredger</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Tug / Dredger" /><span>Cruise</span></label>
-                <label class="chip"><input type="checkbox" name="preferredVesselTypes"
-                    value="Other" /><span>Other</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Bulk Carrier" /><span>Bulk Carrier</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Oil Tanker" /><span>Oil Tanker</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Chemical Tanker" /><span>Chemical Tanker</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Gas Carrier (LPG/LNG)" /><span>Gas Carrier (LPG/LNG)</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Container" /><span>Container</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="General Cargo" /><span>General Cargo</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="RoRo" /><span>Ro-Ro</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Offshore / OSV" /><span>Offshore / OSV</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Reefer" /><span>Reefer</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Tug / Dredger" /><span>Tug / Dredger</span></label>
+                <label class="chip"><input type="checkbox" name="preferredVesselTypes" value="Other" /><span>Other</span></label>
               </div>
               <div class="err-msg" style="display: none; margin-top: 8px">
                 Please select at least one vessel type.
@@ -1741,6 +1646,103 @@
               <label for="signOffReason">Reason for Sign-off
                 <span class="opt">(optional)</span></label>
               <input type="text" id="signOffReason" name="signOffReason" placeholder="e.g., End of contract" />
+            </div>
+            
+            <!-- Salary Converter section added -->
+            <div class="field span-2" style="background: var(--card-bg-soft); padding: 16px; border-radius: var(--radius-md); border: 1px solid var(--border-color); margin-top: 8px;">
+               <label>Last Drawn Salary &amp; Currency Converter <span class="opt">(optional)</span></label>
+               <div style="display:flex; gap:12px; align-items:center; margin-top:6px;">
+                  <input type="number" id="lastSalaryAmount" name="lastSalaryAmount" placeholder="Enter Amount" style="width: 40%;" />
+                  <select id="lastSalaryCurrency" name="lastSalaryCurrency" style="width: 30%;">
+                     <option value="USD">USD ($)</option>
+                     <option value="INR">INR (₹)</option>
+                  </select>
+                  <div id="convertedSalaryText" style="font-size: 0.95rem; color: var(--accent-teal); font-weight: 700; width: 30%;"></div>
+               </div>
+               <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 8px;">
+                 * Tip: Enter amount to see live conversion (Approx. 1 USD = 83 INR)
+               </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===== STEP 3 — Identity & Travel Documents ===== -->
+        <section class="form-step" data-step="3">
+          <div class="step-head">
+            <span class="step-icon">🛂</span>
+            <h2>Identity &amp; Travel Documents</h2>
+            <p>
+              If you're a fresher without a CDC yet, leave those fields blank.
+            </p>
+          </div>
+          <div class="field-grid">
+            <div class="field">
+              <label for="passportNumber">Passport Number <span class="req">*</span></label>
+              <input type="text" id="passportNumber" name="passportNumber" required />
+              <div class="err-msg">Please enter your passport number.</div>
+            </div>
+            <div class="field">
+              <label for="passportIssuePlace">Place of Issue <span class="opt">(optional)</span></label>
+              <input type="text" id="passportIssuePlace" name="passportIssuePlace" />
+            </div>
+            <div class="field">
+              <label for="passportIssueDate">Passport Issue Date
+                <span class="opt">(optional)</span></label>
+              <input type="date" id="passportIssueDate" name="passportIssueDate" />
+            </div>
+            <div class="field">
+              <label for="passportExpiryDate">Passport Expiry Date <span class="req">*</span></label>
+              <input type="date" id="passportExpiryDate" name="passportExpiryDate" required />
+              <div class="err-msg">
+                Please enter your passport expiry date.
+              </div>
+            </div>
+            
+            <fieldset class="field-set" style="margin-top: 10px;">
+              <legend>CDC Details</legend>
+              <div class="field-grid">
+                <div class="field">
+                  <label for="cdcNumber">CDC Number <span class="opt">(if held)</span></label>
+                  <input type="text" id="cdcNumber" name="cdcNumber" />
+                </div>
+                <div class="field">
+                  <label for="cdcCountry">CDC Country of Issue <span class="opt">(optional)</span></label>
+                  <select id="cdcCountry" name="cdcCountry">
+                    <option value="">Select…</option>
+                    <option value="Indian">Indian</option>
+                    <option value="Panama">Panama</option>
+                    <option value="Other">Other</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="cdcIssueDate">CDC Issue Date <span class="opt">(optional)</span></label>
+                  <input type="date" id="cdcIssueDate" name="cdcIssueDate" />
+                </div>
+                <div class="field">
+                  <label for="cdcExpiryDate">CDC Expiry Date <span class="opt">(optional)</span></label>
+                  <input type="date" id="cdcExpiryDate" name="cdcExpiryDate" />
+                </div>
+              </div>
+            </fieldset>
+
+            <div class="field">
+              <label for="indosNumber">INDoS / National Seafarer Reg. No.
+                <span class="opt">(if applicable)</span></label>
+              <input type="text" id="indosNumber" name="indosNumber" />
+            </div>
+            <div class="field">
+              <label for="usVisaStatus">US C1/D Visa Status
+                <span class="opt">(optional)</span></label>
+              <select id="usVisaStatus" name="usVisaStatus">
+                <option value="">Not applicable</option>
+                <option>Valid</option>
+                <option>Applied / In process</option>
+                <option>Expired</option>
+              </select>
+            </div>
+            <div class="field" id="usVisaExpiryField" style="display: none">
+              <label for="usVisaExpiry">US Visa Expiry Date</label>
+              <input type="date" id="usVisaExpiry" name="usVisaExpiry" />
             </div>
           </div>
         </section>
@@ -1780,6 +1782,15 @@
             <div class="field">
               <label for="coeExpiryDate">COE Expiry Date <span class="opt">(optional)</span></label>
               <input type="date" id="coeExpiryDate" name="coeExpiryDate" />
+            </div>
+            
+            <div class="field">
+              <label for="gcoNumber">GCO Number <span class="opt">(optional)</span></label>
+              <input type="text" id="gcoNumber" name="gcoNumber" />
+            </div>
+            <div class="field">
+              <label for="gcoExpiryDate">GCO Expiry Date <span class="opt">(optional)</span></label>
+              <input type="date" id="gcoExpiryDate" name="gcoExpiryDate" />
             </div>
 
             <fieldset class="field-set">
@@ -2056,8 +2067,8 @@
       var stepLabels = [
         "",
         "Personal & Contact",
-        "Identity & Travel Documents",
         "Rank & Sailing Experience",
+        "Identity & Travel Documents",
         "Certificates & Endorsements",
         "Medical, Availability & Preferences",
         "Upload Documents",
@@ -2153,6 +2164,25 @@
         jcApp.scrollIntoView({ behavior: "smooth", block: "start" });
       }
 
+      /* ---------------- currency converter ---------------- */
+      var salInput = document.getElementById('lastSalaryAmount');
+      var curInput = document.getElementById('lastSalaryCurrency');
+      var outText = document.getElementById('convertedSalaryText');
+      function updateConversion() {
+          var val = parseFloat(salInput.value);
+          if(isNaN(val)) { 
+              outText.textContent = ''; 
+              return; 
+          }
+          if(curInput.value === 'USD') {
+              outText.textContent = '≈ ₹ ' + (val * 83).toLocaleString('en-IN');
+          } else {
+              outText.textContent = '≈ $ ' + (val / 83).toFixed(2);
+          }
+      }
+      salInput.addEventListener('input', updateConversion);
+      curInput.addEventListener('change', updateConversion);
+
       /* ---------------- conditional fields ---------------- */
       document
         .getElementById("usVisaStatus")
@@ -2218,8 +2248,8 @@
           }
         });
 
-        // Step 3 — vessel type chip group needs at least one checked
-        if (n === 3) {
+        // Step 2 is now Experience
+        if (n === 2) {
           var vesselChecked =
             panel.querySelectorAll(
               'input[name="preferredVesselTypes"]:checked',
@@ -2422,18 +2452,11 @@
           ),
         );
 
-        html += section(
-          "Identity &amp; Travel Documents",
-          2,
-          row("Passport No.", val("passportNumber")) +
-          row("Passport Expiry", fmtDate(val("passportExpiryDate"))) +
-          row("CDC No.", val("cdcNumber")) +
-          row("INDoS No.", val("indosNumber")),
-        );
+        var salaryVal = val("lastSalaryAmount") ? val("lastSalaryAmount") + " " + val("lastSalaryCurrency") : "";
 
         html += section(
           "Rank &amp; Experience",
-          3,
+          2,
           row("Department", val("department")) +
           row("Rank Applying For", val("rankAppliedFor")) +
           row(
@@ -2447,13 +2470,25 @@
             "Preferred Vessel Types",
             checkedList("preferredVesselTypes").join(", "),
           ) +
-          row("Last Vessel", val("lastVesselName")),
+          row("Last Vessel", val("lastVesselName")) +
+          row("Last Salary", salaryVal),
+        );
+
+        var cdcStr = val("cdcNumber") + (val("cdcCountry") ? " (" + val("cdcCountry") + ")" : "");
+        html += section(
+          "Identity &amp; Travel Documents",
+          3,
+          row("Passport No.", val("passportNumber")) +
+          row("Passport Expiry", fmtDate(val("passportExpiryDate"))) +
+          row("CDC No.", cdcStr) +
+          row("INDoS No.", val("indosNumber")),
         );
 
         html += section(
           "Certificates",
           4,
           row("COC Class", val("cocClass")) +
+          row("GCO Number", val("gcoNumber")) +
           row(
             "Certificates Held",
             checkedList("certificatesHeld").join(", "),
@@ -2510,9 +2545,7 @@
           return;
         }
 
-        // honeypot check — if filled, silently treat as spam.
-        // FIX 2 (continued): reads the renamed field/id so it no longer
-        // collides with browser autofill for "Company"/organization data.
+        // honeypot check
         var hp = document.getElementById("hpConfirmField");
         if (hp && hp.value.trim() !== "") {
           showToast("Something went wrong. Please try again.", "error");
@@ -2540,12 +2573,6 @@
             );
           }
 
-          // FIX 2 (continued) — response-parsing glitch: if the server
-          // responds 2xx but with an empty/non-JSON body, the old code
-          // let res.json() throw, which fell into the catch block below
-          // and showed an error toast even though the application had
-          // already been saved server-side. Parsing defensively here
-          // means a successful submit always reaches the success screen.
           var data = null;
           try {
             data = await res.json();
@@ -2711,33 +2738,9 @@
           "</b></div>" +
           "</div></div>";
 
-        // 2. Identity & Documents
+        // 2. Rank & Sea Experience (Now Section 2)
         html +=
-          '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">2. Identity &amp; Travel Documents</h4>' +
-          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
-          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">PASSPORT NO.</span><b>' +
-          esc(app.passportNumber) +
-          "</b></div>" +
-          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">PASSPORT EXPIRY</span><b>' +
-          dt(app.passportExpiryDate) +
-          "</b></div>" +
-          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CDC NO.</span><b>' +
-          esc(app.cdcNumber || "—") +
-          "</b></div>" +
-          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CDC EXPIRY</span><b>' +
-          dt(app.cdcExpiryDate) +
-          "</b></div>" +
-          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">INDOS NO.</span><b>' +
-          esc(app.indosNumber || "—") +
-          "</b></div>" +
-          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">US VISA STATUS</span><b>' +
-          esc(app.usVisaStatus || "—") +
-          "</b></div>" +
-          "</div></div>";
-
-        // 3. Rank & Sea Experience
-        html +=
-          '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">3. Rank &amp; Sea Experience</h4>' +
+          '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">2. Rank &amp; Sea Experience</h4>' +
           '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
           '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">DEPARTMENT</span><b>' +
           esc(app.department) +
@@ -2760,6 +2763,30 @@
           (app.preferredVesselTypes && app.preferredVesselTypes.length
             ? app.preferredVesselTypes.join(", ")
             : "—") +
+          "</b></div>" +
+          "</div></div>";
+
+        // 3. Identity & Documents (Now Section 3)
+        html +=
+          '<div style="margin-bottom:16px;"><h4 style="margin:0 0 8px; font-size:.9rem; color:var(--accent-primary); font-family:var(--font-display);">3. Identity &amp; Travel Documents</h4>' +
+          '<div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px; background:var(--card-bg-soft); border:1px solid var(--border-color); border-radius:10px; padding:14px;">' +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">PASSPORT NO.</span><b>' +
+          esc(app.passportNumber) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">PASSPORT EXPIRY</span><b>' +
+          dt(app.passportExpiryDate) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CDC NO.</span><b>' +
+          esc(app.cdcNumber || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">CDC EXPIRY</span><b>' +
+          dt(app.cdcExpiryDate) +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">INDOS NO.</span><b>' +
+          esc(app.indosNumber || "—") +
+          "</b></div>" +
+          '<div><span style="font-size:.7rem; color:var(--text-muted); display:block;">US VISA STATUS</span><b>' +
+          esc(app.usVisaStatus || "—") +
           "</b></div>" +
           "</div></div>";
 

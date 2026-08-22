@@ -237,6 +237,8 @@ async function getDataScope(user, resourceType) {
     case 'APPOINTMENT':
     case 'CONTRACT':
       return bdmScopeQuery(user, 'createdById');
+    case 'FOLLOWUP':
+      return bdmScopeQuery(user, 'createdById');
     case 'CALL':
       return bdmScopeQuery(user, 'userId');
     case 'ONBOARDING':
@@ -316,12 +318,13 @@ async function canAccessRecord(user, record, resourceType) {
     }
     case 'COMPANY':
     case 'APPOINTMENT':
-    case 'CONTRACT': {
+    case 'CONTRACT':
+    case 'FOLLOWUP': {
       if (role === ROLES.BDM) {
         const scope = await resolveScope(user);
-        return idsMatch(['createdById'], scope.userIds);
+        return idsMatch(['createdById', 'assignedToId'], scope.userIds);
       }
-      return idsMatch(['createdById'], [uid]);
+      return idsMatch(['createdById', 'assignedToId'], [uid]);
     }
     case 'CALL': {
       if (role === ROLES.BDM) {

@@ -232,8 +232,7 @@ const updateCandidate = async (req, res, next) => {
 
     const allowedFields = [
       'name', 'rank', 'dob', 'location', 'cocDetails', 'passportDetails', 'cdcDetails',
-      'lastWages', 'expectedWages', 'contactNumber', 'email', 'availabilityDate', 'vesselExperience', 'status', 'remarks',
-      'assignedToId', 'currentOwnerId', 'workflowStage'
+      'lastWages', 'expectedWages', 'contactNumber', 'email', 'availabilityDate', 'vesselExperience', 'status', 'remarks'
     ];
     const updateData = {};
     for (const field of allowedFields) {
@@ -256,6 +255,17 @@ const updateCandidate = async (req, res, next) => {
           success: false,
           message: `Your role is not permitted to set candidate status to ${updateData.status}.`,
         });
+      }
+
+      // Setting status to APPROVED strictly requires an accepted Application
+      if (updateData.status === 'APPROVED') {
+        const acceptedApp = await Application.findOne({ candidateId: existing._id, status: 'CLIENT_ACCEPTED' });
+        if (!acceptedApp) {
+          return res.status(400).json({
+            success: false,
+            message: 'Candidate cannot be marked APPROVED without a client-accepted application.',
+          });
+        }
       }
 
       // Keep department/workflowStage/ownership in sync as the SAME
@@ -423,12 +433,24 @@ const proposeCandidate = async (req, res, next) => {
       application.status = 'PROPOSED';
       await application.save();
     } else {
-      application = await Application.create({
-        requirementId,
-        candidateId,
-        status: 'PROPOSED',
-        createdById: req.user.id
-      });
+      try {
+        application = await Application.create({
+          requirementId,
+          candidateId,
+          status: 'PROPOSED',
+          createdById: req.user.id
+        });
+      } catch (createErr) {
+        if (createErr.code === 11000) {
+          application = await Application.findOne({ requirementId, candidateId });
+          if (application) {
+            application.status = 'PROPOSED';
+            await application.save();
+          }
+        } else {
+          throw createErr;
+        }
+      }
     }
 
     candidate.status = 'PROPOSED';
@@ -479,20 +501,8 @@ const setApplicationDecision = async (req, res, next) => {
         candidate.workflowStage = 'CLIENT_ACCEPTED';
         await candidate.save();
       }
-
-      const onboardingExists = await Onboarding.findOne({
-        candidateId: application.candidateId._id,
-        requirementId: application.requirementId._id
-      });
-
-      if (!onboardingExists) {
-        await Onboarding.create({
-          candidateId: application.candidateId._id,
-          requirementId: application.requirementId._id,
-          status: 'PENDING',
-          updatedById: req.user.id
-        });
-      }
+      // M7: Do not create premature Onboarding record here upon client acceptance.
+      // Onboarding record is created when the candidate reaches the Onboarding stage.
     } else {
       if (!rejectionReasonId) {
         return res.status(400).json({ success: false, message: 'rejectionReasonId is required for rejections.' });
@@ -523,6 +533,51 @@ const setApplicationDecision = async (req, res, next) => {
   }
 };
 
+// ─── CANDIDATE REASSIGNMENT ─────────────────────────────────────────
+const reassignCandidate = async (req, res, next) => {
+  try {
+    const { assignedToId } = req.body;
+    if (!assignedToId) {
+      return res.status(400).json({ success: false, message: 'assignedToId is required.' });
+    }
+
+    const candidate = await Candidate.findById(req.params.id);
+    if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, candidate, 'CANDIDATE');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
+    }
+
+    const isManagerOrOrg = ORG_WIDE_ROLES.has(req.currentUser.role) ||
+      [ROLES.SOURCING_MANAGER, ROLES.DOCUMENTATION_MANAGER, ROLES.ADMIN, ROLES.HR, ROLES.DIRECTOR, ROLES.COO].includes(req.currentUser.role);
+    if (!isManagerOrOrg) {
+      return res.status(403).json({ success: false, message: 'Only managers or administrators can reassign candidates.' });
+    }
+
+    const targetUser = await User.findById(assignedToId);
+    if (!targetUser || !targetUser.isActive) {
+      return res.status(400).json({ success: false, message: 'Target user does not exist or is inactive.' });
+    }
+
+    candidate.assignedToId = targetUser._id;
+    candidate.currentOwnerId = targetUser._id;
+    await candidate.save();
+
+    await logActivity({
+      userId: req.user.id,
+      entityType: 'CANDIDATE',
+      entityId: candidate._id.toString(),
+      action: 'REASSIGNED_CANDIDATE',
+      details: { candidate: candidate.name, assignedTo: targetUser.name, role: targetUser.role },
+    });
+
+    res.json({ success: true, data: candidate, message: `Candidate reassigned to ${targetUser.name}.` });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getRequirements,
   createRequirement,
@@ -531,6 +586,7 @@ module.exports = {
   getCandidates,
   createCandidate,
   updateCandidate,
+  reassignCandidate,
   deleteCandidate,
   matchCandidates,
   getApplications,

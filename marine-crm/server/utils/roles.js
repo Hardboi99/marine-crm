@@ -20,6 +20,7 @@ const ROLES = {
   BDM: 'BDM',
   ACCOUNTS_OFFICER: 'ACCOUNTS_OFFICER',
   ADMIN_OFFICER: 'ADMIN_OFFICER',
+  RECEPTION: 'RECEPTION',
   SOCIAL_MEDIA_OFFICER: 'SOCIAL_MEDIA_OFFICER',
   HR: 'HR',
   ADMIN: 'ADMIN', // technical/system administrator — full access, kept for ops/support
@@ -52,6 +53,7 @@ const ROLE_DEFAULT_DEPARTMENT = {
   [ROLES.BDM]: DEPARTMENTS.BUSINESS_DEVELOPMENT,
   [ROLES.ACCOUNTS_OFFICER]: DEPARTMENTS.ACCOUNTS,
   [ROLES.ADMIN_OFFICER]: DEPARTMENTS.ADMINISTRATION,
+  [ROLES.RECEPTION]: DEPARTMENTS.ADMINISTRATION,
   [ROLES.SOCIAL_MEDIA_OFFICER]: DEPARTMENTS.SOCIAL_MEDIA,
   [ROLES.HR]: DEPARTMENTS.HR,
   [ROLES.ADMIN]: DEPARTMENTS.SYSTEM,
@@ -106,6 +108,15 @@ const ROLE_GROUPS = {
   SOURCING: [ROLES.SOURCING_MANAGER, ROLES.SOURCING_OFFICER],
   DOCUMENTATION: [ROLES.DOCUMENTATION_MANAGER, ROLES.DOCUMENTATION_OFFICER],
   BDM_TEAM: [ROLES.BDM],
+  // Who can see every employee's worksheet AND reply to any of them
+  // (Task 2's explicit table: Admin/Founder/COO = all; HR/BDM/Recruitment/
+  // Crewing = own only — HR is deliberately NOT included here even though
+  // it manages other things elsewhere in the app, since HR replying to a
+  // worksheet it isn't allowed to see wouldn't make sense).
+  WORKSHEET_ALL_ACCESS: [ROLES.ADMIN, ROLES.DIRECTOR, ROLES.COO],
+  // Founder (DIRECTOR) is a monitoring-only role — no attendance
+  // check-in/out, and excluded from attendance employee lists.
+  ATTENDANCE_EXCLUDED: [ROLES.DIRECTOR],
 };
 
 module.exports = {
