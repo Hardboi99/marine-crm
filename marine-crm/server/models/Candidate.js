@@ -46,9 +46,17 @@ const candidateSchema = new mongoose.Schema(
       trim: true,
       default: null,
     },
+    passportExpiryDate: {
+      type: Date,
+      default: null,
+    },
     cdcNumber: {
       type: String,
       trim: true,
+      default: null,
+    },
+    cdcExpiryDate: {
+      type: Date,
       default: null,
     },
     currentVessel: {

@@ -6,7 +6,7 @@ const requirementSchema = new mongoose.Schema(
     vesselType: {
       type: String,
       required: true,
-      enum: ['Tanker', 'Bulk Carrier', 'Container', 'RoRo', 'Gas Carrier']
+      enum: ['Tanker', 'Bulk Carrier', 'Container', 'Ro-Ro', 'Gas Carrier']
     },
     rank: {
       type: String,

@@ -23,6 +23,7 @@ const getOnboardings = async (req, res, next) => {
     const onboardings = await Onboarding.find(query)
       .sort({ createdAt: -1 })
       .populate('candidateId')
+      .populate('companyId', 'name')
       .populate({
         path: 'requirementId',
         populate: { path: 'companyId', select: 'name' }
@@ -100,6 +101,7 @@ const updateOnboarding = async (req, res, next) => {
 
     const onboarding = await Onboarding.findByIdAndUpdate(req.params.id, updateData, { new: true })
       .populate('candidateId')
+      .populate('companyId', 'name')
       .populate({
         path: 'requirementId',
         populate: { path: 'companyId', select: 'name' }
@@ -261,15 +263,22 @@ const updateInvoice = async (req, res, next) => {
 
 const getExpiryAlerts = async (req, res, next) => {
   try {
-    // Queries all candidates where passport, CDC, or COC will expire in 90 days
+    // Queries all candidates whose passport or CDC will expire within 90
+    // days. NOTE: the real Candidate schema has no passportDetails/
+    // cdcDetails/cocDetails sub-objects (this used to query those paths,
+    // which don't exist — the query silently matched zero documents,
+    // every time, with no error). It also has no COC tracking at all for
+    // post-hire candidates — COC only exists on JobApplication (pre-hire),
+    // so a COC expiry alert isn't reintroduced here; if COC compliance
+    // tracking for placed crew is wanted, that's new schema scope, not a
+    // bug fix, and needs its own field the same way passport/CDC now do.
     const alertThreshold = new Date();
     alertThreshold.setDate(alertThreshold.getDate() + 90);
 
     const expiringCandidates = await Candidate.find({
       $or: [
-        { 'passportDetails.expiryDate': { $lte: alertThreshold } },
-        { 'cdcDetails.expiryDate': { $lte: alertThreshold } },
-        { 'cocDetails.expiryDate': { $lte: alertThreshold } }
+        { passportExpiryDate: { $ne: null, $lte: alertThreshold } },
+        { cdcExpiryDate: { $ne: null, $lte: alertThreshold } },
       ]
     }).sort({ name: 1 });
 
@@ -277,24 +286,20 @@ const getExpiryAlerts = async (req, res, next) => {
       const candidateAlerts = [];
       const now = new Date();
 
-      if (c.passportDetails.expiryDate <= alertThreshold) {
-        const days = Math.round((c.passportDetails.expiryDate - now) / (1000 * 60 * 60 * 24));
-        candidateAlerts.push({ type: 'PASSPORT', expiryDate: c.passportDetails.expiryDate, daysLeft: days });
+      if (c.passportExpiryDate && c.passportExpiryDate <= alertThreshold) {
+        const days = Math.round((c.passportExpiryDate - now) / (1000 * 60 * 60 * 24));
+        candidateAlerts.push({ type: 'PASSPORT', expiryDate: c.passportExpiryDate, daysLeft: days });
       }
-      if (c.cdcDetails.expiryDate <= alertThreshold) {
-        const days = Math.round((c.cdcDetails.expiryDate - now) / (1000 * 60 * 60 * 24));
-        candidateAlerts.push({ type: 'CDC', expiryDate: c.cdcDetails.expiryDate, daysLeft: days });
-      }
-      if (c.cocDetails.expiryDate <= alertThreshold) {
-        const days = Math.round((c.cocDetails.expiryDate - now) / (1000 * 60 * 60 * 24));
-        candidateAlerts.push({ type: 'COC', expiryDate: c.cocDetails.expiryDate, daysLeft: days });
+      if (c.cdcExpiryDate && c.cdcExpiryDate <= alertThreshold) {
+        const days = Math.round((c.cdcExpiryDate - now) / (1000 * 60 * 60 * 24));
+        candidateAlerts.push({ type: 'CDC', expiryDate: c.cdcExpiryDate, daysLeft: days });
       }
 
       return {
         id: c._id.toString(),
         name: c.name,
         rank: c.rank,
-        contactNumber: c.contactNumber,
+        contactNumber: c.phone,
         email: c.email,
         alerts: candidateAlerts
       };

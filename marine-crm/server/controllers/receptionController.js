@@ -155,6 +155,7 @@ const updateCallStatus = async (req, res, next) => {
 
 const listPpeStock = async (req, res, next) => {
   try {
+    await PpeStock.deleteMany({});
     let stock = await PpeStock.find().sort({ itemName: 1 });
     
     // Seed default stock values if empty
@@ -162,9 +163,8 @@ const listPpeStock = async (req, res, next) => {
       const defaults = [
         { itemName: 'Helmet', totalQuantity: 50, availableQuantity: 50 },
         { itemName: 'Safety Shoes', totalQuantity: 30, availableQuantity: 30 },
-        { itemName: 'Coverall', totalQuantity: 40, availableQuantity: 40 },
-        { itemName: 'Safety Glasses', totalQuantity: 60, availableQuantity: 60 },
-        { itemName: 'Work Gloves', totalQuantity: 100, availableQuantity: 100 }
+        { itemName: 'Bag', totalQuantity: 50, availableQuantity: 50 },
+        { itemName: 'Bedsheet', totalQuantity: 50, availableQuantity: 50 }
       ];
       await PpeStock.insertMany(defaults);
       stock = await PpeStock.find().sort({ itemName: 1 });

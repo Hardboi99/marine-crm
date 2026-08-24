@@ -160,7 +160,7 @@ const getCandidates = async (req, res, next) => {
 const createCandidate = async (req, res, next) => {
   try {
     const {
-      name, rank, nationality, phone, email, passportNumber, cdcNumber,
+      name, rank, nationality, phone, email, passportNumber, passportExpiryDate, cdcNumber, cdcExpiryDate,
       currentVessel, experienceYears, availableFrom, expectedSalary, currency, notes
     } = req.body;
 
@@ -177,7 +177,9 @@ const createCandidate = async (req, res, next) => {
       phone: phone || null,
       email: email || null,
       passportNumber: passportNumber || null,
+      passportExpiryDate: passportExpiryDate ? new Date(passportExpiryDate) : null,
       cdcNumber: cdcNumber || null,
+      cdcExpiryDate: cdcExpiryDate ? new Date(cdcExpiryDate) : null,
       currentVessel: currentVessel || null,
       experienceYears: experienceYears ? parseInt(experienceYears, 10) : 0,
       availableFrom: availableFrom ? new Date(availableFrom) : null,
@@ -222,7 +224,8 @@ const updateCandidate = async (req, res, next) => {
     }
 
     const allowedFields = [
-      'name', 'rank', 'nationality', 'phone', 'email', 'passportNumber', 'cdcNumber',
+      'name', 'rank', 'nationality', 'phone', 'email', 'passportNumber', 'passportExpiryDate',
+      'cdcNumber', 'cdcExpiryDate',
       'currentVessel', 'experienceYears', 'availableFrom', 'expectedSalary', 'currency', 'status', 'notes'
     ];
     const updateData = {};
@@ -231,6 +234,10 @@ const updateCandidate = async (req, res, next) => {
         updateData[field] = req.body[field];
       }
     }
+    if (updateData.passportExpiryDate === '') updateData.passportExpiryDate = null;
+    else if (updateData.passportExpiryDate) updateData.passportExpiryDate = new Date(updateData.passportExpiryDate);
+    if (updateData.cdcExpiryDate === '') updateData.cdcExpiryDate = null;
+    else if (updateData.cdcExpiryDate) updateData.cdcExpiryDate = new Date(updateData.cdcExpiryDate);
 
     // §22 — workflow transition control: no arbitrary jumping between
     // stages, and sensitive downstream statuses are role-gated.
@@ -294,6 +301,40 @@ const updateCandidate = async (req, res, next) => {
 
     const candidate = await Candidate.findByIdAndUpdate(req.params.id, updateData, { new: true });
     if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    // Auto-create the Onboarding checklist record the moment a candidate
+    // actually lands on ONBOARDING (not at CLIENT_ACCEPTED/APPROVED — see
+    // setApplicationDecision's comment on why that would be premature).
+    // Without this, the Operations → Onboarding tab has no record to ever
+    // show, no matter how many candidates reach this stage.
+    if (updateData.status === 'ONBOARDING') {
+      const acceptedApp = await Application.findOne({ candidateId: candidate._id, status: 'CLIENT_ACCEPTED' })
+        .sort({ createdAt: -1 })
+        .populate('requirementId');
+      if (acceptedApp && acceptedApp.requirementId) {
+        try {
+          await Onboarding.create({
+            candidateId: candidate._id,
+            requirementId: acceptedApp.requirementId._id,
+            companyId: acceptedApp.requirementId.companyId,
+            updatedById: req.user.id,
+          });
+        } catch (createErr) {
+          // E11000 = duplicate key on the candidateId+requirementId unique
+          // index — an Onboarding record already exists for this pair
+          // (e.g. the transition fired twice). Not an error; leave the
+          // existing record as-is rather than failing the whole request.
+          if (createErr.code !== 11000) throw createErr;
+        }
+      }
+      // No CLIENT_ACCEPTED application found is an inconsistent-data edge
+      // case (shouldn't happen given the state machine requires APPROVED,
+      // which itself requires an accepted application, before ONBOARDING
+      // is reachable) — the candidate status change still succeeds; it
+      // just won't have an onboarding checklist to show until that's
+      // resolved, same as any other missing-relationship case elsewhere
+      // in this codebase (logged nowhere further since it's not fatal).
+    }
 
     res.json({ success: true, data: candidate });
   } catch (err) {
