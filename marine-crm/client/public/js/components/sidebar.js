@@ -38,7 +38,7 @@ const NAV_GROUPS = [
     icon: '🧭',
     items: [
       { href: '/pages/countries.html', icon: '🌐', label: 'Country Management', match: 'countries' },
-      { href: '/pages/companies.html', icon: '🏢', label: 'Vessel Owner Directory', match: 'companies' },
+      { href: '/pages/companies.html', icon: '🏢', label: 'Vessel Directory', match: 'companies' },
       { href: '/pages/calling-report.html', icon: '📞', label: 'Daily Calling Report', match: 'calling' },
       { href: '/pages/appointments.html', icon: '📅', label: 'Appointments Engine', match: 'appointments' },
       { href: '/pages/contracts.html', icon: '📜', label: 'Contracts', match: 'contracts' }
@@ -74,14 +74,25 @@ const NAV_GROUPS = [
       { href: '/pages/ops.html', icon: '⚙️', label: 'Operations Pipeline', match: 'ops' }
     ]
   },
-  {
-    id: 'frontdesk',
-    label: 'Front Desk',
-    icon: '🛎️',
-    items: [
-      { href: '/pages/reception.html', icon: '🛎️', label: 'Reception Desk', match: 'reception' }
-    ]
-  },
+{
+  id: 'frontdesk',
+  label: 'Front Desk',
+  icon: '🛎️',
+  items: [
+    {
+      href: '/pages/reception.html',
+      icon: '🛎️',
+      label: 'Reception Desk',
+      match: 'reception'
+    },
+    {
+      href: '/pages/ppe-stock.html',
+      icon: '🦺',
+      label: 'PPE Stock',
+      match: 'ppe-stock'
+    }
+  ]
+},
   {
     id: 'updates',
     label: 'Updates & Analytics',
@@ -296,7 +307,7 @@ function renderSidebar() {
         <img src="/public/assets/logo.png.png" class="login-logo-icon" alt="Logo">
         <div class="logo-text">
           <div class="logo-title">MARINE CRM</div>
-          <div class="logo-subtitle">Vessel Owner Pipeline</div>
+          <div class="logo-subtitle">Vessel Pipeline</div>
         </div>
       </div>
 

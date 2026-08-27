@@ -120,6 +120,160 @@
                 width: 100%;
             }
         }
+        /* =========================================================
+   CDC / PASSPORT DOCUMENT COLLECTION
+   ========================================================= */
+
+.doc-collection-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.doc-section-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #4f7474;
+}
+
+.doc-section-label .required {
+    color: #ef4444;
+}
+
+.doc-unlisted-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    width: fit-content;
+    padding: 8px 12px;
+    border: 1px solid #d8e5e5;
+    border-radius: 10px;
+    background: #f4fafa;
+    color: #244646;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.doc-unlisted-badge i {
+    color: #0f9d9a;
+}
+
+.doc-type-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.doc-type-option {
+    position: relative;
+    display: block;
+    cursor: pointer;
+}
+
+.doc-type-option input {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.doc-type-card {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 68px;
+    padding: 12px 14px;
+    border: 1px solid #d9e5e5;
+    border-radius: 12px;
+    background: #f8fbfb;
+    transition: all 0.2s ease;
+}
+
+.doc-type-card:hover {
+    border-color: #0f9d9a;
+    background: #f2fbfa;
+    transform: translateY(-1px);
+}
+
+.doc-type-option input:checked + .doc-type-card {
+    border-color: #0f9d9a;
+    background: #eefaf8;
+    box-shadow: 0 0 0 2px rgba(15, 157, 154, 0.08);
+}
+
+.doc-type-check {
+    flex: 0 0 22px;
+    width: 22px;
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 2px solid #b8cccc;
+    border-radius: 6px;
+    background: #ffffff;
+    color: transparent;
+    font-size: 12px;
+    transition: all 0.2s ease;
+}
+
+.doc-type-option input:checked + .doc-type-card .doc-type-check {
+    border-color: #0f9d9a;
+    background: #0f9d9a;
+    color: #ffffff;
+}
+
+.doc-type-content {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.doc-type-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: #173c3c;
+}
+
+.doc-type-description {
+    margin-top: 2px;
+    font-size: 0.74rem;
+    color: #789292;
+    line-height: 1.35;
+}
+
+.doc-type-selected-mark {
+    margin-left: auto;
+    opacity: 0;
+    color: #0f9d9a;
+    font-size: 1rem;
+    transition: opacity 0.2s ease;
+}
+
+.doc-type-option input:checked + .doc-type-card .doc-type-selected-mark {
+    opacity: 1;
+}
+
+.doc-form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.doc-hint {
+    font-size: 0.74rem;
+    color: #789292;
+    margin-top: 2px;
+}
+
+@media (max-width: 640px) {
+    .doc-type-grid,
+    .doc-form-grid {
+        grid-template-columns: 1fr;
+    }
+}
     </style>
 </head>
 
@@ -448,56 +602,219 @@
         </div>
     </template>
 
-    <!-- Doc Intake Modal -->
-    <template id="doc-modal-template">
-        <div style="display:flex; flex-direction:column; gap:16px;">
-            <div class="form-group" style="margin:0;">
-                <label class="form-label">Check Seafarer Association</label>
-                <div style="display:flex; gap:15px; margin-top:5px;">
-                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="candidate" checked>
-                        Candidate Seafarer</label>
-                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="employee"> Employee
-                    </label>
-                    <label style="cursor:pointer;"><input type="radio" name="seafarer-assoc" value="other">
-                        Unlisted</label>
-                </div>
-            </div>
-            <div class="form-group" id="doc-assoc-select-group" style="margin:0;">
-                <label class="form-label">Select Profile</label>
-                <select id="doc-assoc-select" class="form-control">
-                    <option value="">Search Profile...</option>
-                </select>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label class="form-label">Seafarer Name <span style="color:#ef4444;">*</span></label>
-                <input type="text" id="doc-name" class="form-control" placeholder="Enter Full Name" required>
-            </div>
-            <div style="display:flex; gap:12px;">
-                <div class="form-group" style="flex:1; margin:0;">
-                    <label class="form-label">Document Type <span style="color:#ef4444;">*</span></label>
-                    <select id="doc-type" class="form-control">
-                        <option value="PASSPORT">Passport</option>
-                        <option value="CDC">CDC (Continuous Discharge Cert)</option>
-                        <option value="COC">COC (Cert of Competency)</option>
-                        <option value="OTHER">Other Certificate</option>
-                    </select>
-                </div>
-                <div class="form-group" style="flex:1; margin:0;">
-                    <label class="form-label">Document Number</label>
-                    <input type="text" id="doc-number" class="form-control" placeholder="e.g. Z1234567">
-                </div>
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label class="form-label">Physical Custody Storage Location</label>
-                <input type="text" id="doc-location" class="form-control" placeholder="e.g. Safety Lock Box A - Slot 4">
-            </div>
-            <div class="form-group" style="margin:0;">
-                <label class="form-label">Remarks / Description</label>
-                <input type="text" id="doc-remarks" class="form-control"
-                    placeholder="e.g. Submitted for Visa application">
-            </div>
+  <!-- Doc Intake Modal -->
+<!-- =========================================================
+     DOC INTAKE MODAL
+     ========================================================= -->
+<template id="doc-modal-template">
+    <div style="display:flex; flex-direction:column; gap:16px;">
+
+        <!-- Seafarer Name -->
+        <div class="form-group" style="margin:0;">
+            <label class="form-label">
+                Seafarer Name <span style="color:#ef4444;">*</span>
+            </label>
+
+            <input
+                type="text"
+                id="doc-name"
+                class="form-control"
+                placeholder="e.g. Capt. Sandeep Kumar"
+                required
+            >
         </div>
-    </template>
+
+        <!-- Document Types -->
+        <div class="doc-collection-section">
+
+            <label class="doc-section-label">
+                Document Type <span class="required">*</span>
+            </label>
+
+            <div class="doc-type-grid">
+
+                <!-- PASSPORT -->
+                <label class="doc-type-option">
+                    <input
+                        type="checkbox"
+                        name="doc-type-option"
+                        value="PASSPORT"
+                    >
+
+                    <span class="doc-type-card">
+
+                        <span class="doc-type-check">
+                            <i class="fas fa-check"></i>
+                        </span>
+
+                        <span class="doc-type-content">
+                            <span class="doc-type-title">
+                                Passport
+                            </span>
+
+                            <span class="doc-type-description">
+                                International identity / travel document
+                            </span>
+                        </span>
+
+                        <span class="doc-type-selected-mark">
+                            <i class="fas fa-circle-check"></i>
+                        </span>
+
+                    </span>
+                </label>
+
+
+                <!-- CDC -->
+                <label class="doc-type-option">
+                    <input
+                        type="checkbox"
+                        name="doc-type-option"
+                        value="CDC"
+                    >
+
+                    <span class="doc-type-card">
+
+                        <span class="doc-type-check">
+                            <i class="fas fa-check"></i>
+                        </span>
+
+                        <span class="doc-type-content">
+                            <span class="doc-type-title">
+                                CDC
+                            </span>
+
+                            <span class="doc-type-description">
+                                Continuous Discharge Certificate
+                            </span>
+                        </span>
+
+                        <span class="doc-type-selected-mark">
+                            <i class="fas fa-circle-check"></i>
+                        </span>
+
+                    </span>
+                </label>
+
+
+                <!-- COC -->
+                <label class="doc-type-option">
+                    <input
+                        type="checkbox"
+                        name="doc-type-option"
+                        value="COC"
+                    >
+
+                    <span class="doc-type-card">
+
+                        <span class="doc-type-check">
+                            <i class="fas fa-check"></i>
+                        </span>
+
+                        <span class="doc-type-content">
+                            <span class="doc-type-title">
+                                COC
+                            </span>
+
+                            <span class="doc-type-description">
+                                Certificate of Competency
+                            </span>
+                        </span>
+
+                        <span class="doc-type-selected-mark">
+                            <i class="fas fa-circle-check"></i>
+                        </span>
+
+                    </span>
+                </label>
+
+
+                <!-- OTHER -->
+                <label class="doc-type-option">
+                    <input
+                        type="checkbox"
+                        name="doc-type-option"
+                        value="OTHER"
+                    >
+
+                    <span class="doc-type-card">
+
+                        <span class="doc-type-check">
+                            <i class="fas fa-check"></i>
+                        </span>
+
+                        <span class="doc-type-content">
+                            <span class="doc-type-title">
+                                Other Certificate
+                            </span>
+
+                            <span class="doc-type-description">
+                                Any other seafarer-related document
+                            </span>
+                        </span>
+
+                        <span class="doc-type-selected-mark">
+                            <i class="fas fa-circle-check"></i>
+                        </span>
+
+                    </span>
+                </label>
+
+            </div>
+
+            <div class="doc-hint">
+                Select one or more documents being physically collected.
+            </div>
+
+        </div>
+
+
+        <!-- Document Number -->
+        <div class="form-group" style="margin:0;">
+            <label class="form-label">
+                Document Number
+            </label>
+
+            <input
+                type="text"
+                id="doc-number"
+                class="form-control"
+                placeholder="Passport / CDC / COC number"
+            >
+        </div>
+
+
+        <!-- Custody Location -->
+        <div class="form-group" style="margin:0;">
+            <label class="form-label">
+                Custody Location
+            </label>
+
+            <input
+                type="text"
+                id="doc-location"
+                class="form-control"
+                placeholder="e.g. Reception Safe"
+            >
+        </div>
+
+
+        <!-- Remarks -->
+        <div class="form-group" style="margin:0;">
+            <label class="form-label">
+                Remarks
+            </label>
+
+            <textarea
+                id="doc-remarks"
+                class="form-control"
+                rows="3"
+                placeholder="Additional remarks..."
+            ></textarea>
+        </div>
+
+    </div>
+</template>
 
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
     <script src="/public/js/api/api.js"></script>
@@ -538,18 +855,15 @@
             loadTab('visitors');
         });
 
-        async function loadDirectories() {
-            try {
-                const [empRes, candRes] = await Promise.all([
-                    window.ApiService.employees.list(),
-                    window.ApiService.crewing.candidates.getAll()
-                ]);
-                employees = empRes.data || [];
-                candidates = candRes.data || [];
-            } catch (err) {
-                console.error('Error loading directories:', err);
-            }
-        }
+async function loadDirectories() {
+    try {
+        const empRes = await window.ApiService.employees.list();
+
+        employees = empRes.data || [];
+    } catch (err) {
+        console.error('Error loading directories:', err);
+    }
+}
 
         async function loadTab(tabName) {
             try {
@@ -965,7 +1279,7 @@
             const badges = {
                 WITH_AGENCY: '<span class="badge badge-blue">With Agency</span>',
                 RETURNED_TO_SEAFARER: '<span class="badge badge-gray">Returned to Seafarer</span>',
-                SENT_TO_VESSEL_OWNER: '<span class="badge badge-green">Sent to Vessel Owner</span>'
+                SENT_TO_VESSEL_OWNER: '<span class="badge badge-green">Sent to Vessel</span>'
             };
 
             docs.forEach(d => {
@@ -995,106 +1309,247 @@
                 tbody.appendChild(tr);
             });
         }
+function openDocModal() {
 
-        function openDocModal() {
-            const tpl = document.getElementById('doc-modal-template');
-            const clone = tpl.content.cloneNode(true);
+    // ---------------------------------------------------------
+    // GET TEMPLATE
+    // ---------------------------------------------------------
+    const tpl = document.getElementById('doc-modal-template');
 
-            window.UI.createModal({
-                title: 'Collect CDC / Passport Document',
-                bodyHtml: '',
-                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
-                             <button class="btn btn-primary" id="save-doc-btn">Collect Document</button>`
-            });
+    if (!tpl) {
+        console.error('ERROR: #doc-modal-template not found');
+        window.UI.showToast(
+            'Document intake form could not be opened.',
+            'error'
+        );
+        return;
+    }
 
-            document.querySelector('.modal-body').appendChild(clone);
+    // Clone template
+    const clone = tpl.content.cloneNode(true);
 
-            const selectGroup = document.getElementById('doc-assoc-select-group');
-            const assocSelect = document.getElementById('doc-assoc-select');
-            const nameInput = document.getElementById('doc-name');
+    // ---------------------------------------------------------
+    // CREATE MODAL
+    // ---------------------------------------------------------
+    window.UI.createModal({
+        title: 'Collect CDC / Passport Document',
 
-            // Logic to populate select based on association type
-            const radios = document.getElementsByName('seafarer-assoc');
-            const syncAssocOptions = () => {
-                const type = Array.from(radios).find(r => r.checked).value;
-                assocSelect.innerHTML = '<option value="">Search Profile...</option>';
+        bodyHtml: '',
 
-                if (type === 'other') {
-                    selectGroup.style.display = 'none';
-                    nameInput.value = '';
-                    nameInput.readOnly = false;
-                } else {
-                    selectGroup.style.display = 'block';
-                    nameInput.readOnly = true;
+        footerHtml: `
+            <button
+                type="button"
+                class="btn btn-secondary"
+                onclick="this.closest('.modal-overlay').close()"
+            >
+                Cancel
+            </button>
 
-                    if (type === 'candidate') {
-                        candidates.forEach(c => {
-                            const opt = document.createElement('option');
-                            opt.value = c.id;
-                            opt.textContent = `${c.name} (${c.rank || 'Seafarer'})`;
-                            assocSelect.appendChild(opt);
-                        });
-                    } else if (type === 'employee') {
-                        employees.forEach(e => {
-                            const opt = document.createElement('option');
-                            opt.value = e.id;
-                            opt.textContent = `${e.name} (${e.position || 'Staff'})`;
-                            assocSelect.appendChild(opt);
-                        });
-                    }
-                }
-            };
+            <button
+                type="button"
+                class="btn btn-primary"
+                id="save-doc-btn"
+            >
+                <i class="fas fa-box-archive"></i>
+                Collect Document
+            </button>
+        `
+    });
 
-            radios.forEach(r => r.addEventListener('change', syncAssocOptions));
-            syncAssocOptions();
+    // ---------------------------------------------------------
+    // FIND MODAL BODY
+    // ---------------------------------------------------------
+    const modalBody = document.querySelector('.modal-body');
 
-            assocSelect.addEventListener('change', () => {
-                const selectedOpt = assocSelect.options[assocSelect.selectedIndex];
-                if (selectedOpt && assocSelect.value) {
-                    nameInput.value = selectedOpt.textContent.split(' (')[0];
-                } else {
-                    nameInput.value = '';
-                }
-            });
+    if (!modalBody) {
+        console.error('ERROR: .modal-body not found');
+        return;
+    }
 
-            document.getElementById('save-doc-btn').addEventListener('click', async () => {
-                const assocType = Array.from(radios).find(r => r.checked).value;
-                const refId = assocSelect.value;
-                const seafarerName = nameInput.value.trim();
-                const documentType = document.getElementById('doc-type').value;
-                const documentNumber = document.getElementById('doc-number').value.trim();
-                const custodyLocation = document.getElementById('doc-location').value.trim();
-                const remarks = document.getElementById('doc-remarks').value.trim();
+    // Add cloned form
+    modalBody.appendChild(clone);
 
-                if (!seafarerName || !documentType) {
-                    window.UI.showToast('Please specify Seafarer Name and Document Type', 'warning');
-                    return;
-                }
+    // ---------------------------------------------------------
+    // GET FORM ELEMENTS
+    // ---------------------------------------------------------
+    const docNameInput = document.getElementById('doc-name');
+    const docNumberInput = document.getElementById('doc-number');
+    const docLocationInput = document.getElementById('doc-location');
+    const docRemarksInput = document.getElementById('doc-remarks');
 
-                const postData = { seafarerName, documentType, documentNumber, custodyLocation, remarks };
-                if (assocType === 'candidate' && refId) postData.candidateId = refId;
-                if (assocType === 'employee' && refId) postData.employeeId = refId;
+    const docTypeOptions = document.querySelectorAll(
+        'input[name="doc-type-option"]'
+    );
 
-                try {
-                    await window.ApiService.reception.docs.create(postData);
-                    window.UI.showToast('Document custody logged successfully', 'success');
-                    document.querySelector('.modal-overlay').close();
-                    loadTab('docs');
-                } catch (err) {
-                    window.UI.showToast('Failed to log document collection', 'error');
-                }
-            });
-        }
+    const saveButton = document.getElementById('save-doc-btn');
 
-        async function updateDocStatus(id, newStatus) {
-            try {
-                await window.ApiService.reception.docs.updateStatus(id, { status: newStatus });
-                window.UI.showToast(`Document marked as ${newStatus.replace(/_/g, ' ')}`, 'success');
-                loadTab('docs');
-            } catch (err) {
-                window.UI.showToast('Failed to update document status', 'error');
+
+    // ---------------------------------------------------------
+    // SAFETY CHECK
+    // ---------------------------------------------------------
+    if (
+        !docNameInput ||
+        !docNumberInput ||
+        !docLocationInput ||
+        !docRemarksInput ||
+        !saveButton
+    ) {
+        console.error('Document intake form elements are missing.');
+        window.UI.showToast(
+            'Document intake form is incomplete.',
+            'error'
+        );
+        return;
+    }
+
+
+    // ---------------------------------------------------------
+    // AUTO FOCUS
+    // ---------------------------------------------------------
+    setTimeout(() => {
+        docNameInput.focus();
+    }, 100);
+
+
+    // ---------------------------------------------------------
+    // SAVE DOCUMENT
+    // ---------------------------------------------------------
+    saveButton.addEventListener('click', async () => {
+
+        try {
+
+            // ---------------------------------------------
+            // GET BASIC INFORMATION
+            // ---------------------------------------------
+            const seafarerName = docNameInput.value.trim();
+            const documentNumber = docNumberInput.value.trim();
+            const custodyLocation = docLocationInput.value.trim();
+            const remarks = docRemarksInput.value.trim();
+
+
+            // ---------------------------------------------
+            // GET ALL SELECTED DOCUMENT TYPES
+            // ---------------------------------------------
+            const selectedDocTypes = Array.from(
+                document.querySelectorAll(
+                    'input[name="doc-type-option"]:checked'
+                )
+            ).map(input => input.value);
+
+
+            // ---------------------------------------------
+            // VALIDATION
+            // ---------------------------------------------
+            if (!seafarerName) {
+
+                window.UI.showToast(
+                    'Please enter the Seafarer Name.',
+                    'warning'
+                );
+
+                docNameInput.focus();
+                return;
             }
+
+
+            if (selectedDocTypes.length === 0) {
+
+                window.UI.showToast(
+                    'Please select at least one Document Type.',
+                    'warning'
+                );
+
+                return;
+            }
+
+
+            // ---------------------------------------------
+            // DISABLE BUTTON WHILE SAVING
+            // ---------------------------------------------
+            saveButton.disabled = true;
+
+            saveButton.innerHTML = `
+                <i class="fas fa-spinner fa-spin"></i>
+                Saving...
+            `;
+
+
+            // ---------------------------------------------
+            // SAVE EACH SELECTED DOCUMENT
+            // ---------------------------------------------
+            for (const documentType of selectedDocTypes) {
+
+                const postData = {
+                    seafarerName: seafarerName,
+                    documentType: documentType,
+                    documentNumber: documentNumber,
+                    custodyLocation: custodyLocation,
+                    remarks: remarks
+                };
+
+                console.log(
+                    'Saving document custody record:',
+                    postData
+                );
+
+                await window.ApiService.reception.docs.create(
+                    postData
+                );
+            }
+
+
+            // ---------------------------------------------
+            // SUCCESS
+            // ---------------------------------------------
+            window.UI.showToast(
+                selectedDocTypes.length === 1
+                    ? 'Document custody logged successfully.'
+                    : `${selectedDocTypes.length} documents logged successfully.`,
+                'success'
+            );
+
+
+            // ---------------------------------------------
+            // CLOSE MODAL
+            // ---------------------------------------------
+            const modal = document.querySelector('.modal-overlay');
+
+            if (modal) {
+                modal.close();
+            }
+
+
+            // ---------------------------------------------
+            // REFRESH DOCUMENT TABLE
+            // ---------------------------------------------
+            await loadTab('docs');
+
+
+        } catch (err) {
+
+            console.error(
+                'Document collection error:',
+                err
+            );
+
+            window.UI.showToast(
+                err.message ||
+                'Failed to log document collection.',
+                'error'
+            );
+
+
+            // Re-enable button
+            saveButton.disabled = false;
+
+            saveButton.innerHTML = `
+                <i class="fas fa-box-archive"></i>
+                Collect Document
+            `;
         }
+
+    });
+}
     </script>
     <script src="/public/js/components/ocean-bg.js"></script>
 </body>

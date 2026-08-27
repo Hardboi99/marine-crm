@@ -1,0 +1,562 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>PPE Stock - Marine CRM</title>
+
+    <link rel="stylesheet" href="/public/css/styles1.css">
+
+    <link
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
+        rel="stylesheet">
+</head>
+
+<body>
+
+    <div class="app-wrapper">
+
+        <!-- SIDEBAR -->
+        <div id="sidebar-container"></div>
+
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+
+        <!-- MAIN CONTENT -->
+        <div class="main-content">
+
+            <!-- NAVBAR -->
+            <div id="navbar-container"></div>
+
+            <main class="page-content">
+
+                <!-- STEP 3: PAGE HEADER -->
+                <div class="page-header">
+
+                    <div>
+                        <h1 class="page-title">
+                            🦺 PPE Stock
+                        </h1>
+
+                        <p class="page-subtitle">
+                            Manage PPE inventory, available stock and stock adjustments
+                        </p>
+                    </div>
+
+                </div>
+
+
+                <!-- STEP 4: ADD INVENTORY CARD HERE -->
+                <div class="card">
+
+                    <div class="card-header"
+                        style="
+                            display:flex;
+                            justify-content:space-between;
+                            align-items:center;
+                            padding:16px 20px;
+                        ">
+
+                        <div>
+                            <h2 class="card-title" style="margin:0;">
+                                PPE Stock Inventory
+                            </h2>
+
+                            <p style="
+                                margin:4px 0 0;
+                                color:var(--text-muted);
+                                font-size:0.85rem;
+                            ">
+                                View and adjust available PPE inventory
+                            </p>
+                        </div>
+
+                        <button
+                            class="btn btn-primary"
+                            onclick="openPpeStockModal()">
+
+                            <i class="fas fa-boxes-stacked"></i>
+                            Adjust Stock
+
+                        </button>
+
+                    </div>
+
+
+                    <div class="card-body" style="padding:0;">
+
+                        <div class="table-container">
+
+                            <table class="table">
+
+                                <thead>
+                                    <tr>
+                                        <th>PPE Item</th>
+                                        <th>Total Stock</th>
+                                        <th>Available</th>
+                                        <th>Issued</th>
+                                        <th>Status</th>
+                                    </tr>
+                                </thead>
+
+                                <tbody id="ppe-stock-tbody">
+
+                                    <tr>
+                                        <td colspan="5"
+                                            style="
+                                                text-align:center;
+                                                padding:30px;
+                                                color:#94a3b8;
+                                            ">
+                                            Loading PPE stock...
+                                        </td>
+                                    </tr>
+
+                                </tbody>
+
+                            </table>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+
+                <!-- STEP 5: PUT PPE MODAL HERE -->
+<template id="ppe-stock-modal-template">
+
+    <div style="
+        display:flex;
+        flex-direction:column;
+        gap:16px;
+    ">
+
+        <div class="form-group" style="margin:0;">
+
+            <label class="form-label">
+                PPE Item Type
+            </label>
+
+            <select
+                id="ppe-stock-item"
+                class="form-control">
+
+                <option value="Helmet">
+                    Helmet 🪖
+                </option>
+
+                <option value="Safety Shoes">
+                    Safety Shoes 🥾
+                </option>
+
+                <option value="Coverall">
+                    Coverall 🧥
+                </option>
+
+                <option value="Safety Glasses">
+                    Safety Glasses 🥽
+                </option>
+
+                <option value="Work Gloves">
+                    Work Gloves 🧤
+                </option>
+
+            </select>
+
+        </div>
+
+
+        <div class="form-group" style="margin:0;">
+
+            <label class="form-label">
+                Total Stock Quantity
+            </label>
+
+            <input
+                type="number"
+                id="ppe-stock-total"
+                class="form-control"
+                min="0"
+                placeholder="e.g. 50">
+
+        </div>
+
+
+        <div class="form-group" style="margin:0;">
+
+            <label class="form-label">
+                Available / Unissued Quantity
+            </label>
+
+            <input
+                type="number"
+                id="ppe-stock-avail"
+                class="form-control"
+                min="0"
+                placeholder="e.g. 50">
+
+        </div>
+
+    </div>
+
+</template>
+
+
+            </main>
+
+        </div>
+
+    </div>
+
+
+    <!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+
+<script src="/public/js/api/api.js"></script>
+
+<script src="/public/js/components/ui.js"></script>
+
+<script src="/public/js/components/sidebar.js"></script>
+
+<script src="/public/js/components/birthday.js"></script>
+
+<script src="/public/js/components/ocean-bg.js"></script>
+
+<script src="/public/js/ppe-stock.js"></script>
+<script src="/public/js/components/navbar.js"></script>
+
+    <!-- YOUR PPE STOCK JAVASCRIPT GOES HERE -->
+
+<script >
+
+    let ppeStocks = [];
+
+document.addEventListener('DOMContentLoaded', async () => {
+
+    if (!localStorage.getItem('token')) {
+        window.location.href = '/pages/login.html';
+        return;
+    }
+
+    await loadPpeStock();
+
+});
+
+async function loadPpeStock() {
+
+    try {
+
+        const response =
+            await window.ApiService.reception.ppe.getStock();
+
+        ppeStocks = response.data || [];
+
+        renderPpeStock(ppeStocks);
+
+    } catch (error) {
+
+        console.error(
+            'Failed to load PPE stock:',
+            error
+        );
+
+        window.UI.showToast(
+            'Failed to load PPE stock.',
+            'error'
+        );
+    }
+
+}
+
+function renderPpeStock(stocks) {
+
+    const tbody =
+        document.getElementById('ppe-stock-tbody');
+
+    tbody.innerHTML = '';
+
+    if (!stocks.length) {
+
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5"
+                    style="
+                        text-align:center;
+                        padding:30px;
+                        color:#94a3b8;
+                    ">
+                    No PPE stock items found.
+                </td>
+            </tr>
+        `;
+
+        return;
+    }
+
+    stocks.forEach(stock => {
+
+        const total =
+            Number(stock.totalQuantity || 0);
+
+        const available =
+            Number(stock.availableQuantity || 0);
+
+        const issued =
+            Math.max(0, total - available);
+
+        const isLow =
+            available < 5;
+
+        const status = isLow
+            ? `<span class="stock-badge low">
+                    Low Stock
+               </span>`
+            : `<span class="stock-badge good">
+                    Available
+               </span>`;
+
+        const row =
+            document.createElement('tr');
+
+        row.innerHTML = `
+
+            <td>
+                <strong>
+                    ${stock.itemName}
+                </strong>
+            </td>
+
+            <td>
+                ${total}
+            </td>
+
+            <td>
+
+                <span class="stock-badge ${isLow ? 'low' : 'good'}">
+                    ${available}
+                </span>
+
+            </td>
+
+            <td>
+                ${issued}
+            </td>
+
+            <td>
+                ${status}
+            </td>
+
+        `;
+
+        tbody.appendChild(row);
+
+    });
+
+}
+
+function openPpeStockModal() {
+
+    const template =
+        document.getElementById(
+            'ppe-stock-modal-template'
+        );
+
+    const clone =
+        template.content.cloneNode(true);
+
+
+    window.UI.createModal({
+
+        title: 'Adjust PPE Inventory Stock',
+
+        bodyHtml: '',
+
+        footerHtml: `
+
+            <button
+                class="btn btn-secondary"
+                onclick="
+                    this.closest('.modal-overlay').close()
+                ">
+                Cancel
+            </button>
+
+            <button
+                class="btn btn-primary"
+                id="save-ppe-stock-btn">
+                Save Changes
+            </button>
+
+        `
+
+    });
+
+
+    document
+        .querySelector('.modal-body')
+        .appendChild(clone);
+
+
+    const itemSelect =
+        document.getElementById('ppe-stock-item');
+
+    const totalInput =
+        document.getElementById('ppe-stock-total');
+
+    const availableInput =
+        document.getElementById('ppe-stock-avail');
+
+
+    function updateFields() {
+
+        const matched =
+            ppeStocks.find(
+                stock =>
+                    stock.itemName === itemSelect.value
+            );
+
+
+        if (matched) {
+
+            totalInput.value =
+                matched.totalQuantity;
+
+            availableInput.value =
+                matched.availableQuantity;
+
+        } else {
+
+            totalInput.value = 0;
+
+            availableInput.value = 0;
+
+        }
+
+    }
+
+
+    itemSelect.addEventListener(
+        'change',
+        updateFields
+    );
+
+
+    updateFields();
+
+
+    document
+        .getElementById('save-ppe-stock-btn')
+        .addEventListener(
+            'click',
+            savePpeStock
+        );
+
+
+    async function savePpeStock() {
+
+        const itemName =
+            itemSelect.value;
+
+        const totalQuantity =
+            parseInt(totalInput.value, 10);
+
+        const availableQuantity =
+            parseInt(
+                availableInput.value,
+                10
+            );
+
+
+        if (
+            Number.isNaN(totalQuantity) ||
+            Number.isNaN(availableQuantity)
+        ) {
+
+            window.UI.showToast(
+                'Please enter valid quantities.',
+                'warning'
+            );
+
+            return;
+        }
+
+
+        if (
+            totalQuantity < 0 ||
+            availableQuantity < 0
+        ) {
+
+            window.UI.showToast(
+                'Quantities cannot be negative.',
+                'warning'
+            );
+
+            return;
+        }
+
+
+        if (
+            availableQuantity > totalQuantity
+        ) {
+
+            window.UI.showToast(
+                'Available quantity cannot be greater than total stock.',
+                'warning'
+            );
+
+            return;
+        }
+
+
+        try {
+
+            await window.ApiService.reception.ppe.updateStock({
+
+                itemName,
+
+                totalQuantity,
+
+                availableQuantity
+
+            });
+
+
+            window.UI.showToast(
+                'PPE stock updated successfully.',
+                'success'
+            );
+
+
+            document
+                .querySelector('.modal-overlay')
+                .close();
+
+
+            await loadPpeStock();
+
+
+        } catch (error) {
+
+            console.error(
+                'PPE stock update failed:',
+                error
+            );
+
+
+            window.UI.showToast(
+                error.message ||
+                'Failed to update PPE stock.',
+                'error'
+            );
+
+        }
+
+    }
+
+}
+</script>
+</body>
+
+</html>

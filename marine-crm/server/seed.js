@@ -421,7 +421,7 @@ async function main() {
       createdById: seniorBdm._id,
     },
   ]);
-  console.log(`✅ Created ${companies.length} realistic vessel owner company profiles`);
+  console.log(`✅ Created ${companies.length} realistic vessel company profiles`);
 
   const compMap = Object.fromEntries(companies.map((c) => [c.name, c._id]));
 
@@ -693,7 +693,7 @@ async function main() {
       notes: 'Commercial terms being finalized by Astrid.',
     },
   ]);
-  console.log(`✅ Created ${contracts.length} vessel owner contracts & SLA documents`);
+  console.log(`✅ Created ${contracts.length} vessel contracts & SLA documents`);
 
   // ─── 8. FOLLOW-UPS ─────────────────────────────────────────────
   const followUps = await FollowUp.create([

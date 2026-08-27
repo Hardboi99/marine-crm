@@ -19,7 +19,7 @@
                 <div class="page-header">
                     <div>
                         <h1 class="page-title">📋 Open Vacancies & Requirements</h1>
-                        <p class="page-subtitle">Match seafarers with open requirements from vessel owners</p>
+                        <p class="page-subtitle">Match seafarers with open requirements from vessel</p>
                     </div>
                     <button id="add-req-btn" class="btn btn-primary">
                         <i class="fas fa-plus"></i> Add Job Order
@@ -53,7 +53,7 @@
                             <table id="requirements-table" class="table">
                                 <thead>
                                     <tr>
-                                        <th>Vessel Owner</th>
+                                        <th>Vessel</th>
                                         <th>Vessel Type</th>
                                         <th>Rank Needed</th>
                                         <th>Exp Needed</th>
@@ -196,9 +196,9 @@
                 const bodyHtml = `
                     <form id="requirement-form">
                         <div class="form-group">
-                            <label class="form-label">Vessel Owner *</label>
+                            <label class="form-label">Vessel *</label>
                             <select id="req-company" class="form-control" required>
-                                <option value="">Select Vessel Owner</option>
+                                <option value="">Select Vessel</option>
                                 ${companyOptions}
                             </select>
                         </div>

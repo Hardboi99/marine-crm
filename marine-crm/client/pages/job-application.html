@@ -1485,22 +1485,22 @@
                 placeholder="House / street, city, state, PIN / postal code, country"></textarea>
               <div class="err-msg">Please enter your current address.</div>
             </div>
-            <div class="field">
+            <!-- <div class="field">
               <label for="emergencyContactName">Emergency Contact Name <span class="req">*</span></label>
               <input type="text" id="emergencyContactName" name="emergencyContactName" required />
               <div class="err-msg">Required.</div>
-            </div>
-            <div class="field">
+            </div> -->
+            <!-- <div class="field">
               <label for="emergencyContactRelation">Relationship <span class="req">*</span></label>
               <input type="text" id="emergencyContactRelation" name="emergencyContactRelation" required
                 placeholder="e.g., Spouse, Father" />
               <div class="err-msg">Required.</div>
-            </div>
-            <div class="field">
+            </div> -->
+            <!-- <div class="field">
               <label for="emergencyContactNumber">Emergency Contact Number <span class="req">*</span></label>
               <input type="tel" id="emergencyContactNumber" name="emergencyContactNumber" required />
               <div class="err-msg">Required.</div>
-            </div>
+            </div> -->
           </div>
         </section>
 
@@ -1884,10 +1884,7 @@
                 <span class="opt">(optional)</span></label>
               <input type="date" id="preferredJoiningDate" name="preferredJoiningDate" />
             </div>
-            <div class="field">
-              <label for="expectedSalary">Expected Salary <span class="opt">(optional)</span></label>
-              <input type="text" id="expectedSalary" name="expectedSalary" placeholder="e.g., USD 2,500 / month" />
-            </div>
+
             <div class="field span-2">
               <label for="referralSource">How did you hear about us? <span class="req">*</span></label>
               <select id="referralSource" name="referralSource" required>
@@ -2889,6 +2886,26 @@
 
       showStep(1);
     })();
+
+
+
+const vesselCheckboxes = document.querySelectorAll(
+  'input[name="preferredVesselTypes"]'
+);
+
+vesselCheckboxes.forEach((checkbox) => {
+  checkbox.addEventListener('change', function () {
+    const selected = document.querySelectorAll(
+      'input[name="preferredVesselTypes"]:checked'
+    );
+
+    // Allow maximum 2 selections
+    if (selected.length > 2) {
+      this.checked = false;
+      alert('You can select only 2 vessel types.');
+    }
+  });
+});
   </script>
 </body>
 

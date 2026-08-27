@@ -87,7 +87,7 @@
             <div class="page-header">
                 <div>
                     <h1 class="page-title" style="margin: 0;">📅 Appointment Decision Engine</h1>
-                    <p class="page-subtitle" style="margin: 5px 0 0;">YES / NO / PENDING outcome tracker for vessel owner meetings</p>
+                    <p class="page-subtitle" style="margin: 5px 0 0;">YES / NO / PENDING outcome tracker for vessel  meetings</p>
                 </div>
                 <button class="btn btn-primary" onclick="openBookModal()">+ Book Appointment</button>
             </div>
@@ -137,7 +137,7 @@
     <template id="book-appt-modal-content">
         <div style="display:flex;flex-direction:column;gap:16px;">
             <div class="form-group" style="margin:0;">
-                <label class="form-label">Vessel Owner Company <span style="color:#ef4444;">*</span></label>
+                <label class="form-label">Vessel  Company <span style="color:#ef4444;">*</span></label>
                 <select id="appt-company" class="form-control">
                     <option value="">Select Company...</option>
                 </select>
@@ -466,8 +466,8 @@
             // in addition to the toast — so the user can never miss it even
             // if the toast were somehow obscured.
             if (!companyId) {
-                showFieldError(companySelect, 'Please select a vessel owner company');
-                window.UI.showToast('Please select a vessel owner company', 'error');
+                showFieldError(companySelect, 'Please select a vessel  company');
+                window.UI.showToast('Please select a vessel  company', 'error');
                 return;
             }
             if (!scheduledAt) {
