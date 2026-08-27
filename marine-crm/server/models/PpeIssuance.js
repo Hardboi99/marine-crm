@@ -4,13 +4,20 @@ const ppeIssuanceSchema = new mongoose.Schema(
   {
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', required: true },
     itemName: { type: String, required: true, trim: true },
-    quantity: { type: Number, default: 1 },
+    quantity: { type: Number, default: 1, min: 1 },
+    returnedQuantity: { type: Number, default: 0, min: 0 },
     issueDate: { type: Date, default: Date.now },
     status: {
       type: String,
-      enum: ['ISSUED', 'RETURNED'],
+      enum: ['ISSUED', 'PARTIALLY_RETURNED', 'RETURNED'],
       default: 'ISSUED'
     },
+    returnCondition: {
+      type: String,
+      enum: ['Good', 'Damaged', 'Lost', null],
+      default: null
+    },
+    returnRemarks: { type: String, default: '', trim: true },
     returnDate: { type: Date, default: null },
     createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
   },

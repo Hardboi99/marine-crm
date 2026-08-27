@@ -202,7 +202,14 @@ const listPpeStandards = async (req, res, next) => {
   try {
     let standards = await PpeStandard.find({ active: true }).sort({ ownerType: 1, category: 1 });
     if (standards.length === 0) {
-      await PpeStandard.insertMany(DEFAULT_PPE_STANDARDS);
+      // Use upsert-style insert to avoid duplicate key errors on re-run
+      for (const def of DEFAULT_PPE_STANDARDS) {
+        await PpeStandard.updateOne(
+          { ownerType: def.ownerType, itemName: def.itemName, applicableRank: def.applicableRank, colorSpec: def.colorSpec },
+          { $setOnInsert: def },
+          { upsert: true }
+        );
+      }
       standards = await PpeStandard.find({ active: true }).sort({ ownerType: 1, category: 1 });
     }
     res.json({ success: true, data: standards });
@@ -253,14 +260,19 @@ const updatePpeStock = async (req, res, next) => {
     const reorder = reorderLevel !== undefined ? parseInt(reorderLevel) : 5;
 
     if (isNaN(total) || isNaN(avail) || total < 0 || avail < 0) {
-      return res.status(400).json({ success: false, message: 'Total and available quantities cannot be negative.' });
+      return res.status(400).json({ success: false, message: 'Stock quantities cannot be negative.' });
     }
     if (avail > total) {
-      return res.status(400).json({ success: false, message: 'Available quantity cannot be greater than total stock.' });
+      return res.status(400).json({ success: false, message: 'Available quantity cannot exceed total stock quantity.' });
+    }
+    if (isNaN(reorder) || reorder < 0) {
+      return res.status(400).json({ success: false, message: 'Reorder level must be a non-negative number.' });
     }
 
     const validReasons = ['New Stock', 'Correction', 'Damaged', 'Lost', 'Other'];
-    const adjustmentReason = reason && validReasons.includes(reason) ? reason : 'Correction';
+    if (!reason || !validReasons.includes(reason)) {
+      return res.status(400).json({ success: false, message: `Adjustment reason is required. Valid reasons: ${validReasons.join(', ')}.` });
+    }
 
     const itemColor = colorSpec || 'Standard';
     const itemSize = size || 'Standard';
@@ -305,7 +317,7 @@ const updatePpeStock = async (req, res, next) => {
       quantityChanged: qtyChange,
       beforeQuantity: beforeAvail,
       afterQuantity: stock.availableQuantity,
-      reason: adjustmentReason,
+      reason,
       createdById: req.user.id
     });
 
@@ -314,7 +326,7 @@ const updatePpeStock = async (req, res, next) => {
       entityType: 'PPE_STOCK',
       entityId: stock._id.toString(),
       action: 'STOCK_ADJUSTED',
-      details: { itemName: stock.itemName, size: stock.size, before: beforeAvail, after: stock.availableQuantity, reason: adjustmentReason }
+      details: { itemName: stock.itemName, size: stock.size, before: beforeAvail, after: stock.availableQuantity, reason }
     });
 
     res.json({ success: true, data: stock });
@@ -339,8 +351,258 @@ const listPpeIssuances = async (req, res, next) => {
   try {
     const issuances = await PpeIssuance.find()
       .sort({ createdAt: -1 })
-      .populate('employeeId', 'name position employeeId');
+      .populate('employeeId', 'name position rank vessel ownerType employeeId');
     res.json({ success: true, data: issuances });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getEmployeePpeSummary = async (req, res, next) => {
+  try {
+    const { employeeId } = req.params;
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+
+    const rank = employee.rank || employee.position || 'General';
+    const vessel = employee.vessel || 'Vessel A';
+    const rankLower = rank.toLowerCase();
+
+    let ownerType = employee.ownerType;
+    if (!ownerType) {
+      if (rankLower.includes('cook') || rankLower.includes('messman')) {
+        ownerType = 'Turkey Owner';
+      } else {
+        ownerType = 'Turkey Owner';
+      }
+    }
+
+    const boilerSuitSize = employee.boilerSuitSize || 'L';
+    const shoeSize = employee.shoeSize || '9';
+
+    // Fetch standards matching ownerType + Common
+    let standards = await PpeStandard.find({
+      active: true,
+      $or: [{ ownerType: ownerType }, { ownerType: 'Common' }]
+    }).sort({ category: 1 });
+
+    if (standards.length === 0) {
+      standards = await PpeStandard.find({ active: true });
+    }
+
+    // Filter standards based on rank applicability
+    const applicableStandards = standards.filter(std => {
+      const stdRank = std.applicableRank;
+      if (stdRank === 'All Ranks') return true;
+      if (stdRank === 'Cook' && rankLower.includes('cook')) return true;
+      if (stdRank === 'Messman' && rankLower.includes('messman')) return true;
+      if (stdRank === 'GP Rating' && (rankLower.includes('gp') || rankLower.includes('rating') || rankLower.includes('seaman'))) return true;
+      if (stdRank === 'Officers & Engineers' && (rankLower.includes('officer') || rankLower.includes('engineer') || rankLower.includes('captain') || rankLower.includes('mate'))) return true;
+      return false;
+    });
+
+    // Get active issuances for this employee
+    const activeIssuances = await PpeIssuance.find({ employeeId, status: 'ISSUED' });
+    const issuedMap = {};
+    activeIssuances.forEach(iss => {
+      issuedMap[iss.itemName] = (issuedMap[iss.itemName] || 0) + (iss.quantity || 1);
+    });
+
+    const allStocks = await PpeStock.find();
+
+    const defaultRequired = {
+      'Boiler Suit': 2,
+      'Safety Shoes': 1,
+      'Sea Bag': 1,
+      'Duvet Cover': 1,
+      'Bed Sheet': 1,
+      'Pillow Cover': 1,
+      'Small Towel': 1,
+      'Big Towel': 1,
+      'Full Cook Set': 1,
+      'T-Shirt': 2,
+      'Pant': 2,
+      'Helmet': 1,
+      'Plastic Shoes (Kitchen)': 1
+    };
+
+    let totalRequired = 0;
+    let totalIssued = 0;
+    let totalRemaining = 0;
+
+    const summaryItems = applicableStandards.map(std => {
+      const requiredQty = defaultRequired[std.itemName] || 1;
+      const alreadyIssuedQty = issuedMap[std.itemName] || 0;
+      const remainingQty = Math.max(0, requiredQty - alreadyIssuedQty);
+
+      totalRequired += requiredQty;
+      totalIssued += alreadyIssuedQty;
+      totalRemaining += remainingQty;
+
+      const matchingVariants = allStocks.filter(s =>
+        s.itemName === std.itemName &&
+        (s.colorSpec || 'Standard') === (std.colorSpec || 'Standard')
+      );
+
+      const availableVariants = matchingVariants.map(v => ({
+        id: v._id.toString(),
+        size: v.size || 'Standard',
+        availableQuantity: v.availableQuantity,
+        totalQuantity: v.totalQuantity
+      }));
+
+      const totalAvailStock = availableVariants.reduce((sum, v) => sum + v.availableQuantity, 0);
+
+      const defaultSize = (std.itemName.includes('Shoes'))
+        ? shoeSize
+        : (std.itemName.includes('Suit') || std.itemName.includes('Shirt') || std.itemName.includes('Pant') ? boilerSuitSize : 'Standard');
+
+      return {
+        itemName: std.itemName,
+        category: std.category,
+        colorSpec: std.colorSpec || 'Standard',
+        applicableRank: std.applicableRank,
+        remarks: std.remarks || '',
+        requiredQty,
+        issuedQty: alreadyIssuedQty,
+        remainingQty,
+        defaultSize,
+        totalAvailableStock: totalAvailStock,
+        availableVariants
+      };
+    });
+
+    const overallStatus = totalRemaining === 0 ? 'Complete' : 'Partial';
+
+    res.json({
+      success: true,
+      data: {
+        employee: {
+          id: employee._id.toString(),
+          name: employee.name,
+          rank,
+          vessel,
+          ownerType,
+          boilerSuitSize,
+          shoeSize
+        },
+        overallStatus,
+        totalRequired,
+        totalIssued,
+        totalRemaining,
+        summary: summaryItems
+      }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const issuePpeKit = async (req, res, next) => {
+  try {
+    const { employeeId, items } = req.body;
+    if (!employeeId || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, message: 'Employee and PPE items are required.' });
+    }
+
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+    if (employee.status === 'EXITED') {
+      return res.status(400).json({ success: false, message: `${employee.name} is no longer an active employee and cannot receive PPE.` });
+    }
+
+    // --- Pre-validate all items before touching any stock (fail-fast) ---
+    const validatedItems = [];
+    for (const item of items) {
+      const { itemName, colorSpec, size, quantity } = item;
+      const qty = parseInt(quantity);
+      if (!itemName || isNaN(qty) || qty <= 0) {
+        return res.status(400).json({ success: false, message: `Invalid quantity for item: ${itemName || 'unknown'}.` });
+      }
+
+      const itemColor = colorSpec || 'Standard';
+      const itemSize = size || 'Standard';
+
+      // Check exact variant first, then any variant with enough stock
+      let stock = await PpeStock.findOne({ itemName: itemName.trim(), colorSpec: itemColor, size: itemSize });
+      if (!stock) {
+        stock = await PpeStock.findOne({ itemName: itemName.trim(), colorSpec: itemColor });
+      }
+      if (!stock) {
+        stock = await PpeStock.findOne({ itemName: itemName.trim() });
+      }
+
+      if (!stock) {
+        return res.status(400).json({ success: false, message: `${itemName} is not set up in inventory. Please contact the store manager.` });
+      }
+      if (stock.availableQuantity < qty) {
+        return res.status(400).json({
+          success: false,
+          message: `Only ${stock.availableQuantity} ${stock.itemName}${stock.size !== 'Standard' ? ' (size ' + stock.size + ')' : ''} available in stock — cannot issue ${qty}.`
+        });
+      }
+
+      validatedItems.push({ stock, qty });
+    }
+
+    // --- Atomically deduct stock and create issuances ---
+    const createdIssuances = [];
+    for (const { stock, qty } of validatedItems) {
+      const beforeAvail = stock.availableQuantity;
+
+      // Atomic conditional decrement — prevents race condition over-issue
+      const updatedStock = await PpeStock.findOneAndUpdate(
+        { _id: stock._id, availableQuantity: { $gte: qty } },
+        { $inc: { availableQuantity: -qty } },
+        { new: true }
+      );
+
+      if (!updatedStock) {
+        return res.status(409).json({
+          success: false,
+          message: `Stock for ${stock.itemName} was just updated by another user. Only ${stock.availableQuantity} available. Please refresh and try again.`
+        });
+      }
+
+      const issuance = await PpeIssuance.create({
+        employeeId: employee._id,
+        itemName: stock.itemName,
+        quantity: qty,
+        createdById: req.user.id
+      });
+
+      await PpeStockHistory.create({
+        stockId: stock._id,
+        itemName: stock.itemName,
+        colorSpec: stock.colorSpec || 'Standard',
+        size: stock.size || 'Standard',
+        quantityChanged: -qty,
+        beforeQuantity: beforeAvail,
+        afterQuantity: updatedStock.availableQuantity,
+        reason: 'Issuance',
+        createdById: req.user.id
+      });
+
+      await logActivity({
+        userId: req.user.id,
+        entityType: 'PPE_ISSUANCE',
+        entityId: issuance._id.toString(),
+        action: 'PPE_ISSUED',
+        details: { itemName: stock.itemName, quantity: qty, employee: employee.name }
+      });
+
+      createdIssuances.push(issuance);
+    }
+
+    res.status(201).json({
+      success: true,
+      message: `Successfully issued ${createdIssuances.length} PPE item(s) to ${employee.name}.`,
+      data: createdIssuances
+    });
   } catch (err) {
     next(err);
   }
@@ -350,7 +612,7 @@ const issuePpe = async (req, res, next) => {
   try {
     const { employeeId, itemName, colorSpec, size, quantity } = req.body;
     if (!employeeId || !itemName || !quantity) {
-      return res.status(400).json({ success: false, message: 'employeeId, itemName, and quantity are required.' });
+      return res.status(400).json({ success: false, message: 'Employee, item name, and quantity are required.' });
     }
 
     const qty = parseInt(quantity);
@@ -358,29 +620,44 @@ const issuePpe = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Quantity must be greater than zero.' });
     }
 
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+    if (employee.status === 'EXITED') {
+      return res.status(400).json({ success: false, message: `${employee.name} is no longer an active employee.` });
+    }
+
     const filter = { itemName: itemName.trim() };
     if (colorSpec) filter.colorSpec = colorSpec;
     if (size) filter.size = size;
 
-    let stock = await PpeStock.findOne({ ...filter, availableQuantity: { $gte: qty } });
+    let stock = await PpeStock.findOne(filter);
     if (!stock) {
-      stock = await PpeStock.findOne({ itemName: itemName.trim(), availableQuantity: { $gte: qty } });
+      stock = await PpeStock.findOne({ itemName: itemName.trim() });
     }
 
     if (!stock) {
-      const currentStock = await PpeStock.findOne({ itemName: itemName.trim() });
+      return res.status(400).json({ success: false, message: `${itemName} is not found in inventory.` });
+    }
+    if (stock.availableQuantity < qty) {
       return res.status(400).json({
         success: false,
-        message: `Insufficient stock for ${itemName}. Available: ${currentStock ? currentStock.availableQuantity : 0}`
+        message: `Only ${stock.availableQuantity} ${stock.itemName}${stock.size !== 'Standard' ? ' (size ' + stock.size + ')' : ''} currently available in stock.`
       });
     }
 
     const beforeAvail = stock.availableQuantity;
-    const updatedStock = await PpeStock.findByIdAndUpdate(
-      stock._id,
+    // Atomic conditional update prevents race condition
+    const updatedStock = await PpeStock.findOneAndUpdate(
+      { _id: stock._id, availableQuantity: { $gte: qty } },
       { $inc: { availableQuantity: -qty } },
       { new: true }
     );
+
+    if (!updatedStock) {
+      return res.status(409).json({ success: false, message: `Stock for ${itemName} was just updated by another user. Please refresh and try again.` });
+    }
 
     const issuance = await PpeIssuance.create({
       employeeId,
@@ -419,55 +696,137 @@ const issuePpe = async (req, res, next) => {
 
 const returnPpe = async (req, res, next) => {
   try {
-    const issuance = await PpeIssuance.findById(req.params.id);
+    const { id } = req.params;
+    const { returnQty, condition, remarks } = req.body;
+
+    const issuance = await PpeIssuance.findById(id).populate('employeeId', 'name');
     if (!issuance) {
       return res.status(404).json({ success: false, message: 'Issuance record not found.' });
     }
 
     if (issuance.status === 'RETURNED') {
-      return res.status(400).json({ success: false, message: 'PPE is already returned.' });
+      return res.status(400).json({ success: false, message: 'This PPE item has already been fully returned.' });
     }
 
+    const currentReturned = issuance.returnedQuantity || 0;
+    const remainingReturnable = Math.max(0, issuance.quantity - currentReturned);
+
+    const qtyToReturn = returnQty !== undefined ? parseInt(returnQty) : remainingReturnable;
+
+    if (isNaN(qtyToReturn) || qtyToReturn <= 0) {
+      return res.status(400).json({ success: false, message: 'Return quantity must be greater than zero.' });
+    }
+
+    if (qtyToReturn > remainingReturnable) {
+      return res.status(400).json({
+        success: false,
+        message: `Return quantity (${qtyToReturn}) cannot exceed remaining returnable quantity (${remainingReturnable}).`
+      });
+    }
+
+    const returnCond = condition && ['Good', 'Damaged', 'Lost'].includes(condition) ? condition : 'Good';
+    const newReturnedQuantity = currentReturned + qtyToReturn;
+    const isFullyReturned = newReturnedQuantity >= issuance.quantity;
+    const newStatus = isFullyReturned ? 'RETURNED' : 'PARTIALLY_RETURNED';
+
+    // Stock & History Update
     const stock = await PpeStock.findOne({ itemName: issuance.itemName });
     let beforeAvail = 0;
     let afterAvail = 0;
+
     if (stock) {
       beforeAvail = stock.availableQuantity;
-      const updatedStock = await PpeStock.findByIdAndUpdate(
-        stock._id,
-        { $inc: { availableQuantity: issuance.quantity } },
-        { new: true }
-      );
-      afterAvail = updatedStock.availableQuantity;
+      if (returnCond === 'Good') {
+        const updatedStock = await PpeStock.findByIdAndUpdate(
+          stock._id,
+          { $inc: { availableQuantity: qtyToReturn } },
+          { new: true }
+        );
+        afterAvail = updatedStock.availableQuantity;
+      } else {
+        afterAvail = beforeAvail; // Not restocked if Damaged or Lost
+      }
 
       await PpeStockHistory.create({
         stockId: stock._id,
         itemName: stock.itemName,
         colorSpec: stock.colorSpec || 'Standard',
         size: stock.size || 'Standard',
-        quantityChanged: issuance.quantity,
+        quantityChanged: returnCond === 'Good' ? qtyToReturn : 0,
         beforeQuantity: beforeAvail,
         afterQuantity: afterAvail,
-        reason: 'Return',
+        reason: returnCond === 'Good' ? 'Return' : returnCond,
         createdById: req.user.id
       });
     }
 
-    issuance.status = 'RETURNED';
+    issuance.returnedQuantity = newReturnedQuantity;
+    issuance.status = newStatus;
+    issuance.returnCondition = returnCond;
+    if (remarks) issuance.returnRemarks = remarks;
     issuance.returnDate = new Date();
     await issuance.save();
-
-    await issuance.populate('employeeId', 'name');
 
     await logActivity({
       userId: req.user.id,
       entityType: 'PPE_ISSUANCE',
       entityId: issuance._id.toString(),
       action: 'PPE_RETURNED',
-      details: { itemName: issuance.itemName, quantity: issuance.quantity, employee: issuance.employeeId?.name }
+      details: { itemName: issuance.itemName, quantity: qtyToReturn, condition: returnCond, employee: issuance.employeeId?.name }
     });
 
-    res.json({ success: true, data: issuance });
+    let message = 'PPE returned successfully.';
+    if (returnCond === 'Damaged') {
+      message = `${issuance.itemName} returned as damaged and was not added to available stock.`;
+    } else if (returnCond === 'Lost') {
+      message = `${issuance.itemName} marked as lost and was not added to available stock.`;
+    } else if (!isFullyReturned) {
+      const remaining = issuance.quantity - newReturnedQuantity;
+      message = `${qtyToReturn} item(s) returned. ${remaining} item(s) still outstanding.`;
+    }
+
+    res.json({ success: true, message, data: issuance });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const getEmployeePpeHistory = async (req, res, next) => {
+  try {
+    const { employeeId } = req.params;
+    const employee = await Employee.findById(employeeId);
+    if (!employee) {
+      return res.status(404).json({ success: false, message: 'Employee not found.' });
+    }
+
+    const allIssuances = await PpeIssuance.find({ employeeId }).sort({ issueDate: -1 });
+
+    const currentIssued = allIssuances.filter(i => i.status === 'ISSUED' || i.status === 'PARTIALLY_RETURNED');
+    const returnedHistory = allIssuances.filter(i => (i.returnedQuantity || 0) > 0 || i.status === 'RETURNED');
+
+    // Determine status badge
+    let overallStatusBadge = 'PPE Complete';
+    if (allIssuances.length === 0) {
+      overallStatusBadge = 'PPE Not Issued';
+    } else if (currentIssued.length > 0) {
+      const isPartial = currentIssued.some(i => i.status === 'PARTIALLY_RETURNED');
+      overallStatusBadge = isPartial ? 'PPE Partially Issued' : 'Pending Return';
+    }
+
+    res.json({
+      success: true,
+      data: {
+        employee: {
+          id: employee._id.toString(),
+          name: employee.name,
+          rank: employee.rank || employee.position || 'General',
+          vessel: employee.vessel || 'Vessel A'
+        },
+        overallStatusBadge,
+        currentIssued,
+        returnedHistory
+      }
+    });
   } catch (err) {
     next(err);
   }
@@ -565,8 +924,11 @@ module.exports = {
   listPpeStock,
   updatePpeStock,
   listPpeStockHistory,
+  getEmployeePpeSummary,
+  getEmployeePpeHistory,
   listPpeIssuances,
   issuePpe,
+  issuePpeKit,
   returnPpe,
   listDocIntakes,
   createDocIntake,

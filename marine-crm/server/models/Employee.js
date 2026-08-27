@@ -21,6 +21,11 @@ const employeeSchema = new mongoose.Schema(
     address: { type: String, trim: true, default: null },
     location: { type: String, trim: true, default: null },
     position: { type: String, trim: true, default: null },
+    rank: { type: String, trim: true, default: null },
+    vessel: { type: String, trim: true, default: null },
+    ownerType: { type: String, trim: true, default: null },
+    boilerSuitSize: { type: String, trim: true, default: 'L' },
+    shoeSize: { type: String, trim: true, default: '9' },
     joinDate: { type: Date, default: null },
     dateOfBirth: { type: Date, default: null },
     gender: {

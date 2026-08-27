@@ -6,7 +6,8 @@ const { requireRole } = require('../middlewares/roleCheck');
 const {
   listVisitors, createVisitor, checkOutVisitor,
   listCalls, createCall, updateCallStatus,
-  listPpeStandards, listPpeStock, updatePpeStock, listPpeStockHistory, listPpeIssuances, issuePpe, returnPpe,
+  listPpeStandards, listPpeStock, updatePpeStock, listPpeStockHistory,
+  getEmployeePpeSummary, getEmployeePpeHistory, listPpeIssuances, issuePpe, issuePpeKit, returnPpe,
   listDocIntakes, createDocIntake, updateDocIntakeStatus
 } = require('../controllers/receptionController');
 
@@ -28,8 +29,11 @@ router.get('/ppe/standards', authenticate, listPpeStandards);
 router.get('/ppe/stock', authenticate, listPpeStock);
 router.post('/ppe/stock', authenticate, updatePpeStock);
 router.get('/ppe/stock/history', authenticate, listPpeStockHistory);
+router.get('/ppe/employee-summary/:employeeId', authenticate, getEmployeePpeSummary);
+router.get('/ppe/employee-history/:employeeId', authenticate, getEmployeePpeHistory);
 router.get('/ppe/issuances', authenticate, listPpeIssuances);
 router.post('/ppe/issuances', authenticate, issuePpe);
+router.post('/ppe/issue-kit', authenticate, issuePpeKit);
 router.patch('/ppe/issuances/:id/return', authenticate, returnPpe);
 
 // CDC & Passport collections

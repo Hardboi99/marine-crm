@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PPE Stock - Marine CRM</title>
+    <title>PPE Stock &amp; Smart Issuance - Marine CRM</title>
     <link rel="stylesheet" href="/public/css/styles1.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
@@ -57,12 +57,13 @@
             margin: 0;
         }
 
-        .ppe-filter-bar #ppe-search-input {
+        .ppe-filter-bar #ppe-search-input,
+        .ppe-filter-bar #issuance-search-input {
             max-width: 280px;
             flex-grow: 1;
         }
 
-        /* ── Stock badges ───────────────────────────────────────── */
+        /* ── Stock & Status Badges ───────────────────────────────── */
         .stock-badge {
             font-weight: 700;
             padding: 4px 10px;
@@ -88,6 +89,32 @@
             background-color: rgba(239, 68, 68, 0.15);
             color: #ef4444;
             border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .issuance-badge {
+            font-weight: 700;
+            font-size: 0.78rem;
+            padding: 3px 10px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .issuance-badge.issued {
+            background: rgba(14, 165, 233, 0.18);
+            color: #0ea5e9;
+            border: 1px solid rgba(14, 165, 233, 0.3);
+        }
+
+        .issuance-badge.partially {
+            background: rgba(245, 158, 11, 0.18);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .issuance-badge.returned {
+            background: rgba(16, 185, 129, 0.18);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
         /* ── Category / owner group headers inside stock table ────── */
@@ -129,6 +156,98 @@
             font-weight: 600;
         }
 
+        /* ── Smart Issuance Info Card ───────────────────────────── */
+        .emp-info-card {
+            background: rgba(14, 165, 233, 0.08);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            border-radius: 8px;
+            padding: 14px 18px;
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .emp-info-card .emp-meta {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            font-size: 0.88rem;
+            color: var(--text-primary, #f8fafc);
+        }
+
+        .emp-info-card .emp-meta span {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .emp-summary-badge {
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+
+        .emp-summary-badge.complete {
+            background: rgba(16, 185, 129, 0.2);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        .emp-summary-badge.partial {
+            background: rgba(245, 158, 11, 0.2);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        .emp-summary-badge.pending {
+            background: rgba(14, 165, 233, 0.2);
+            color: #0ea5e9;
+            border: 1px solid rgba(14, 165, 233, 0.4);
+        }
+
+        /* Live Preview Card in Adjust Stock Modal */
+        .preview-box {
+            background: rgba(15, 23, 42, 0.7);
+            border: 1px dashed var(--accent-primary, #0ea5e9);
+            border-radius: 6px;
+            padding: 12px 16px;
+            display: flex;
+            justify-content: space-around;
+            text-align: center;
+            font-size: 0.9rem;
+            margin-top: 8px;
+        }
+
+        .preview-box .val-title {
+            font-size: 0.75rem;
+            color: var(--text-muted, #94a3b8);
+            text-transform: uppercase;
+        }
+
+        .preview-box .val-num {
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: #fff;
+            margin-top: 2px;
+        }
+
+        .clickable-emp-name {
+            color: var(--accent-primary, #0ea5e9);
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: underline;
+            text-decoration-color: transparent;
+            transition: all 0.2s;
+        }
+
+        .clickable-emp-name:hover {
+            text-decoration-color: var(--accent-primary, #0ea5e9);
+        }
+
         .split-grid {
             display: grid;
             grid-template-columns: 1fr;
@@ -165,15 +284,15 @@
 
                 <div class="page-header">
                     <div>
-                        <h1 class="page-title">🦺 PPE Stock &amp; Issuance</h1>
+                        <h1 class="page-title">🦺 PPE Stock &amp; Smart Issuance</h1>
                         <p class="page-subtitle">
-                            Simplified PPE Flow: <strong>PPE Standard → PPE Stock → PPE Issue → PPE Return</strong>
+                            Complete Crew PPE Lifecycle: <strong>PPE STANDARD → PPE STOCK → PPE ISSUE → PPE RETURN → CREW HISTORY</strong>
                         </p>
                     </div>
                     <div style="display:flex; align-items:center; gap:10px;">
                         <button class="btn btn-secondary" onclick="openPpeHistoryModal()">
                             <i class="fas fa-history"></i>
-                            Stock Movement History
+                            Stock Audit Log
                         </button>
                         <a href="/pages/reception.html" class="btn btn-secondary">
                             <i class="fas fa-arrow-left"></i>
@@ -196,7 +315,7 @@
                         <span class="stat-value" id="stats-ppe-out" style="color:#ef4444;">0</span>
                     </div>
                     <div class="stat-card">
-                        <span class="stat-label">Currently Issued</span>
+                        <span class="stat-label">Active Issuances</span>
                         <span class="stat-value" id="stats-ppe-issued" style="color:#0ea5e9;">0</span>
                     </div>
                 </div>
@@ -209,7 +328,7 @@
                     <button class="ppe-owner-tab" data-owner="Other Owners">Other Owners</button>
                 </div>
 
-                <!-- SEARCH & FILTER TOOLBAR -->
+                <!-- SEARCH & FILTER TOOLBAR FOR STOCK -->
                 <div class="ppe-filter-bar">
                     <input type="text" id="ppe-search-input" class="form-control" placeholder="🔍 Search PPE item name or spec...">
                     
@@ -244,7 +363,7 @@
                             <div>
                                 <h2 class="card-title" style="margin:0;">PPE Stock Inventory</h2>
                                 <p style="margin:4px 0 0; color:var(--text-muted); font-size:0.85rem;">
-                                    Physical stock levels matched against Owner &amp; Rank standards
+                                    Physical inventory stock levels with reorder thresholds
                                 </p>
                             </div>
                             <button class="btn btn-primary" onclick="openPpeStockModal()">
@@ -279,20 +398,34 @@
                         </div>
                     </div>
 
-                    <!-- ISSUANCE HISTORY -->
+                    <!-- ISSUANCE HISTORY TABLE WITH FILTERS -->
                     <div class="card">
                         <div class="card-header"
-                            style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px;">
+                            style="display:flex; flex-wrap:wrap; justify-content:space-between; align-items:center; padding:16px 20px; gap:12px;">
                             <div>
                                 <h2 class="card-title" style="margin:0;">PPE Issuance History</h2>
                                 <p style="margin:4px 0 0; color:var(--text-muted); font-size:0.85rem;">
                                     Track gear checked out to crew / employees and returns
                                 </p>
                             </div>
-                            <button class="btn btn-primary" onclick="openPpeIssueModal()">
-                                <i class="fas fa-hand-holding"></i>
-                                Issue Gear
-                            </button>
+                            <div style="display:flex; gap:10px; align-items:center;">
+                                <button class="btn btn-primary" onclick="openSmartIssueModal()">
+                                    <i class="fas fa-hand-holding"></i>
+                                    Issue Gear
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- ISSUANCE SEARCH & FILTER BAR -->
+                        <div class="ppe-filter-bar" style="margin:0; border-radius:0; border-left:none; border-right:none; border-bottom:1px solid var(--border-color, #1e293b);">
+                            <input type="text" id="issuance-search-input" class="form-control" placeholder="🔍 Search employee name or item...">
+                            
+                            <select id="issuance-status-filter" class="form-control">
+                                <option value="ALL">All Issuance Statuses</option>
+                                <option value="ISSUED">Issued (Active)</option>
+                                <option value="PARTIALLY_RETURNED">Partially Returned</option>
+                                <option value="RETURNED">Returned (Complete)</option>
+                            </select>
                         </div>
 
                         <div class="card-body" style="padding:0;">
@@ -300,19 +433,21 @@
                                 <table class="table">
                                     <thead>
                                         <tr>
-                                            <th>Employee / Crew</th>
+                                            <th>Employee</th>
+                                            <th>Rank</th>
+                                            <th>Vessel</th>
                                             <th>Item</th>
-                                            <th>Owner Standard</th>
-                                            <th>Qty</th>
+                                            <th>Size / Spec</th>
+                                            <th>Issued Qty</th>
+                                            <th>Returned</th>
                                             <th>Issued Date</th>
                                             <th>Status</th>
-                                            <th>Return Date</th>
-                                            <th>Action</th>
+                                            <th style="text-align:right;">Action</th>
                                         </tr>
                                     </thead>
                                     <tbody id="ppe-issuances-tbody">
                                         <tr>
-                                            <td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">
+                                            <td colspan="10" style="text-align:center; padding:30px; color:#94a3b8;">
                                                 Loading issuance history...
                                             </td>
                                         </tr>
@@ -329,7 +464,7 @@
     </div>
 
     <!-- ═══════════════════════════════════════════════════════════
-         ADJUST STOCK MODAL
+         ADJUST STOCK MODAL WITH LIVE PREVIEW
          ═══════════════════════════════════════════════════════════ -->
     <template id="ppe-stock-modal-template">
         <div style="display:flex; flex-direction:column; gap:16px;">
@@ -382,57 +517,219 @@
 
             <div class="cascade-grid">
                 <div class="form-group" style="margin:0;">
-                    <label class="form-label">Total Stock Quantity <span style="color:#ef4444;">*</span></label>
-                    <input type="number" id="ppe-stock-total" class="form-control" min="0" placeholder="e.g. 50">
+                    <label class="form-label">Adjustment Quantity (+/-)</label>
+                    <input type="number" id="ppe-stock-change" class="form-control" value="0" placeholder="e.g. +10 or -2">
                 </div>
                 <div class="form-group" style="margin:0;">
-                    <label class="form-label">Available Quantity <span style="color:#ef4444;">*</span></label>
-                    <input type="number" id="ppe-stock-avail" class="form-control" min="0" placeholder="e.g. 50">
+                    <label class="form-label">Reorder Level (Alert Threshold)</label>
+                    <input type="number" id="ppe-stock-reorder" class="form-control" min="0" value="5" placeholder="Default: 5">
                 </div>
             </div>
 
-            <div class="form-group" style="margin:0;">
-                <label class="form-label">Reorder Level (Alert Threshold)</label>
-                <input type="number" id="ppe-stock-reorder" class="form-control" min="0" value="5" placeholder="Default: 5">
+            <!-- LIVE PREVIEW CARD -->
+            <div class="preview-box">
+                <div>
+                    <div class="val-title">Current Available</div>
+                    <div class="val-num" id="prev-current">0</div>
+                </div>
+                <div>
+                    <div class="val-title">Adjustment</div>
+                    <div class="val-num" id="prev-change" style="color:#0ea5e9;">+0</div>
+                </div>
+                <div>
+                    <div class="val-title">New Available</div>
+                    <div class="val-num" id="prev-new" style="color:#10b981;">0</div>
+                </div>
             </div>
 
         </div>
     </template>
 
     <!-- ═══════════════════════════════════════════════════════════
-         ISSUE GEAR MODAL
+         SMART ISSUE GEAR MODAL
          ═══════════════════════════════════════════════════════════ -->
-    <template id="ppe-issue-modal-template">
+    <template id="ppe-smart-issue-modal-template">
         <div style="display:flex; flex-direction:column; gap:16px;">
+            
             <div class="form-group" style="margin:0;">
-                <label class="form-label">Issue to Crew Member (Employee) <span style="color:#ef4444;">*</span></label>
-                <select id="ppe-issue-emp" class="form-control">
+                <label class="form-label">Search Crew Member / Employee <span style="color:#ef4444;">*</span></label>
+                <select id="smart-issue-emp-select" class="form-control">
                     <option value="">Select Employee...</option>
                 </select>
             </div>
 
+            <!-- EMPLOYEE SUMMARY CARD -->
+            <div id="smart-emp-card" class="emp-info-card" style="display:none;">
+                <div class="emp-meta">
+                    <span><i class="fas fa-user-check" style="color:#0ea5e9;"></i> <strong id="emp-card-name">-</strong></span>
+                    <span><i class="fas fa-id-badge" style="color:#94a3b8;"></i> <span id="emp-card-rank">-</span></span>
+                    <span><i class="fas fa-ship" style="color:#94a3b8;"></i> <span id="emp-card-vessel">-</span></span>
+                    <span><i class="fas fa-building" style="color:#94a3b8;"></i> <span id="emp-card-owner" class="ppe-rank-tag">-</span></span>
+                </div>
+                <div>
+                    <span id="emp-card-status-badge" class="emp-summary-badge partial">Partial</span>
+                </div>
+            </div>
+
+            <!-- UNAVAILABLE ALERT BANNER -->
+            <div id="smart-unavail-alert" style="display:none; background:rgba(239,68,68,0.12); border:1px solid rgba(239,68,68,0.3); color:#ef4444; padding:10px 14px; border-radius:6px; font-size:0.85rem; font-weight:600;">
+                <i class="fas fa-exclamation-triangle"></i> <span id="unavail-msg">1 item is unavailable due to 0 stock.</span>
+            </div>
+
+            <!-- REQUIRED PPE BREAKDOWN TABLE -->
+            <div id="smart-requirements-container" style="display:none;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px;">
+                    <label class="form-label" style="margin:0; font-weight:700; color:var(--accent-primary);">
+                        <i class="fas fa-list-check"></i> Standard PPE Kit Breakdown
+                    </label>
+                    <span style="font-size:0.8rem; color:var(--text-muted);" id="smart-qty-summary">Required: 0 | Issued: 0 | Remaining: 0</span>
+                </div>
+
+                <div class="table-container" style="max-height:300px; overflow-y:auto; border:1px solid var(--border-color, #1e293b); border-radius:6px;">
+                    <table class="table" style="font-size:0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th style="text-align:center;">Req</th>
+                                <th style="text-align:center;">Issued</th>
+                                <th style="text-align:center;">Remaining</th>
+                                <th>Size / Spec Selection</th>
+                                <th>Avail Stock</th>
+                            </tr>
+                        </thead>
+                        <tbody id="smart-requirements-tbody">
+                            <tr>
+                                <td colspan="6" style="text-align:center; padding:20px; color:#94a3b8;">Select an employee to load automatic standard requirements.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         INTERACTIVE RETURN CONFIRMATION MODAL
+         ═══════════════════════════════════════════════════════════ -->
+    <template id="ppe-return-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="emp-info-card" style="margin:0;">
+                <div class="emp-meta">
+                    <span><i class="fas fa-user" style="color:#0ea5e9;"></i> <strong id="return-emp-name">-</strong></span>
+                    <span><i class="fas fa-box" style="color:#94a3b8;"></i> <strong id="return-item-name">-</strong></span>
+                </div>
+                <div>
+                    <span class="ppe-rank-tag" id="return-size-spec">Standard</span>
+                </div>
+            </div>
+
+            <div class="preview-box">
+                <div>
+                    <div class="val-title">Issued Qty</div>
+                    <div class="val-num" id="return-val-issued">0</div>
+                </div>
+                <div>
+                    <div class="val-title">Already Returned</div>
+                    <div class="val-num" id="return-val-returned" style="color:#f59e0b;">0</div>
+                </div>
+                <div>
+                    <div class="val-title">Remaining to Return</div>
+                    <div class="val-num" id="return-val-remaining" style="color:#0ea5e9;">0</div>
+                </div>
+            </div>
+
             <div class="cascade-grid">
                 <div class="form-group" style="margin:0;">
-                    <label class="form-label">Owner Standard</label>
-                    <select id="ppe-issue-owner" class="form-control"></select>
+                    <label class="form-label">Return Quantity <span style="color:#ef4444;">*</span></label>
+                    <input type="number" id="return-input-qty" class="form-control" min="1" value="1">
                 </div>
+
                 <div class="form-group" style="margin:0;">
-                    <label class="form-label">Category</label>
-                    <select id="ppe-issue-category" class="form-control"></select>
+                    <label class="form-label">Item Condition <span style="color:#ef4444;">*</span></label>
+                    <select id="return-select-condition" class="form-control">
+                        <option value="Good">Good (Restock to Inventory)</option>
+                        <option value="Damaged">Damaged (Do NOT Restock)</option>
+                        <option value="Lost">Lost (Do NOT Restock)</option>
+                    </select>
                 </div>
             </div>
 
             <div class="form-group" style="margin:0;">
-                <label class="form-label">Select PPE Gear (in stock only) <span style="color:#ef4444;">*</span></label>
-                <select id="ppe-issue-item" class="form-control">
-                    <option value="">Select Gear...</option>
-                </select>
+                <label class="form-label">Remarks (Optional)</label>
+                <input type="text" id="return-input-remarks" class="form-control" placeholder="e.g., Slight wear, returned after voyage">
             </div>
 
-            <div class="form-group" style="margin:0;">
-                <label class="form-label">Quantity <span style="color:#ef4444;">*</span></label>
-                <input type="number" id="ppe-issue-qty" class="form-control" min="1" value="1">
+        </div>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         EMPLOYEE PPE HISTORY MODAL
+         ═══════════════════════════════════════════════════════════ -->
+    <template id="emp-ppe-history-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            
+            <div class="emp-info-card" style="margin:0;">
+                <div class="emp-meta">
+                    <span><i class="fas fa-user-check" style="color:#0ea5e9;"></i> <strong id="history-emp-name">-</strong></span>
+                    <span><i class="fas fa-id-badge" style="color:#94a3b8;"></i> <span id="history-emp-rank">-</span></span>
+                    <span><i class="fas fa-ship" style="color:#94a3b8;"></i> <span id="history-emp-vessel">-</span></span>
+                </div>
+                <div>
+                    <span id="history-overall-badge" class="emp-summary-badge complete">PPE Complete</span>
+                </div>
             </div>
+
+            <!-- CURRENT ISSUED PPE -->
+            <div>
+                <label class="form-label" style="font-weight:700; color:var(--accent-primary); margin-bottom:8px;">
+                    <i class="fas fa-hand-holding"></i> Currently Issued PPE Gear
+                </label>
+                <div class="table-container" style="max-height:200px; overflow-y:auto; border:1px solid var(--border-color, #1e293b); border-radius:6px;">
+                    <table class="table" style="font-size:0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Issued Qty</th>
+                                <th>Returned Qty</th>
+                                <th>Issued Date</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-current-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">No active issued PPE gear.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- RETURNED PPE HISTORY -->
+            <div>
+                <label class="form-label" style="font-weight:700; color:#10b981; margin-bottom:8px;">
+                    <i class="fas fa-undo"></i> Returned PPE History
+                </label>
+                <div class="table-container" style="max-height:200px; overflow-y:auto; border:1px solid var(--border-color, #1e293b); border-radius:6px;">
+                    <table class="table" style="font-size:0.85rem;">
+                        <thead>
+                            <tr>
+                                <th>Item</th>
+                                <th>Qty</th>
+                                <th>Return Date</th>
+                                <th>Condition</th>
+                                <th>Remarks</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-returned-tbody">
+                            <tr>
+                                <td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">No returned PPE history recorded.</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
         </div>
     </template>
 
@@ -481,14 +778,19 @@
         };
 
         let employees = [];
-        let ppeStandards = [];   // loaded from DB API /reception/ppe/standards
-        let ppeStocks = [];      // loaded from DB API /reception/ppe/stock
-        let ppeIssuances = [];   // loaded from DB API /reception/ppe/issuances
+        let ppeStandards = [];
+        let ppeStocks = [];
+        let ppeIssuances = [];
         
         let activeOwnerFilter = 'ALL';
         let searchQuery = '';
         let categoryFilter = 'ALL';
         let statusFilter = 'ALL';
+
+        let issuanceSearchQuery = '';
+        let issuanceStatusFilter = 'ALL';
+
+        let currentSmartSummary = null;
 
         document.addEventListener('DOMContentLoaded', async () => {
             if (!localStorage.getItem('token')) {
@@ -496,7 +798,6 @@
                 return;
             }
 
-            // Owner tab handlers
             document.querySelectorAll('.ppe-owner-tab').forEach(tab => {
                 tab.addEventListener('click', () => {
                     document.querySelectorAll('.ppe-owner-tab').forEach(t => t.classList.remove('active'));
@@ -506,7 +807,6 @@
                 });
             });
 
-            // Filter input handlers
             document.getElementById('ppe-search-input').addEventListener('input', (e) => {
                 searchQuery = e.target.value.toLowerCase().trim();
                 renderPpeStock();
@@ -520,6 +820,16 @@
             document.getElementById('ppe-status-filter').addEventListener('change', (e) => {
                 statusFilter = e.target.value;
                 renderPpeStock();
+            });
+
+            document.getElementById('issuance-search-input').addEventListener('input', (e) => {
+                issuanceSearchQuery = e.target.value.toLowerCase().trim();
+                renderPpeIssuances();
+            });
+
+            document.getElementById('issuance-status-filter').addEventListener('change', (e) => {
+                issuanceStatusFilter = e.target.value;
+                renderPpeIssuances();
             });
 
             await loadDirectories();
@@ -567,7 +877,6 @@
             }
         }
 
-        // Match standard item to stock item
         function findStockRecord(ownerType, category, std) {
             return ppeStocks.find(s =>
                 s.itemName === std.itemName &&
@@ -580,7 +889,6 @@
             return `<span class="ppe-color-swatch" style="background:${c};"></span>${color || 'Standard'}`;
         }
 
-        // Build structure dynamically from loaded ppeStandards
         function buildStructureFromStandards() {
             const struct = {};
             ppeStandards.forEach(std => {
@@ -640,7 +948,6 @@
                     catFragment.appendChild(subRow);
 
                     items.forEach(ref => {
-                        // Apply Search Filter
                         if (searchQuery && !ref.item.toLowerCase().includes(searchQuery) && !ref.applicableTo.toLowerCase().includes(searchQuery) && !(ref.color || '').toLowerCase().includes(searchQuery)) {
                             return;
                         }
@@ -664,7 +971,6 @@
                             lowCount++;
                         }
 
-                        // Apply Status Filter
                         if (statusFilter !== 'ALL' && statusFilter !== statusLabel) {
                             return;
                         }
@@ -711,41 +1017,70 @@
             const tbody = document.getElementById('ppe-issuances-tbody');
             tbody.innerHTML = '';
 
-            const currentlyIssued = ppeIssuances.filter(i => i.status === 'ISSUED').length;
-            document.getElementById('stats-ppe-issued').textContent = currentlyIssued;
+            const activeIssuances = ppeIssuances.filter(i => i.status === 'ISSUED' || i.status === 'PARTIALLY_RETURNED');
+            document.getElementById('stats-ppe-issued').textContent = activeIssuances.length;
 
-            if (ppeIssuances.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No PPE gear checkout history.</td></tr>';
+            let filtered = ppeIssuances;
+
+            if (issuanceStatusFilter !== 'ALL') {
+                filtered = filtered.filter(i => i.status === issuanceStatusFilter);
+            }
+
+            if (issuanceSearchQuery) {
+                filtered = filtered.filter(i => {
+                    const empName = (i.employeeId?.name || i.employeeName || '').toLowerCase();
+                    const itemName = (i.itemName || '').toLowerCase();
+                    return empName.includes(issuanceSearchQuery) || itemName.includes(issuanceSearchQuery);
+                });
+            }
+
+            if (filtered.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:20px; color:#94a3b8;">No PPE gear checkout records found matching filter.</td></tr>';
                 return;
             }
 
-            ppeIssuances.forEach(i => {
+            filtered.forEach(i => {
                 const tr = document.createElement('tr');
+                const empId = i.employeeId ? (i.employeeId._id || i.employeeId.id) : null;
                 const empName = i.employeeId ? i.employeeId.name : (i.employeeName || 'Unknown Crew');
-                const empPos = i.employeeId ? i.employeeId.position : '';
+                const empRank = i.employeeId ? (i.employeeId.rank || i.employeeId.position || 'General') : '-';
+                const empVessel = i.employeeId ? (i.employeeId.vessel || 'Vessel A') : '-';
 
                 const issuedDate = new Date(i.issueDate).toLocaleDateString([], { month: 'short', day: 'numeric' });
-                const returnDate = i.returnDate ? new Date(i.returnDate).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '-';
+                const returnedQty = i.returnedQuantity || 0;
 
-                const badge = i.status === 'ISSUED' ? '<span class="badge badge-yellow">Issued</span>' : '<span class="badge badge-green">Returned</span>';
-                const action = i.status === 'ISSUED' ? `<button class="btn btn-secondary btn-xs" onclick="returnPpe('${i.id}')"><i class="fas fa-undo"></i> Return</button>` : '-';
-                const ownerTag = i.ownerType ? `<span class="ppe-rank-tag">${i.ownerType}${i.applicableTo ? ' · ' + i.applicableTo : ''}</span>` : '<span class="ppe-rank-tag">Standard Issue</span>';
+                let badgeHtml = '<span class="issuance-badge issued">Issued</span>';
+                if (i.status === 'RETURNED') {
+                    badgeHtml = '<span class="issuance-badge returned">Returned</span>';
+                } else if (i.status === 'PARTIALLY_RETURNED') {
+                    badgeHtml = `<span class="issuance-badge partially">Partially Returned (${returnedQty}/${i.quantity})</span>`;
+                }
+
+                const action = (i.status === 'ISSUED' || i.status === 'PARTIALLY_RETURNED')
+                    ? `<button class="btn btn-secondary btn-xs" onclick="openReturnConfirmModal('${i.id}')"><i class="fas fa-undo"></i> Return</button>`
+                    : '-';
+
+                const empClickable = empId
+                    ? `<span class="clickable-emp-name" onclick="openEmployeePpeHistoryModal('${empId}')">${empName}</span>`
+                    : `<strong>${empName}</strong>`;
 
                 tr.innerHTML = `
-                    <td><strong>${empName}</strong><br><small style="color:#94a3b8;">${empPos}</small></td>
-                    <td>${i.itemName}${i.colorSpec ? `<br><small style="color:#94a3b8;">${i.colorSpec}</small>` : ''}</td>
-                    <td>${ownerTag}</td>
-                    <td>${i.quantity}</td>
-                    <td>${issuedDate}</td>
-                    <td>${badge}</td>
-                    <td>${returnDate}</td>
-                    <td class="row-actions">${action}</td>
+                    <td>${empClickable}</td>
+                    <td><span class="ppe-rank-tag">${empRank}</span></td>
+                    <td><small style="color:#94a3b8;">${empVessel}</small></td>
+                    <td><strong>${i.itemName}</strong></td>
+                    <td>${i.colorSpec || 'Standard'}</td>
+                    <td><strong>${i.quantity}</strong></td>
+                    <td>${returnedQty}</td>
+                    <td><small style="color:#94a3b8;">${issuedDate}</small></td>
+                    <td>${badgeHtml}</td>
+                    <td style="text-align:right;">${action}</td>
                 `;
                 tbody.appendChild(tr);
             });
         }
 
-        // ── ADJUST STOCK MODAL ────────────────────────────────────────
+        // ── ADJUST STOCK MODAL WITH LIVE PREVIEW ──────────────────────
 
         function openPpeStockModal() {
             const tpl = document.getElementById('ppe-stock-modal-template');
@@ -755,7 +1090,7 @@
                 title: 'Adjust PPE Inventory Stock',
                 bodyHtml: '',
                 footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
-                             <button class="btn btn-primary" id="save-ppe-stock-btn">Save Changes</button>`
+                             <button class="btn btn-primary" id="save-ppe-stock-btn">Confirm Stock Adjustment</button>`
             });
 
             document.querySelector('.modal-body').appendChild(clone);
@@ -766,9 +1101,12 @@
             const itemHint = document.getElementById('ppe-stock-item-hint');
             const sizeSelect = document.getElementById('ppe-stock-size');
             const reasonSelect = document.getElementById('ppe-stock-reason');
-            const totalInput = document.getElementById('ppe-stock-total');
-            const availInput = document.getElementById('ppe-stock-avail');
+            const changeInput = document.getElementById('ppe-stock-change');
             const reorderInput = document.getElementById('ppe-stock-reorder');
+
+            const prevCurrent = document.getElementById('prev-current');
+            const prevChange = document.getElementById('prev-change');
+            const prevNew = document.getElementById('prev-new');
 
             const structure = buildStructureFromStandards();
 
@@ -809,15 +1147,36 @@
                 if (!ref) return;
                 itemHint.textContent = ref.remarks || '';
                 const record = findStockRecord(ownerSelect.value, categorySelect.value, { itemName: ref.item, colorSpec: ref.color });
-                totalInput.value = record ? record.totalQuantity : 0;
-                availInput.value = record ? record.availableQuantity : 0;
+                
+                const currentAvail = record ? Number(record.availableQuantity || 0) : 0;
                 sizeSelect.value = record ? (record.size || 'Standard') : 'Standard';
                 reorderInput.value = record ? (record.reorderLevel || 5) : 5;
+                
+                updatePreview(currentAvail);
+            }
+
+            function updatePreview(currentAvail) {
+                if (currentAvail === undefined) {
+                    const items = structure[ownerSelect.value]?.categories[categorySelect.value] || [];
+                    const ref = items[itemSelect.value];
+                    const record = ref ? findStockRecord(ownerSelect.value, categorySelect.value, { itemName: ref.item, colorSpec: ref.color }) : null;
+                    currentAvail = record ? Number(record.availableQuantity || 0) : 0;
+                }
+
+                const adj = parseInt(changeInput.value, 10) || 0;
+                const newAvail = currentAvail + adj;
+
+                prevCurrent.textContent = currentAvail;
+                prevChange.textContent = adj >= 0 ? `+${adj}` : `${adj}`;
+                prevChange.style.color = adj >= 0 ? '#0ea5e9' : '#ef4444';
+                prevNew.textContent = newAvail;
+                prevNew.style.color = newAvail < 0 ? '#ef4444' : '#10b981';
             }
 
             ownerSelect.addEventListener('change', populateCategories);
             categorySelect.addEventListener('change', populateItems);
             itemSelect.addEventListener('change', syncQuantities);
+            changeInput.addEventListener('input', () => updatePreview());
 
             populateCategories();
 
@@ -831,162 +1190,397 @@
                     return;
                 }
 
-                const totalQuantity = parseInt(totalInput.value, 10);
-                const availableQuantity = parseInt(availInput.value, 10);
+                const record = findStockRecord(ownerType, category, { itemName: ref.item, colorSpec: ref.color });
+                const currentAvail = record ? Number(record.availableQuantity || 0) : 0;
+                const currentTotal = record ? Number(record.totalQuantity || 0) : 0;
+
+                const adjustmentQty = parseInt(changeInput.value, 10) || 0;
+                const newAvail = currentAvail + adjustmentQty;
+                const newTotal = Math.max(currentTotal, currentTotal + adjustmentQty);
                 const reorderLevel = parseInt(reorderInput.value, 10) || 5;
                 const size = sizeSelect.value || 'Standard';
                 const reason = reasonSelect.value;
 
-                if (Number.isNaN(totalQuantity) || Number.isNaN(availableQuantity)) {
-                    window.UI.showToast('Please enter valid numerical quantities.', 'warning');
-                    return;
-                }
-                if (totalQuantity < 0 || availableQuantity < 0) {
-                    window.UI.showToast('Quantities cannot be negative.', 'warning');
-                    return;
-                }
-                if (availableQuantity > totalQuantity) {
-                    window.UI.showToast('Available quantity cannot be greater than total stock.', 'warning');
+                if (newAvail < 0) {
+                    window.UI.showToast('Available quantity cannot drop below zero.', 'warning');
                     return;
                 }
 
                 try {
                     await window.ApiService.reception.ppe.updateStock({
+                        id: record ? record.id : undefined,
                         itemName: ref.item,
                         ownerType,
                         category,
                         applicableTo: ref.applicableTo,
                         colorSpec: ref.color || 'Standard',
                         size,
-                        totalQuantity,
-                        availableQuantity,
+                        totalQuantity: newTotal,
+                        availableQuantity: newAvail,
+                        adjustmentQty,
                         reorderLevel,
                         reason
                     });
-                    window.UI.showToast('PPE stock updated successfully.', 'success');
+                    window.UI.showToast('PPE stock adjusted successfully.', 'success');
                     document.querySelector('.modal-overlay').close();
                     await loadPpeData();
                 } catch (err) {
                     console.error('PPE stock update failed:', err);
-                    window.UI.showToast(err.message || 'Failed to update PPE stock.', 'error');
+                    window.UI.showToast(err.message || 'Failed to adjust PPE stock.', 'error');
                 }
             });
         }
 
-        // ── ISSUE GEAR MODAL ──────────────────────────────────────────
+        // ── SMART ISSUE GEAR MODAL ────────────────────────────────────
 
-        function openPpeIssueModal() {
-            const tpl = document.getElementById('ppe-issue-modal-template');
+        function openSmartIssueModal() {
+            const tpl = document.getElementById('ppe-smart-issue-modal-template');
             const clone = tpl.content.cloneNode(true);
 
-            const empSelect = clone.querySelector('#ppe-issue-emp');
+            const empSelect = clone.querySelector('#smart-issue-emp-select');
             employees.forEach(e => {
                 const opt = document.createElement('option');
                 opt.value = e.id;
-                opt.textContent = `${e.name} (${e.position || 'Crew'})`;
+                opt.textContent = `${e.name} (${e.position || e.rank || 'Crew'})`;
                 empSelect.appendChild(opt);
             });
 
             window.UI.createModal({
-                title: 'Issue PPE Safety Gear',
+                title: 'Smart Crew PPE Issuance',
                 bodyHtml: '',
                 footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
-                             <button class="btn btn-primary" id="save-ppe-issue-btn">Check Out Gear</button>`
+                             <button class="btn btn-primary" id="btn-issue-smart-kit" style="display:none;">
+                                <i class="fas fa-check-double"></i> Issue Standard PPE Kit
+                             </button>`
             });
 
             document.querySelector('.modal-body').appendChild(clone);
 
-            const ownerSelect = document.getElementById('ppe-issue-owner');
-            const categorySelect = document.getElementById('ppe-issue-category');
-            const itemSelect = document.getElementById('ppe-issue-item');
+            const empCard = document.getElementById('smart-emp-card');
+            const empNameEl = document.getElementById('emp-card-name');
+            const empRankEl = document.getElementById('emp-card-rank');
+            const empVesselEl = document.getElementById('emp-card-vessel');
+            const empOwnerEl = document.getElementById('emp-card-owner');
+            const empStatusBadge = document.getElementById('emp-card-status-badge');
+            
+            const reqContainer = document.getElementById('smart-requirements-container');
+            const reqTbody = document.getElementById('smart-requirements-tbody');
+            const qtySummary = document.getElementById('smart-qty-summary');
+            
+            const unavailAlert = document.getElementById('smart-unavail-alert');
+            const unavailMsg = document.getElementById('unavail-msg');
+            
+            const issueKitBtn = document.getElementById('btn-issue-smart-kit');
 
-            const structure = buildStructureFromStandards();
-
-            Object.keys(structure).forEach(ownerKey => {
-                const opt = document.createElement('option');
-                opt.value = ownerKey;
-                opt.textContent = structure[ownerKey].label;
-                ownerSelect.appendChild(opt);
-            });
-
-            function populateCategories() {
-                categorySelect.innerHTML = '';
-                const cats = structure[ownerSelect.value]?.categories || {};
-                Object.keys(cats).forEach(cat => {
-                    const opt = document.createElement('option');
-                    opt.value = cat;
-                    opt.textContent = cat;
-                    categorySelect.appendChild(opt);
-                });
-                populateItems();
-            }
-
-            function populateItems() {
-                itemSelect.innerHTML = '<option value="">Select Gear...</option>';
-                const items = structure[ownerSelect.value]?.categories[categorySelect.value] || [];
-                items.forEach((ref, idx) => {
-                    const record = findStockRecord(ownerSelect.value, categorySelect.value, { itemName: ref.item, colorSpec: ref.color });
-                    const available = record ? Number(record.availableQuantity || 0) : 0;
-                    const opt = document.createElement('option');
-                    opt.value = idx;
-                    opt.disabled = available <= 0;
-                    opt.textContent = `${ref.item} — ${ref.applicableTo} (${ref.color || 'Standard'}) · Available: ${available}`;
-                    itemSelect.appendChild(opt);
-                });
-            }
-
-            ownerSelect.addEventListener('change', populateCategories);
-            categorySelect.addEventListener('change', populateItems);
-
-            populateCategories();
-
-            document.getElementById('save-ppe-issue-btn').addEventListener('click', async () => {
-                const employeeId = document.getElementById('ppe-issue-emp').value;
-                const ownerType = ownerSelect.value;
-                const category = categorySelect.value;
-                const itemIdx = itemSelect.value;
-                const quantity = parseInt(document.getElementById('ppe-issue-qty').value, 10);
-
-                if (!employeeId || itemIdx === '' || Number.isNaN(quantity) || quantity <= 0) {
-                    window.UI.showToast('Please select Employee, Gear Type and a positive quantity.', 'warning');
-                    return;
-                }
-
-                const ref = structure[ownerType]?.categories[category][itemIdx];
-                const record = findStockRecord(ownerType, category, { itemName: ref.item, colorSpec: ref.color });
-                const available = record ? Number(record.availableQuantity || 0) : 0;
-
-                if (quantity > available) {
-                    window.UI.showToast(`Only ${available} unit(s) of ${ref.item} available.`, 'warning');
+            empSelect.addEventListener('change', async (e) => {
+                const empId = e.target.value;
+                if (!empId) {
+                    empCard.style.display = 'none';
+                    reqContainer.style.display = 'none';
+                    unavailAlert.style.display = 'none';
+                    issueKitBtn.style.display = 'none';
+                    currentSmartSummary = null;
                     return;
                 }
 
                 try {
-                    await window.ApiService.reception.ppe.issue({
-                        employeeId,
-                        itemName: ref.item,
-                        ownerType,
-                        category,
-                        applicableTo: ref.applicableTo,
-                        colorSpec: ref.color || 'Standard',
-                        quantity
+                    reqTbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:20px; color:#94a3b8;"><i class="fas fa-spinner fa-spin"></i> Loading automatic PPE standard...</td></tr>';
+                    reqContainer.style.display = 'block';
+
+                    const res = await window.ApiService.reception.ppe.getEmployeeSummary(empId);
+                    currentSmartSummary = res.data;
+
+                    const emp = currentSmartSummary.employee;
+                    empNameEl.textContent = emp.name;
+                    empRankEl.textContent = emp.rank;
+                    empVesselEl.textContent = emp.vessel;
+                    empOwnerEl.textContent = emp.ownerType;
+
+                    if (currentSmartSummary.overallStatus === 'Complete') {
+                        empStatusBadge.textContent = '✓ Already Complete';
+                        empStatusBadge.className = 'emp-summary-badge complete';
+                    } else {
+                        empStatusBadge.textContent = '⚡ Partial / Action Needed';
+                        empStatusBadge.className = 'emp-summary-badge partial';
+                    }
+
+                    empCard.style.display = 'flex';
+                    qtySummary.textContent = `Required: ${currentSmartSummary.totalRequired} | Issued: ${currentSmartSummary.totalIssued} | Remaining: ${currentSmartSummary.totalRemaining}`;
+
+                    renderSmartRequirementsTable(currentSmartSummary);
+                } catch (err) {
+                    console.error('Failed to load employee PPE summary:', err);
+                    window.UI.showToast('Failed to load PPE summary for employee', 'error');
+                }
+            });
+
+            function renderSmartRequirementsTable(data) {
+                reqTbody.innerHTML = '';
+                let unavailableCount = 0;
+                let unavailableNames = [];
+                let readyToIssueCount = 0;
+
+                data.summary.forEach((item, idx) => {
+                    const tr = document.createElement('tr');
+                    const isFullyIssued = item.remainingQty === 0;
+
+                    if (!isFullyIssued) {
+                        if (item.totalAvailableStock <= 0) {
+                            unavailableCount++;
+                            unavailableNames.push(item.itemName);
+                        } else {
+                            readyToIssueCount++;
+                        }
+                    }
+
+                    let sizeCell = '-';
+                    if (!isFullyIssued) {
+                        if (item.availableVariants && item.availableVariants.length > 0) {
+                            let optsHtml = '';
+                            item.availableVariants.forEach(v => {
+                                const isDefault = v.size === item.defaultSize;
+                                const isDis = v.availableQuantity <= 0 ? 'disabled' : '';
+                                optsHtml += `<option value="${v.size}" ${isDefault ? 'selected' : ''} ${isDis}>${v.size} (${v.availableQuantity} avail)</option>`;
+                            });
+                            sizeCell = `<select class="form-control form-control-sm smart-size-select" data-idx="${idx}" style="padding:2px 8px; font-size:0.8rem; margin:0;">${optsHtml}</select>`;
+                        } else {
+                            sizeCell = `<span style="color:#ef4444; font-size:0.78rem;">Out of Stock</span>`;
+                        }
+                    } else {
+                        sizeCell = `<span style="color:#10b981; font-size:0.78rem;">-</span>`;
+                    }
+
+                    const remCell = isFullyIssued
+                        ? `<span class="badge badge-green">Already Issued</span>`
+                        : `<strong style="color:#0ea5e9;">${item.remainingQty}</strong>`;
+
+                    const availCell = item.totalAvailableStock > 0
+                        ? `<span style="color:#10b981; font-weight:700;">${item.totalAvailableStock}</span>`
+                        : `<span style="color:#ef4444; font-weight:700;">0</span>`;
+
+                    tr.innerHTML = `
+                        <td><strong>${item.itemName}</strong><br><small style="color:#94a3b8;">${item.colorSpec}</small></td>
+                        <td style="text-align:center;">${item.requiredQty}</td>
+                        <td style="text-align:center;">${item.issuedQty}</td>
+                        <td style="text-align:center;">${remCell}</td>
+                        <td>${sizeCell}</td>
+                        <td>${availCell}</td>
+                    `;
+                    reqTbody.appendChild(tr);
+                });
+
+                if (unavailableCount > 0) {
+                    unavailMsg.textContent = `${unavailableCount} required item(s) (${unavailableNames.join(', ')}) unavailable due to 0 stock.`;
+                    unavailAlert.style.display = 'block';
+                    issueKitBtn.innerHTML = `<i class="fas fa-hand-holding-medical"></i> Issue Available PPE (${readyToIssueCount} items)`;
+                    issueKitBtn.style.display = readyToIssueCount > 0 ? 'inline-block' : 'none';
+                } else if (data.totalRemaining === 0) {
+                    unavailAlert.style.display = 'none';
+                    issueKitBtn.style.display = 'none';
+                } else {
+                    unavailAlert.style.display = 'none';
+                    issueKitBtn.innerHTML = `<i class="fas fa-check-double"></i> Issue Standard PPE Kit (${readyToIssueCount} items)`;
+                    issueKitBtn.style.display = 'inline-block';
+                }
+            }
+
+            issueKitBtn.addEventListener('click', async () => {
+                if (!currentSmartSummary || !currentSmartSummary.employee) return;
+
+                const itemsToIssue = [];
+                const sizeSelects = document.querySelectorAll('.smart-size-select');
+                
+                currentSmartSummary.summary.forEach((item, idx) => {
+                    if (item.remainingQty > 0 && item.totalAvailableStock > 0) {
+                        let selectedSize = item.defaultSize || 'Standard';
+                        sizeSelects.forEach(sel => {
+                            if (parseInt(sel.getAttribute('data-idx'), 10) === idx) {
+                                selectedSize = sel.value;
+                            }
+                        });
+
+                        itemsToIssue.push({
+                            itemName: item.itemName,
+                            colorSpec: item.colorSpec,
+                            size: selectedSize,
+                            quantity: item.remainingQty
+                        });
+                    }
+                });
+
+                if (itemsToIssue.length === 0) {
+                    window.UI.showToast('No available PPE items to issue.', 'warning');
+                    return;
+                }
+
+                try {
+                    await window.ApiService.reception.ppe.issueKit({
+                        employeeId: currentSmartSummary.employee.id,
+                        items: itemsToIssue
                     });
-                    window.UI.showToast(`Issued ${quantity}x ${ref.item} successfully`, 'success');
+                    window.UI.showToast(`Issued PPE kit to ${currentSmartSummary.employee.name} successfully!`, 'success');
                     document.querySelector('.modal-overlay').close();
                     await loadPpeData();
                 } catch (err) {
-                    window.UI.showToast(err.message || 'Failed to checkout gear.', 'error');
+                    console.error('Failed to issue PPE kit:', err);
+                    window.UI.showToast(err.message || 'Failed to issue PPE kit.', 'error');
                 }
             });
         }
 
-        async function returnPpe(id) {
+        // ── INTERACTIVE RETURN CONFIRMATION MODAL ─────────────────────
+
+        function openReturnConfirmModal(issuanceId) {
+            const issuance = ppeIssuances.find(i => i.id === issuanceId || i._id === issuanceId);
+            if (!issuance) {
+                window.UI.showToast('Issuance record not found.', 'error');
+                return;
+            }
+
+            const tpl = document.getElementById('ppe-return-modal-template');
+            const clone = tpl.content.cloneNode(true);
+
+            const empName = issuance.employeeId ? issuance.employeeId.name : (issuance.employeeName || 'Crew Member');
+            const currentReturned = issuance.returnedQuantity || 0;
+            const remainingReturnable = Math.max(0, issuance.quantity - currentReturned);
+
+            clone.querySelector('#return-emp-name').textContent = empName;
+            clone.querySelector('#return-item-name').textContent = issuance.itemName;
+            clone.querySelector('#return-size-spec').textContent = issuance.colorSpec || 'Standard';
+            clone.querySelector('#return-val-issued').textContent = issuance.quantity;
+            clone.querySelector('#return-val-returned').textContent = currentReturned;
+            clone.querySelector('#return-val-remaining').textContent = remainingReturnable;
+
+            const qtyInput = clone.querySelector('#return-input-qty');
+            qtyInput.value = remainingReturnable;
+            qtyInput.max = remainingReturnable;
+
+            window.UI.createModal({
+                title: 'Confirm PPE Return & Condition',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                             <button class="btn btn-primary" id="confirm-return-btn">Confirm Return</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+
+            document.getElementById('confirm-return-btn').addEventListener('click', async () => {
+                const returnQty = parseInt(document.getElementById('return-input-qty').value, 10);
+                const condition = document.getElementById('return-select-condition').value;
+                const remarks = document.getElementById('return-input-remarks').value.trim();
+
+                if (isNaN(returnQty) || returnQty <= 0) {
+                    window.UI.showToast('Please enter a valid return quantity.', 'warning');
+                    return;
+                }
+
+                if (returnQty > remainingReturnable) {
+                    window.UI.showToast(`Return quantity cannot exceed remaining returnable (${remainingReturnable}).`, 'warning');
+                    return;
+                }
+
+                try {
+                    const res = await window.ApiService.reception.ppe.return(issuanceId, {
+                        returnQty,
+                        condition,
+                        remarks
+                    });
+
+                    window.UI.showToast(res.message || 'PPE returned successfully.', 'success');
+                    document.querySelector('.modal-overlay').close();
+                    await loadPpeData();
+                } catch (err) {
+                    console.error('Failed to return PPE:', err);
+                    window.UI.showToast(err.message || 'Error processing PPE return.', 'error');
+                }
+            });
+        }
+
+        // ── EMPLOYEE PPE HISTORY MODAL ────────────────────────────────
+
+        async function openEmployeePpeHistoryModal(employeeId) {
+            const tpl = document.getElementById('emp-ppe-history-modal-template');
+            const clone = tpl.content.cloneNode(true);
+
+            window.UI.createModal({
+                title: 'Crew Member PPE History',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Close</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+
+            const nameEl = document.getElementById('history-emp-name');
+            const rankEl = document.getElementById('history-emp-rank');
+            const vesselEl = document.getElementById('history-emp-vessel');
+            const badgeEl = document.getElementById('history-overall-badge');
+            
+            const currentTbody = document.getElementById('history-current-tbody');
+            const returnedTbody = document.getElementById('history-returned-tbody');
+
             try {
-                await window.ApiService.reception.ppe.return(id);
-                window.UI.showToast('PPE Gear returned and stock restocked successfully', 'success');
-                await loadPpeData();
+                const res = await window.ApiService.reception.ppe.getEmployeeHistory(employeeId);
+                const data = res.data;
+
+                nameEl.textContent = data.employee.name;
+                rankEl.textContent = data.employee.rank;
+                vesselEl.textContent = data.employee.vessel;
+
+                badgeEl.textContent = data.overallStatusBadge;
+                if (data.overallStatusBadge === 'PPE Complete') {
+                    badgeEl.className = 'emp-summary-badge complete';
+                } else if (data.overallStatusBadge.includes('Partially')) {
+                    badgeEl.className = 'emp-summary-badge partial';
+                } else {
+                    badgeEl.className = 'emp-summary-badge pending';
+                }
+
+                // Render current issued
+                if (data.currentIssued.length === 0) {
+                    currentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">No currently active issued PPE gear.</td></tr>';
+                } else {
+                    currentTbody.innerHTML = '';
+                    data.currentIssued.forEach(i => {
+                        const tr = document.createElement('tr');
+                        const dt = new Date(i.issueDate).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                        const statusClass = i.status === 'PARTIALLY_RETURNED' ? 'partially' : 'issued';
+                        const statusText = i.status === 'PARTIALLY_RETURNED' ? `Partially Returned (${i.returnedQuantity || 0}/${i.quantity})` : 'Issued';
+
+                        tr.innerHTML = `
+                            <td><strong>${i.itemName}</strong></td>
+                            <td>${i.quantity}</td>
+                            <td>${i.returnedQuantity || 0}</td>
+                            <td><small style="color:#94a3b8;">${dt}</small></td>
+                            <td><span class="issuance-badge ${statusClass}">${statusText}</span></td>
+                        `;
+                        currentTbody.appendChild(tr);
+                    });
+                }
+
+                // Render returned history
+                if (data.returnedHistory.length === 0) {
+                    returnedTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:15px; color:#94a3b8;">No returned PPE history recorded.</td></tr>';
+                } else {
+                    returnedTbody.innerHTML = '';
+                    data.returnedHistory.forEach(i => {
+                        const tr = document.createElement('tr');
+                        const dt = i.returnDate ? new Date(i.returnDate).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '-';
+                        const cond = i.returnCondition || 'Good';
+                        const condColor = cond === 'Good' ? '#10b981' : (cond === 'Damaged' ? '#f59e0b' : '#ef4444');
+
+                        tr.innerHTML = `
+                            <td><strong>${i.itemName}</strong></td>
+                            <td>${i.returnedQuantity || i.quantity}</td>
+                            <td><small style="color:#94a3b8;">${dt}</small></td>
+                            <td><span style="font-weight:700; color:${condColor};">${cond}</span></td>
+                            <td><small style="color:#94a3b8;">${i.returnRemarks || '-'}</small></td>
+                        `;
+                        returnedTbody.appendChild(tr);
+                    });
+                }
             } catch (err) {
-                window.UI.showToast('Error returning gear', 'error');
+                console.error('Failed to load employee PPE history:', err);
+                window.UI.showToast('Failed to load employee PPE history.', 'error');
             }
         }
 
@@ -997,7 +1591,7 @@
             const clone = tpl.content.cloneNode(true);
 
             window.UI.createModal({
-                title: 'PPE Stock Movement History',
+                title: 'PPE Stock Movement History Log',
                 bodyHtml: '',
                 footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Close</button>`
             });

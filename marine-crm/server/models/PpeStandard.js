@@ -18,6 +18,9 @@ const ppeStandardSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+// Prevent duplicate standard-item assignments
+ppeStandardSchema.index({ ownerType: 1, itemName: 1, applicableRank: 1, colorSpec: 1 }, { unique: true });
+
 ppeStandardSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {
