@@ -4,559 +4,1042 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>PPE Stock - Marine CRM</title>
-
     <link rel="stylesheet" href="/public/css/styles1.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 
-    <link
-        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css"
-        rel="stylesheet">
+    <style>
+        /* ── Owner-type filter tabs ─────────────────────────────── */
+        .ppe-owner-tabs {
+            display: flex;
+            flex-wrap: wrap;
+            border-bottom: 1px solid var(--border-color, #1e293b);
+            margin-bottom: 20px;
+            gap: 15px;
+        }
+
+        .ppe-owner-tab {
+            cursor: pointer;
+            border: none;
+            padding: 12px 16px;
+            background: none;
+            color: var(--text-secondary, #94a3b8);
+            font-weight: 600;
+            font-size: 0.95rem;
+            border-bottom: 3px solid transparent;
+            transition: all var(--transition, 0.2s);
+        }
+
+        .ppe-owner-tab:hover {
+            color: var(--text-primary, #fff);
+        }
+
+        .ppe-owner-tab.active {
+            color: var(--accent-primary, #0ea5e9);
+            border-bottom-color: var(--accent-primary, #0ea5e9);
+        }
+
+        /* ── Search & Filters Bar ───────────────────────────────── */
+        .ppe-filter-bar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 12px;
+            align-items: center;
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color, #1e293b);
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+
+        .ppe-filter-bar .form-control {
+            max-width: 220px;
+            margin: 0;
+        }
+
+        .ppe-filter-bar #ppe-search-input {
+            max-width: 280px;
+            flex-grow: 1;
+        }
+
+        /* ── Stock badges ───────────────────────────────────────── */
+        .stock-badge {
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 0.8em;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .stock-badge.healthy {
+            background-color: rgba(16, 185, 129, 0.15);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .stock-badge.low {
+            background-color: rgba(245, 158, 11, 0.15);
+            color: #f59e0b;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .stock-badge.out {
+            background-color: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        /* ── Category / owner group headers inside stock table ────── */
+        .ppe-group-row td {
+            background: rgba(14, 165, 233, 0.08);
+            font-weight: 700;
+            font-size: 0.8rem;
+            letter-spacing: 0.03em;
+            text-transform: uppercase;
+            color: var(--accent-primary, #0ea5e9);
+            padding: 10px 20px !important;
+        }
+
+        .ppe-subgroup-row td {
+            background: rgba(148, 163, 184, 0.08);
+            font-weight: 600;
+            font-size: 0.78rem;
+            color: var(--text-secondary, #94a3b8);
+            padding: 8px 20px !important;
+        }
+
+        .ppe-color-swatch {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+            border: 1px solid rgba(0, 0, 0, 0.2);
+            vertical-align: middle;
+        }
+
+        .ppe-rank-tag {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: rgba(148, 163, 184, 0.15);
+            color: var(--text-secondary, #94a3b8);
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        .split-grid {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 24px;
+        }
+
+        .cascade-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        @media (max-width: 640px) {
+            .cascade-grid {
+                grid-template-columns: 1fr;
+            }
+            .ppe-filter-bar .form-control {
+                max-width: 100%;
+            }
+        }
+    </style>
 </head>
 
 <body>
 
     <div class="app-wrapper">
-
-        <!-- SIDEBAR -->
         <div id="sidebar-container"></div>
-
         <div id="sidebar-overlay" class="sidebar-overlay"></div>
 
-        <!-- MAIN CONTENT -->
         <div class="main-content">
-
-            <!-- NAVBAR -->
             <div id="navbar-container"></div>
 
             <main class="page-content">
 
-                <!-- STEP 3: PAGE HEADER -->
                 <div class="page-header">
-
                     <div>
-                        <h1 class="page-title">
-                            🦺 PPE Stock
-                        </h1>
-
+                        <h1 class="page-title">🦺 PPE Stock &amp; Issuance</h1>
                         <p class="page-subtitle">
-                            Manage PPE inventory, available stock and stock adjustments
+                            Simplified PPE Flow: <strong>PPE Standard → PPE Stock → PPE Issue → PPE Return</strong>
                         </p>
                     </div>
-
-                </div>
-
-
-                <!-- STEP 4: ADD INVENTORY CARD HERE -->
-                <div class="card">
-
-                    <div class="card-header"
-                        style="
-                            display:flex;
-                            justify-content:space-between;
-                            align-items:center;
-                            padding:16px 20px;
-                        ">
-
-                        <div>
-                            <h2 class="card-title" style="margin:0;">
-                                PPE Stock Inventory
-                            </h2>
-
-                            <p style="
-                                margin:4px 0 0;
-                                color:var(--text-muted);
-                                font-size:0.85rem;
-                            ">
-                                View and adjust available PPE inventory
-                            </p>
-                        </div>
-
-                        <button
-                            class="btn btn-primary"
-                            onclick="openPpeStockModal()">
-
-                            <i class="fas fa-boxes-stacked"></i>
-                            Adjust Stock
-
+                    <div style="display:flex; align-items:center; gap:10px;">
+                        <button class="btn btn-secondary" onclick="openPpeHistoryModal()">
+                            <i class="fas fa-history"></i>
+                            Stock Movement History
                         </button>
-
+                        <a href="/pages/reception.html" class="btn btn-secondary">
+                            <i class="fas fa-arrow-left"></i>
+                            Back to Reception Desk
+                        </a>
                     </div>
+                </div>
 
+                <div class="stats-grid" style="margin-bottom: 20px;">
+                    <div class="stat-card">
+                        <span class="stat-label">Total Stock Items</span>
+                        <span class="stat-value" id="stats-ppe-items">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Low Stock Alerts</span>
+                        <span class="stat-value" id="stats-ppe-low" style="color:#f59e0b;">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Out of Stock</span>
+                        <span class="stat-value" id="stats-ppe-out" style="color:#ef4444;">0</span>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-label">Currently Issued</span>
+                        <span class="stat-value" id="stats-ppe-issued" style="color:#0ea5e9;">0</span>
+                    </div>
+                </div>
 
-                    <div class="card-body" style="padding:0;">
+                <!-- OWNER STANDARD TABS -->
+                <div class="ppe-owner-tabs">
+                    <button class="ppe-owner-tab active" data-owner="ALL">All Owners</button>
+                    <button class="ppe-owner-tab" data-owner="Common">Common Items</button>
+                    <button class="ppe-owner-tab" data-owner="Turkey Owner">Turkey Owner</button>
+                    <button class="ppe-owner-tab" data-owner="Other Owners">Other Owners</button>
+                </div>
 
-                        <div class="table-container">
+                <!-- SEARCH & FILTER TOOLBAR -->
+                <div class="ppe-filter-bar">
+                    <input type="text" id="ppe-search-input" class="form-control" placeholder="🔍 Search PPE item name or spec...">
+                    
+                    <select id="ppe-category-filter" class="form-control">
+                        <option value="ALL">All Categories</option>
+                        <option value="Common Items">Common Items</option>
+                        <option value="Clothing">Clothing</option>
+                        <option value="Bedding">Bedding</option>
+                        <option value="Safety">Safety</option>
+                        <option value="Footwear">Footwear</option>
+                        <option value="Galley">Galley</option>
+                    </select>
 
-                            <table class="table">
+                    <select id="ppe-status-filter" class="form-control">
+                        <option value="ALL">All Stock Statuses</option>
+                        <option value="Healthy">Healthy</option>
+                        <option value="Low Stock">Low Stock</option>
+                        <option value="Out of Stock">Out of Stock</option>
+                    </select>
 
-                                <thead>
-                                    <tr>
-                                        <th>PPE Item</th>
-                                        <th>Total Stock</th>
-                                        <th>Available</th>
-                                        <th>Issued</th>
-                                        <th>Status</th>
-                                    </tr>
-                                </thead>
+                    <button class="btn btn-secondary btn-sm" onclick="resetPpeFilters()" title="Reset Filters">
+                        <i class="fas fa-undo"></i> Reset
+                    </button>
+                </div>
 
-                                <tbody id="ppe-stock-tbody">
+                <div class="split-grid">
 
-                                    <tr>
-                                        <td colspan="5"
-                                            style="
-                                                text-align:center;
-                                                padding:30px;
-                                                color:#94a3b8;
-                                            ">
-                                            Loading PPE stock...
-                                        </td>
-                                    </tr>
-
-                                </tbody>
-
-                            </table>
-
+                    <!-- STOCK INVENTORY -->
+                    <div class="card">
+                        <div class="card-header"
+                            style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px;">
+                            <div>
+                                <h2 class="card-title" style="margin:0;">PPE Stock Inventory</h2>
+                                <p style="margin:4px 0 0; color:var(--text-muted); font-size:0.85rem;">
+                                    Physical stock levels matched against Owner &amp; Rank standards
+                                </p>
+                            </div>
+                            <button class="btn btn-primary" onclick="openPpeStockModal()">
+                                <i class="fas fa-boxes-stacked"></i>
+                                Adjust Stock
+                            </button>
                         </div>
 
+                        <div class="card-body" style="padding:0;">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Item</th>
+                                            <th>Applicable To</th>
+                                            <th>Size / Spec</th>
+                                            <th>Total</th>
+                                            <th>Available</th>
+                                            <th>Issued</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ppe-stock-tbody">
+                                        <tr>
+                                            <td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">
+                                                Loading PPE stock...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- ISSUANCE HISTORY -->
+                    <div class="card">
+                        <div class="card-header"
+                            style="display:flex; justify-content:space-between; align-items:center; padding:16px 20px;">
+                            <div>
+                                <h2 class="card-title" style="margin:0;">PPE Issuance History</h2>
+                                <p style="margin:4px 0 0; color:var(--text-muted); font-size:0.85rem;">
+                                    Track gear checked out to crew / employees and returns
+                                </p>
+                            </div>
+                            <button class="btn btn-primary" onclick="openPpeIssueModal()">
+                                <i class="fas fa-hand-holding"></i>
+                                Issue Gear
+                            </button>
+                        </div>
+
+                        <div class="card-body" style="padding:0;">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>Employee / Crew</th>
+                                            <th>Item</th>
+                                            <th>Owner Standard</th>
+                                            <th>Qty</th>
+                                            <th>Issued Date</th>
+                                            <th>Status</th>
+                                            <th>Return Date</th>
+                                            <th>Action</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ppe-issuances-tbody">
+                                        <tr>
+                                            <td colspan="8" style="text-align:center; padding:30px; color:#94a3b8;">
+                                                Loading issuance history...
+                                            </td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
                     </div>
 
                 </div>
-
-
-                <!-- STEP 5: PUT PPE MODAL HERE -->
-<template id="ppe-stock-modal-template">
-
-    <div style="
-        display:flex;
-        flex-direction:column;
-        gap:16px;
-    ">
-
-        <div class="form-group" style="margin:0;">
-
-            <label class="form-label">
-                PPE Item Type
-            </label>
-
-            <select
-                id="ppe-stock-item"
-                class="form-control">
-
-                <option value="Helmet">
-                    Helmet 🪖
-                </option>
-
-                <option value="Safety Shoes">
-                    Safety Shoes 🥾
-                </option>
-
-                <option value="Coverall">
-                    Coverall 🧥
-                </option>
-
-                <option value="Safety Glasses">
-                    Safety Glasses 🥽
-                </option>
-
-                <option value="Work Gloves">
-                    Work Gloves 🧤
-                </option>
-
-            </select>
-
-        </div>
-
-
-        <div class="form-group" style="margin:0;">
-
-            <label class="form-label">
-                Total Stock Quantity
-            </label>
-
-            <input
-                type="number"
-                id="ppe-stock-total"
-                class="form-control"
-                min="0"
-                placeholder="e.g. 50">
-
-        </div>
-
-
-        <div class="form-group" style="margin:0;">
-
-            <label class="form-label">
-                Available / Unissued Quantity
-            </label>
-
-            <input
-                type="number"
-                id="ppe-stock-avail"
-                class="form-control"
-                min="0"
-                placeholder="e.g. 50">
-
-        </div>
-
-    </div>
-
-</template>
-
 
             </main>
-
         </div>
-
     </div>
 
+    <!-- ═══════════════════════════════════════════════════════════
+         ADJUST STOCK MODAL
+         ═══════════════════════════════════════════════════════════ -->
+    <template id="ppe-stock-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+
+            <div class="cascade-grid">
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Owner Standard <span style="color:#ef4444;">*</span></label>
+                    <select id="ppe-stock-owner" class="form-control"></select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Category <span style="color:#ef4444;">*</span></label>
+                    <select id="ppe-stock-category" class="form-control"></select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Kit Item <span style="color:#ef4444;">*</span></label>
+                <select id="ppe-stock-item" class="form-control"></select>
+                <div class="doc-hint" id="ppe-stock-item-hint" style="margin-top:6px; font-size:0.78rem; color:var(--text-muted);"></div>
+            </div>
+
+            <div class="cascade-grid">
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Size / Variant</label>
+                    <select id="ppe-stock-size" class="form-control">
+                        <option value="Standard">Standard / N/A</option>
+                        <option value="S">S</option>
+                        <option value="M">M</option>
+                        <option value="L">L</option>
+                        <option value="XL">XL</option>
+                        <option value="XXL">XXL</option>
+                        <option value="Size 7">Size 7</option>
+                        <option value="Size 8">Size 8</option>
+                        <option value="Size 9">Size 9</option>
+                        <option value="Size 10">Size 10</option>
+                        <option value="Size 11">Size 11</option>
+                    </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Adjustment Reason <span style="color:#ef4444;">*</span></label>
+                    <select id="ppe-stock-reason" class="form-control">
+                        <option value="New Stock">New Stock</option>
+                        <option value="Correction">Correction</option>
+                        <option value="Damaged">Damaged</option>
+                        <option value="Lost">Lost</option>
+                        <option value="Other">Other</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="cascade-grid">
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Total Stock Quantity <span style="color:#ef4444;">*</span></label>
+                    <input type="number" id="ppe-stock-total" class="form-control" min="0" placeholder="e.g. 50">
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Available Quantity <span style="color:#ef4444;">*</span></label>
+                    <input type="number" id="ppe-stock-avail" class="form-control" min="0" placeholder="e.g. 50">
+                </div>
+            </div>
+
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Reorder Level (Alert Threshold)</label>
+                <input type="number" id="ppe-stock-reorder" class="form-control" min="0" value="5" placeholder="Default: 5">
+            </div>
+
+        </div>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         ISSUE GEAR MODAL
+         ═══════════════════════════════════════════════════════════ -->
+    <template id="ppe-issue-modal-template">
+        <div style="display:flex; flex-direction:column; gap:16px;">
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Issue to Crew Member (Employee) <span style="color:#ef4444;">*</span></label>
+                <select id="ppe-issue-emp" class="form-control">
+                    <option value="">Select Employee...</option>
+                </select>
+            </div>
+
+            <div class="cascade-grid">
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Owner Standard</label>
+                    <select id="ppe-issue-owner" class="form-control"></select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                    <label class="form-label">Category</label>
+                    <select id="ppe-issue-category" class="form-control"></select>
+                </div>
+            </div>
+
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Select PPE Gear (in stock only) <span style="color:#ef4444;">*</span></label>
+                <select id="ppe-issue-item" class="form-control">
+                    <option value="">Select Gear...</option>
+                </select>
+            </div>
+
+            <div class="form-group" style="margin:0;">
+                <label class="form-label">Quantity <span style="color:#ef4444;">*</span></label>
+                <input type="number" id="ppe-issue-qty" class="form-control" min="1" value="1">
+            </div>
+        </div>
+    </template>
+
+    <!-- ═══════════════════════════════════════════════════════════
+         STOCK MOVEMENT HISTORY MODAL
+         ═══════════════════════════════════════════════════════════ -->
+    <template id="ppe-history-modal-template">
+        <div class="table-container" style="max-height:400px; overflow-y:auto;">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>Date &amp; Time</th>
+                        <th>Item</th>
+                        <th>Size / Spec</th>
+                        <th>Change</th>
+                        <th>Before → After</th>
+                        <th>Reason</th>
+                        <th>User</th>
+                    </tr>
+                </thead>
+                <tbody id="ppe-history-tbody">
+                    <tr>
+                        <td colspan="7" style="text-align:center; padding:20px; color:#94a3b8;">
+                            Loading movement history...
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </template>
 
     <!-- SCRIPTS -->
-<script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-
-<script src="/public/js/api/api.js"></script>
-
-<script src="/public/js/components/ui.js"></script>
-
-<script src="/public/js/components/sidebar.js"></script>
-
-<script src="/public/js/components/birthday.js"></script>
-
-<script src="/public/js/components/ocean-bg.js"></script>
-
-<script src="/public/js/ppe-stock.js"></script>
-<script src="/public/js/components/navbar.js"></script>
-
-    <!-- YOUR PPE STOCK JAVASCRIPT GOES HERE -->
-
-<script >
-
-    let ppeStocks = [];
-
-document.addEventListener('DOMContentLoaded', async () => {
-
-    if (!localStorage.getItem('token')) {
-        window.location.href = '/pages/login.html';
-        return;
-    }
-
-    await loadPpeStock();
-
-});
-
-async function loadPpeStock() {
-
-    try {
-
-        const response =
-            await window.ApiService.reception.ppe.getStock();
-
-        ppeStocks = response.data || [];
-
-        renderPpeStock(ppeStocks);
-
-    } catch (error) {
-
-        console.error(
-            'Failed to load PPE stock:',
-            error
-        );
-
-        window.UI.showToast(
-            'Failed to load PPE stock.',
-            'error'
-        );
-    }
-
-}
-
-function renderPpeStock(stocks) {
-
-    const tbody =
-        document.getElementById('ppe-stock-tbody');
-
-    tbody.innerHTML = '';
-
-    if (!stocks.length) {
-
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="5"
-                    style="
-                        text-align:center;
-                        padding:30px;
-                        color:#94a3b8;
-                    ">
-                    No PPE stock items found.
-                </td>
-            </tr>
-        `;
-
-        return;
-    }
-
-    stocks.forEach(stock => {
-
-        const total =
-            Number(stock.totalQuantity || 0);
-
-        const available =
-            Number(stock.availableQuantity || 0);
-
-        const issued =
-            Math.max(0, total - available);
-
-        const isLow =
-            available < 5;
-
-        const status = isLow
-            ? `<span class="stock-badge low">
-                    Low Stock
-               </span>`
-            : `<span class="stock-badge good">
-                    Available
-               </span>`;
-
-        const row =
-            document.createElement('tr');
-
-        row.innerHTML = `
-
-            <td>
-                <strong>
-                    ${stock.itemName}
-                </strong>
-            </td>
-
-            <td>
-                ${total}
-            </td>
-
-            <td>
-
-                <span class="stock-badge ${isLow ? 'low' : 'good'}">
-                    ${available}
-                </span>
-
-            </td>
-
-            <td>
-                ${issued}
-            </td>
-
-            <td>
-                ${status}
-            </td>
-
-        `;
-
-        tbody.appendChild(row);
-
-    });
-
-}
-
-function openPpeStockModal() {
-
-    const template =
-        document.getElementById(
-            'ppe-stock-modal-template'
-        );
-
-    const clone =
-        template.content.cloneNode(true);
-
-
-    window.UI.createModal({
-
-        title: 'Adjust PPE Inventory Stock',
-
-        bodyHtml: '',
-
-        footerHtml: `
-
-            <button
-                class="btn btn-secondary"
-                onclick="
-                    this.closest('.modal-overlay').close()
-                ">
-                Cancel
-            </button>
-
-            <button
-                class="btn btn-primary"
-                id="save-ppe-stock-btn">
-                Save Changes
-            </button>
-
-        `
-
-    });
-
-
-    document
-        .querySelector('.modal-body')
-        .appendChild(clone);
-
-
-    const itemSelect =
-        document.getElementById('ppe-stock-item');
-
-    const totalInput =
-        document.getElementById('ppe-stock-total');
-
-    const availableInput =
-        document.getElementById('ppe-stock-avail');
-
-
-    function updateFields() {
-
-        const matched =
-            ppeStocks.find(
-                stock =>
-                    stock.itemName === itemSelect.value
-            );
-
-
-        if (matched) {
-
-            totalInput.value =
-                matched.totalQuantity;
-
-            availableInput.value =
-                matched.availableQuantity;
-
-        } else {
-
-            totalInput.value = 0;
-
-            availableInput.value = 0;
-
-        }
-
-    }
-
-
-    itemSelect.addEventListener(
-        'change',
-        updateFields
-    );
-
-
-    updateFields();
-
-
-    document
-        .getElementById('save-ppe-stock-btn')
-        .addEventListener(
-            'click',
-            savePpeStock
-        );
-
-
-    async function savePpeStock() {
-
-        const itemName =
-            itemSelect.value;
-
-        const totalQuantity =
-            parseInt(totalInput.value, 10);
-
-        const availableQuantity =
-            parseInt(
-                availableInput.value,
-                10
-            );
-
-
-        if (
-            Number.isNaN(totalQuantity) ||
-            Number.isNaN(availableQuantity)
-        ) {
-
-            window.UI.showToast(
-                'Please enter valid quantities.',
-                'warning'
-            );
-
-            return;
-        }
-
-
-        if (
-            totalQuantity < 0 ||
-            availableQuantity < 0
-        ) {
-
-            window.UI.showToast(
-                'Quantities cannot be negative.',
-                'warning'
-            );
-
-            return;
-        }
-
-
-        if (
-            availableQuantity > totalQuantity
-        ) {
-
-            window.UI.showToast(
-                'Available quantity cannot be greater than total stock.',
-                'warning'
-            );
-
-            return;
-        }
-
-
-        try {
-
-            await window.ApiService.reception.ppe.updateStock({
-
-                itemName,
-
-                totalQuantity,
-
-                availableQuantity
-
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script src="/public/js/components/birthday.js"></script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+
+    <script>
+        const SWATCH_COLORS = {
+            Blue: '#3b82f6',
+            Orange: '#f97316',
+            White: '#e5e7eb',
+            Standard: '#94a3b8'
+        };
+
+        let employees = [];
+        let ppeStandards = [];   // loaded from DB API /reception/ppe/standards
+        let ppeStocks = [];      // loaded from DB API /reception/ppe/stock
+        let ppeIssuances = [];   // loaded from DB API /reception/ppe/issuances
+        
+        let activeOwnerFilter = 'ALL';
+        let searchQuery = '';
+        let categoryFilter = 'ALL';
+        let statusFilter = 'ALL';
+
+        document.addEventListener('DOMContentLoaded', async () => {
+            if (!localStorage.getItem('token')) {
+                window.location.href = '/pages/login.html';
+                return;
+            }
+
+            // Owner tab handlers
+            document.querySelectorAll('.ppe-owner-tab').forEach(tab => {
+                tab.addEventListener('click', () => {
+                    document.querySelectorAll('.ppe-owner-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    activeOwnerFilter = tab.getAttribute('data-owner');
+                    renderPpeStock();
+                });
             });
 
+            // Filter input handlers
+            document.getElementById('ppe-search-input').addEventListener('input', (e) => {
+                searchQuery = e.target.value.toLowerCase().trim();
+                renderPpeStock();
+            });
 
-            window.UI.showToast(
-                'PPE stock updated successfully.',
-                'success'
-            );
+            document.getElementById('ppe-category-filter').addEventListener('change', (e) => {
+                categoryFilter = e.target.value;
+                renderPpeStock();
+            });
 
+            document.getElementById('ppe-status-filter').addEventListener('change', (e) => {
+                statusFilter = e.target.value;
+                renderPpeStock();
+            });
 
-            document
-                .querySelector('.modal-overlay')
-                .close();
+            await loadDirectories();
+            await loadPpeData();
+        });
 
-
-            await loadPpeStock();
-
-
-        } catch (error) {
-
-            console.error(
-                'PPE stock update failed:',
-                error
-            );
-
-
-            window.UI.showToast(
-                error.message ||
-                'Failed to update PPE stock.',
-                'error'
-            );
-
+        function resetPpeFilters() {
+            searchQuery = '';
+            categoryFilter = 'ALL';
+            statusFilter = 'ALL';
+            activeOwnerFilter = 'ALL';
+            document.getElementById('ppe-search-input').value = '';
+            document.getElementById('ppe-category-filter').value = 'ALL';
+            document.getElementById('ppe-status-filter').value = 'ALL';
+            document.querySelectorAll('.ppe-owner-tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('.ppe-owner-tab[data-owner="ALL"]').classList.add('active');
+            renderPpeStock();
         }
 
-    }
+        async function loadDirectories() {
+            try {
+                const empRes = await window.ApiService.employees.list();
+                employees = empRes.data || [];
+            } catch (err) {
+                console.error('Error loading employee directory:', err);
+            }
+        }
 
-}
-</script>
+        async function loadPpeData() {
+            try {
+                const [standardsRes, stockRes, issueRes] = await Promise.all([
+                    window.ApiService.reception.ppe.getStandards(),
+                    window.ApiService.reception.ppe.getStock(),
+                    window.ApiService.reception.ppe.getIssuances()
+                ]);
+                ppeStandards = standardsRes.data || [];
+                ppeStocks = stockRes.data || [];
+                ppeIssuances = issueRes.data || [];
+                
+                renderPpeStock();
+                renderPpeIssuances();
+            } catch (err) {
+                console.error('Failed to load PPE data:', err);
+                window.UI.showToast('Failed to load PPE stock / issuance data.', 'error');
+            }
+        }
+
+        // Match standard item to stock item
+        function findStockRecord(ownerType, category, std) {
+            return ppeStocks.find(s =>
+                s.itemName === std.itemName &&
+                (s.colorSpec || 'Standard') === (std.colorSpec || 'Standard')
+            );
+        }
+
+        function swatch(color) {
+            const c = SWATCH_COLORS[color] || '#94a3b8';
+            return `<span class="ppe-color-swatch" style="background:${c};"></span>${color || 'Standard'}`;
+        }
+
+        // Build structure dynamically from loaded ppeStandards
+        function buildStructureFromStandards() {
+            const struct = {};
+            ppeStandards.forEach(std => {
+                const ownerKey = std.ownerType;
+                if (!struct[ownerKey]) {
+                    struct[ownerKey] = {
+                        label: `${ownerKey} — PPE Standard`,
+                        categories: {}
+                    };
+                }
+                const catKey = std.category;
+                if (!struct[ownerKey].categories[catKey]) {
+                    struct[ownerKey].categories[catKey] = [];
+                }
+                struct[ownerKey].categories[catKey].push({
+                    item: std.itemName,
+                    applicableTo: std.applicableRank,
+                    color: std.colorSpec,
+                    remarks: std.remarks
+                });
+            });
+            return struct;
+        }
+
+        // ── RENDER STOCK TABLE ────────────────────────────────────────
+
+        function renderPpeStock() {
+            const tbody = document.getElementById('ppe-stock-tbody');
+            tbody.innerHTML = '';
+
+            let totalItems = 0;
+            let lowCount = 0;
+            let outCount = 0;
+
+            const structure = buildStructureFromStandards();
+
+            Object.entries(structure).forEach(([ownerKey, ownerDef]) => {
+                if (activeOwnerFilter !== 'ALL' && activeOwnerFilter !== ownerKey) return;
+
+                let ownerHasMatchingItems = false;
+                const ownerFragment = document.createDocumentFragment();
+
+                const groupRow = document.createElement('tr');
+                groupRow.className = 'ppe-group-row';
+                groupRow.innerHTML = `<td colspan="7">${ownerDef.label}</td>`;
+                ownerFragment.appendChild(groupRow);
+
+                Object.entries(ownerDef.categories).forEach(([categoryName, items]) => {
+                    if (categoryFilter !== 'ALL' && categoryFilter !== categoryName && !categoryName.includes(categoryFilter)) return;
+
+                    let catHasMatchingItems = false;
+                    const catFragment = document.createDocumentFragment();
+
+                    const subRow = document.createElement('tr');
+                    subRow.className = 'ppe-subgroup-row';
+                    subRow.innerHTML = `<td colspan="7">${categoryName}</td>`;
+                    catFragment.appendChild(subRow);
+
+                    items.forEach(ref => {
+                        // Apply Search Filter
+                        if (searchQuery && !ref.item.toLowerCase().includes(searchQuery) && !ref.applicableTo.toLowerCase().includes(searchQuery) && !(ref.color || '').toLowerCase().includes(searchQuery)) {
+                            return;
+                        }
+
+                        const record = findStockRecord(ownerKey, categoryName, { itemName: ref.item, colorSpec: ref.color });
+                        const total = record ? Number(record.totalQuantity || 0) : 0;
+                        const available = record ? Number(record.availableQuantity || 0) : 0;
+                        const issued = Math.max(0, total - available);
+                        const reorderLevel = record ? Number(record.reorderLevel || 5) : 5;
+                        const size = record ? (record.size || 'Standard') : 'Standard';
+
+                        let statusLabel = 'Healthy';
+                        let statusClass = 'healthy';
+                        if (available === 0) {
+                            statusLabel = 'Out of Stock';
+                            statusClass = 'out';
+                            outCount++;
+                        } else if (available <= reorderLevel) {
+                            statusLabel = 'Low Stock';
+                            statusClass = 'low';
+                            lowCount++;
+                        }
+
+                        // Apply Status Filter
+                        if (statusFilter !== 'ALL' && statusFilter !== statusLabel) {
+                            return;
+                        }
+
+                        totalItems++;
+                        catHasMatchingItems = true;
+
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td><strong>${ref.item}</strong>${ref.remarks ? `<br><small style="color:#94a3b8;">${ref.remarks}</small>` : ''}</td>
+                            <td><span class="ppe-rank-tag">${ref.applicableTo}</span></td>
+                            <td>${swatch(ref.color)} <small style="color:#94a3b8;">(${size})</small></td>
+                            <td>${total}</td>
+                            <td><span class="stock-badge ${statusClass}">${available}</span></td>
+                            <td>${issued}</td>
+                            <td><span class="stock-badge ${statusClass}">${statusLabel}</span></td>
+                        `;
+                        catFragment.appendChild(tr);
+                    });
+
+                    if (catHasMatchingItems) {
+                        ownerFragment.appendChild(catFragment);
+                        ownerHasMatchingItems = true;
+                    }
+                });
+
+                if (ownerHasMatchingItems) {
+                    tbody.appendChild(ownerFragment);
+                }
+            });
+
+            if (totalItems === 0) {
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:30px; color:#94a3b8;">No matching PPE stock items found.</td></tr>';
+            }
+
+            document.getElementById('stats-ppe-items').textContent = totalItems;
+            document.getElementById('stats-ppe-low').textContent = lowCount;
+            document.getElementById('stats-ppe-out').textContent = outCount;
+        }
+
+        // ── RENDER ISSUANCE TABLE ─────────────────────────────────────
+
+        function renderPpeIssuances() {
+            const tbody = document.getElementById('ppe-issuances-tbody');
+            tbody.innerHTML = '';
+
+            const currentlyIssued = ppeIssuances.filter(i => i.status === 'ISSUED').length;
+            document.getElementById('stats-ppe-issued').textContent = currentlyIssued;
+
+            if (ppeIssuances.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No PPE gear checkout history.</td></tr>';
+                return;
+            }
+
+            ppeIssuances.forEach(i => {
+                const tr = document.createElement('tr');
+                const empName = i.employeeId ? i.employeeId.name : (i.employeeName || 'Unknown Crew');
+                const empPos = i.employeeId ? i.employeeId.position : '';
+
+                const issuedDate = new Date(i.issueDate).toLocaleDateString([], { month: 'short', day: 'numeric' });
+                const returnDate = i.returnDate ? new Date(i.returnDate).toLocaleDateString([], { month: 'short', day: 'numeric' }) : '-';
+
+                const badge = i.status === 'ISSUED' ? '<span class="badge badge-yellow">Issued</span>' : '<span class="badge badge-green">Returned</span>';
+                const action = i.status === 'ISSUED' ? `<button class="btn btn-secondary btn-xs" onclick="returnPpe('${i.id}')"><i class="fas fa-undo"></i> Return</button>` : '-';
+                const ownerTag = i.ownerType ? `<span class="ppe-rank-tag">${i.ownerType}${i.applicableTo ? ' · ' + i.applicableTo : ''}</span>` : '<span class="ppe-rank-tag">Standard Issue</span>';
+
+                tr.innerHTML = `
+                    <td><strong>${empName}</strong><br><small style="color:#94a3b8;">${empPos}</small></td>
+                    <td>${i.itemName}${i.colorSpec ? `<br><small style="color:#94a3b8;">${i.colorSpec}</small>` : ''}</td>
+                    <td>${ownerTag}</td>
+                    <td>${i.quantity}</td>
+                    <td>${issuedDate}</td>
+                    <td>${badge}</td>
+                    <td>${returnDate}</td>
+                    <td class="row-actions">${action}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // ── ADJUST STOCK MODAL ────────────────────────────────────────
+
+        function openPpeStockModal() {
+            const tpl = document.getElementById('ppe-stock-modal-template');
+            const clone = tpl.content.cloneNode(true);
+
+            window.UI.createModal({
+                title: 'Adjust PPE Inventory Stock',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                             <button class="btn btn-primary" id="save-ppe-stock-btn">Save Changes</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+
+            const ownerSelect = document.getElementById('ppe-stock-owner');
+            const categorySelect = document.getElementById('ppe-stock-category');
+            const itemSelect = document.getElementById('ppe-stock-item');
+            const itemHint = document.getElementById('ppe-stock-item-hint');
+            const sizeSelect = document.getElementById('ppe-stock-size');
+            const reasonSelect = document.getElementById('ppe-stock-reason');
+            const totalInput = document.getElementById('ppe-stock-total');
+            const availInput = document.getElementById('ppe-stock-avail');
+            const reorderInput = document.getElementById('ppe-stock-reorder');
+
+            const structure = buildStructureFromStandards();
+
+            Object.keys(structure).forEach(ownerKey => {
+                const opt = document.createElement('option');
+                opt.value = ownerKey;
+                opt.textContent = structure[ownerKey].label;
+                ownerSelect.appendChild(opt);
+            });
+
+            function populateCategories() {
+                categorySelect.innerHTML = '';
+                const cats = structure[ownerSelect.value]?.categories || {};
+                Object.keys(cats).forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    categorySelect.appendChild(opt);
+                });
+                populateItems();
+            }
+
+            function populateItems() {
+                itemSelect.innerHTML = '';
+                const items = structure[ownerSelect.value]?.categories[categorySelect.value] || [];
+                items.forEach((ref, idx) => {
+                    const opt = document.createElement('option');
+                    opt.value = idx;
+                    opt.textContent = `${ref.item} — ${ref.applicableTo} (${ref.color || 'Standard'})`;
+                    itemSelect.appendChild(opt);
+                });
+                syncQuantities();
+            }
+
+            function syncQuantities() {
+                const items = structure[ownerSelect.value]?.categories[categorySelect.value] || [];
+                const ref = items[itemSelect.value];
+                if (!ref) return;
+                itemHint.textContent = ref.remarks || '';
+                const record = findStockRecord(ownerSelect.value, categorySelect.value, { itemName: ref.item, colorSpec: ref.color });
+                totalInput.value = record ? record.totalQuantity : 0;
+                availInput.value = record ? record.availableQuantity : 0;
+                sizeSelect.value = record ? (record.size || 'Standard') : 'Standard';
+                reorderInput.value = record ? (record.reorderLevel || 5) : 5;
+            }
+
+            ownerSelect.addEventListener('change', populateCategories);
+            categorySelect.addEventListener('change', populateItems);
+            itemSelect.addEventListener('change', syncQuantities);
+
+            populateCategories();
+
+            document.getElementById('save-ppe-stock-btn').addEventListener('click', async () => {
+                const ownerType = ownerSelect.value;
+                const category = categorySelect.value;
+                const items = structure[ownerType]?.categories[category] || [];
+                const ref = items[itemSelect.value];
+                if (!ref) {
+                    window.UI.showToast('Please select a valid item.', 'warning');
+                    return;
+                }
+
+                const totalQuantity = parseInt(totalInput.value, 10);
+                const availableQuantity = parseInt(availInput.value, 10);
+                const reorderLevel = parseInt(reorderInput.value, 10) || 5;
+                const size = sizeSelect.value || 'Standard';
+                const reason = reasonSelect.value;
+
+                if (Number.isNaN(totalQuantity) || Number.isNaN(availableQuantity)) {
+                    window.UI.showToast('Please enter valid numerical quantities.', 'warning');
+                    return;
+                }
+                if (totalQuantity < 0 || availableQuantity < 0) {
+                    window.UI.showToast('Quantities cannot be negative.', 'warning');
+                    return;
+                }
+                if (availableQuantity > totalQuantity) {
+                    window.UI.showToast('Available quantity cannot be greater than total stock.', 'warning');
+                    return;
+                }
+
+                try {
+                    await window.ApiService.reception.ppe.updateStock({
+                        itemName: ref.item,
+                        ownerType,
+                        category,
+                        applicableTo: ref.applicableTo,
+                        colorSpec: ref.color || 'Standard',
+                        size,
+                        totalQuantity,
+                        availableQuantity,
+                        reorderLevel,
+                        reason
+                    });
+                    window.UI.showToast('PPE stock updated successfully.', 'success');
+                    document.querySelector('.modal-overlay').close();
+                    await loadPpeData();
+                } catch (err) {
+                    console.error('PPE stock update failed:', err);
+                    window.UI.showToast(err.message || 'Failed to update PPE stock.', 'error');
+                }
+            });
+        }
+
+        // ── ISSUE GEAR MODAL ──────────────────────────────────────────
+
+        function openPpeIssueModal() {
+            const tpl = document.getElementById('ppe-issue-modal-template');
+            const clone = tpl.content.cloneNode(true);
+
+            const empSelect = clone.querySelector('#ppe-issue-emp');
+            employees.forEach(e => {
+                const opt = document.createElement('option');
+                opt.value = e.id;
+                opt.textContent = `${e.name} (${e.position || 'Crew'})`;
+                empSelect.appendChild(opt);
+            });
+
+            window.UI.createModal({
+                title: 'Issue PPE Safety Gear',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                             <button class="btn btn-primary" id="save-ppe-issue-btn">Check Out Gear</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+
+            const ownerSelect = document.getElementById('ppe-issue-owner');
+            const categorySelect = document.getElementById('ppe-issue-category');
+            const itemSelect = document.getElementById('ppe-issue-item');
+
+            const structure = buildStructureFromStandards();
+
+            Object.keys(structure).forEach(ownerKey => {
+                const opt = document.createElement('option');
+                opt.value = ownerKey;
+                opt.textContent = structure[ownerKey].label;
+                ownerSelect.appendChild(opt);
+            });
+
+            function populateCategories() {
+                categorySelect.innerHTML = '';
+                const cats = structure[ownerSelect.value]?.categories || {};
+                Object.keys(cats).forEach(cat => {
+                    const opt = document.createElement('option');
+                    opt.value = cat;
+                    opt.textContent = cat;
+                    categorySelect.appendChild(opt);
+                });
+                populateItems();
+            }
+
+            function populateItems() {
+                itemSelect.innerHTML = '<option value="">Select Gear...</option>';
+                const items = structure[ownerSelect.value]?.categories[categorySelect.value] || [];
+                items.forEach((ref, idx) => {
+                    const record = findStockRecord(ownerSelect.value, categorySelect.value, { itemName: ref.item, colorSpec: ref.color });
+                    const available = record ? Number(record.availableQuantity || 0) : 0;
+                    const opt = document.createElement('option');
+                    opt.value = idx;
+                    opt.disabled = available <= 0;
+                    opt.textContent = `${ref.item} — ${ref.applicableTo} (${ref.color || 'Standard'}) · Available: ${available}`;
+                    itemSelect.appendChild(opt);
+                });
+            }
+
+            ownerSelect.addEventListener('change', populateCategories);
+            categorySelect.addEventListener('change', populateItems);
+
+            populateCategories();
+
+            document.getElementById('save-ppe-issue-btn').addEventListener('click', async () => {
+                const employeeId = document.getElementById('ppe-issue-emp').value;
+                const ownerType = ownerSelect.value;
+                const category = categorySelect.value;
+                const itemIdx = itemSelect.value;
+                const quantity = parseInt(document.getElementById('ppe-issue-qty').value, 10);
+
+                if (!employeeId || itemIdx === '' || Number.isNaN(quantity) || quantity <= 0) {
+                    window.UI.showToast('Please select Employee, Gear Type and a positive quantity.', 'warning');
+                    return;
+                }
+
+                const ref = structure[ownerType]?.categories[category][itemIdx];
+                const record = findStockRecord(ownerType, category, { itemName: ref.item, colorSpec: ref.color });
+                const available = record ? Number(record.availableQuantity || 0) : 0;
+
+                if (quantity > available) {
+                    window.UI.showToast(`Only ${available} unit(s) of ${ref.item} available.`, 'warning');
+                    return;
+                }
+
+                try {
+                    await window.ApiService.reception.ppe.issue({
+                        employeeId,
+                        itemName: ref.item,
+                        ownerType,
+                        category,
+                        applicableTo: ref.applicableTo,
+                        colorSpec: ref.color || 'Standard',
+                        quantity
+                    });
+                    window.UI.showToast(`Issued ${quantity}x ${ref.item} successfully`, 'success');
+                    document.querySelector('.modal-overlay').close();
+                    await loadPpeData();
+                } catch (err) {
+                    window.UI.showToast(err.message || 'Failed to checkout gear.', 'error');
+                }
+            });
+        }
+
+        async function returnPpe(id) {
+            try {
+                await window.ApiService.reception.ppe.return(id);
+                window.UI.showToast('PPE Gear returned and stock restocked successfully', 'success');
+                await loadPpeData();
+            } catch (err) {
+                window.UI.showToast('Error returning gear', 'error');
+            }
+        }
+
+        // ── STOCK MOVEMENT HISTORY MODAL ──────────────────────────────
+
+        async function openPpeHistoryModal() {
+            const tpl = document.getElementById('ppe-history-modal-template');
+            const clone = tpl.content.cloneNode(true);
+
+            window.UI.createModal({
+                title: 'PPE Stock Movement History',
+                bodyHtml: '',
+                footerHtml: `<button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Close</button>`
+            });
+
+            document.querySelector('.modal-body').appendChild(clone);
+
+            const tbody = document.getElementById('ppe-history-tbody');
+
+            try {
+                const res = await window.ApiService.reception.ppe.getStockHistory();
+                const history = res.data || [];
+
+                if (history.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#94a3b8;">No stock movement history recorded yet.</td></tr>';
+                    return;
+                }
+
+                tbody.innerHTML = '';
+                history.forEach(h => {
+                    const tr = document.createElement('tr');
+                    const dt = new Date(h.createdAt).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+                    const user = h.createdById ? (h.createdById.name || h.createdById.email) : 'System';
+                    const changeClass = h.quantityChanged >= 0 ? 'color:#10b981;' : 'color:#ef4444;';
+                    const changeSign = h.quantityChanged > 0 ? `+${h.quantityChanged}` : `${h.quantityChanged}`;
+
+                    tr.innerHTML = `
+                        <td><small style="color:#94a3b8;">${dt}</small></td>
+                        <td><strong>${h.itemName}</strong></td>
+                        <td>${h.colorSpec || 'Standard'} (${h.size || 'Standard'})</td>
+                        <td style="font-weight:700; ${changeClass}">${changeSign}</td>
+                        <td>${h.beforeQuantity} → <strong>${h.afterQuantity}</strong></td>
+                        <td><span class="ppe-rank-tag">${h.reason}</span></td>
+                        <td><small style="color:#94a3b8;">${user}</small></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            } catch (err) {
+                console.error('Failed to load PPE stock history:', err);
+                tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#ef4444;">Failed to load stock history.</td></tr>';
+            }
+        }
+    </script>
 </body>
 
 </html>

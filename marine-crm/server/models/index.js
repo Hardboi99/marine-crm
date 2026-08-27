@@ -22,6 +22,9 @@ const Visitor = require('./Visitor');
 const ReceptionCall = require('./ReceptionCall');
 const PpeStock = require('./PpeStock');
 const PpeIssuance = require('./PpeIssuance');
+const PpeItem = require('./PpeItem');
+const PpeStandard = require('./PpeStandard');
+const PpeStockHistory = require('./PpeStockHistory');
 const DocIntake = require('./DocIntake');
 const Document = require('./Document');
 
@@ -50,6 +53,9 @@ module.exports = {
   ReceptionCall,
   PpeStock,
   PpeIssuance,
+  PpeItem,
+  PpeStandard,
+  PpeStockHistory,
   DocIntake,
   Document,
 };

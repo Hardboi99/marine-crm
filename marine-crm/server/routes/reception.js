@@ -6,7 +6,7 @@ const { requireRole } = require('../middlewares/roleCheck');
 const {
   listVisitors, createVisitor, checkOutVisitor,
   listCalls, createCall, updateCallStatus,
-  listPpeStock, updatePpeStock, listPpeIssuances, issuePpe, returnPpe,
+  listPpeStandards, listPpeStock, updatePpeStock, listPpeStockHistory, listPpeIssuances, issuePpe, returnPpe,
   listDocIntakes, createDocIntake, updateDocIntakeStatus
 } = require('../controllers/receptionController');
 
@@ -23,9 +23,11 @@ router.get('/calls', authenticate, listCalls);
 router.post('/calls', authenticate, createCall);
 router.patch('/calls/:id/status', authenticate, updateCallStatus);
 
-// PPE Stock & Issuance
+// PPE Standards, Stock, History & Issuance
+router.get('/ppe/standards', authenticate, listPpeStandards);
 router.get('/ppe/stock', authenticate, listPpeStock);
 router.post('/ppe/stock', authenticate, updatePpeStock);
+router.get('/ppe/stock/history', authenticate, listPpeStockHistory);
 router.get('/ppe/issuances', authenticate, listPpeIssuances);
 router.post('/ppe/issuances', authenticate, issuePpe);
 router.patch('/ppe/issuances/:id/return', authenticate, returnPpe);

@@ -328,11 +328,13 @@ const ApiService = {
       updateStatus: (id, data) => api.patch(`/reception/calls/${id}/status`, data)
     },
     ppe: {
-      getStock:     ()     => api.get('/reception/ppe/stock'),
-      updateStock:  (data) => api.post('/reception/ppe/stock', data),
-      getIssuances: ()     => api.get('/reception/ppe/issuances'),
-      issue:        (data) => api.post('/reception/ppe/issuances', data),
-      return:       (id)   => api.patch(`/reception/ppe/issuances/${id}/return`)
+      getStandards:   ()     => api.get('/reception/ppe/standards'),
+      getStock:       ()     => api.get('/reception/ppe/stock'),
+      updateStock:    (data) => api.post('/reception/ppe/stock', data),
+      getStockHistory:()     => api.get('/reception/ppe/stock/history'),
+      getIssuances:   ()     => api.get('/reception/ppe/issuances'),
+      issue:          (data) => api.post('/reception/ppe/issuances', data),
+      return:         (id)   => api.patch(`/reception/ppe/issuances/${id}/return`)
     },
     docs: {
       getAll:       ()     => api.get('/reception/docs'),
