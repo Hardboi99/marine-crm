@@ -6,9 +6,8 @@ const docIntakeSchema = new mongoose.Schema(
     employeeId: { type: mongoose.Schema.Types.ObjectId, ref: 'Employee', default: null },
     seafarerName: { type: String, required: true, trim: true },
     documentType: {
-      type: String,
-      enum: ['PASSPORT', 'CDC', 'COC', 'OTHER'],
-      default: 'PASSPORT'
+      type: [{ type: String, enum: ['PASSPORT', 'CDC', 'COC', 'OTHER'] }],
+      default: ['PASSPORT']
     },
     documentNumber: { type: String, trim: true, default: '' },
     collectedDate: { type: Date, default: Date.now },

@@ -50,6 +50,12 @@ const candidateSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    cocNumber: {
+      type: String,
+      trim: true,
+      uppercase: true,
+      default: null,
+    },
     cdcNumber: {
       type: String,
       trim: true,
@@ -123,6 +129,7 @@ const candidateSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
+candidateSchema.index({ cocNumber: 1 }, { unique: true, sparse: true });
 candidateSchema.index({ status: 1 });
 candidateSchema.index({ rank: 1 });
 candidateSchema.index({ createdById: 1 });

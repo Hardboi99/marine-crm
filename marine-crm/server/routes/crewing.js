@@ -4,7 +4,7 @@ const { authenticate, loadCurrentUser } = require('../middlewares/auth');
 const { requireRole } = require('../middlewares/roleCheck');
 const {
   getRequirements, createRequirement, updateRequirement, deleteRequirement,
-  getCandidates, createCandidate, updateCandidate, reassignCandidate, deleteCandidate,
+  getCandidates, getCandidateByCoc, createCandidate, updateCandidate, reassignCandidate, deleteCandidate,
   matchCandidates, getApplications, proposeCandidate, setApplicationDecision
 } = require('../controllers/crewingController');
 
@@ -20,6 +20,7 @@ router.delete('/requirements/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'SOUR
 
 // Candidate profile routes
 router.get('/candidates', getCandidates);
+router.get('/candidates/by-coc/:cocNumber', getCandidateByCoc);
 router.post('/candidates', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER'), createCandidate);
 router.put('/candidates/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER', 'ACCOUNTS_OFFICER'), updateCandidate);
 router.patch('/candidates/:id/reassign', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'DOCUMENTATION_MANAGER'), reassignCandidate);

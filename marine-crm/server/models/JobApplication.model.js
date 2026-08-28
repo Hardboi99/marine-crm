@@ -68,10 +68,10 @@ const JobApplicationSchema = new Schema(
         },
 
         // ---- identity & travel documents ----
-        passportNumber: { type: String, required: true },
+        passportNumber: { type: String,  },
         passportIssuePlace: { type: String },
         passportIssueDate: { type: Date },
-        passportExpiryDate: { type: Date, required: true },
+        passportExpiryDate: { type: Date,  },
         cdcNumber: { type: String },
         cdcIssueDate: { type: Date },
         cdcExpiryDate: { type: Date },
@@ -100,6 +100,7 @@ const JobApplicationSchema = new Schema(
         signOffReason: { type: String },
 
         // ---- certificates & endorsements ----
+        cocNumber: { type: String, required: true, trim: true, uppercase: true, index: true },
         coc: {
             class: { type: String },
             number: { type: String },
@@ -137,7 +138,7 @@ const JobApplicationSchema = new Schema(
     { timestamps: true }
 );
 
-JobApplicationSchema.index({ fullName: 'text', rankAppliedFor: 'text', lastCompany: 'text' });
+JobApplicationSchema.index({ fullName: 'text', rankAppliedFor: 'text', lastCompany: 'text', cocNumber: 'text' });
 JobApplicationSchema.index({ createdAt: -1 });
 
 module.exports = mongoose.models.JobApplication || mongoose.model('JobApplication', JobApplicationSchema);

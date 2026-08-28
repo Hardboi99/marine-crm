@@ -20,6 +20,7 @@ const receptionRoutes = require('./routes/reception');
 const birthdayRoutes = require('./routes/birthdayRoutes');
 const jobApplicationsRoutes = require('./routes/jobApplications.routes');
 const documentsRoutes = require('./routes/documents.routes');
+const reportsRoutes = require('./routes/reports');
 
 
 const { authenticate, loadCurrentUser } = require('./middlewares/auth');
@@ -149,6 +150,7 @@ app.use('/api/ops', opsRoutes);
 app.use('/api/reception', receptionRoutes);
 app.use('/api/birthdays', birthdayRoutes);
 app.use('/api/documents', documentsRoutes);
+app.use('/api/reports', reportsRoutes);
 // NOTE: Attendance is served entirely by the existing /api/employees/*
 // router (employeeController.js) — see checkin/checkout/attendance/*
 // routes in routes/employees.js. Do not add a separate /api/attendance

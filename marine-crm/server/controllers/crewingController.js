@@ -3,6 +3,7 @@ const { logActivity } = require('../utils/activityLogger');
 const { getDataScope, canAccessRecord } = require('../utils/accessScope');
 const { isValidTransition, isRoleAllowedForStatus } = require('../utils/workflow');
 const { ROLES, ORG_WIDE_ROLES, DEPARTMENTS } = require('../utils/roles');
+const { normalizeCoc } = require('../utils/normalize');
 
 // ─── REQUIREMENTS CRUD ──────────────────────────────────────────
 
@@ -117,6 +118,25 @@ const deleteRequirement = async (req, res, next) => {
 
 // ─── CANDIDATES CRUD ─────────────────────────────────────────────
 
+const getCandidateByCoc = async (req, res, next) => {
+  try {
+    const rawCoc = req.params.cocNumber;
+    const normalized = normalizeCoc(rawCoc);
+    if (!normalized) {
+      return res.status(400).json({ success: false, message: 'Valid COC number is required.' });
+    }
+
+    const candidate = await Candidate.findOne({ cocNumber: normalized });
+    if (!candidate) {
+      return res.status(404).json({ success: false, message: 'Candidate with this COC number not found.' });
+    }
+
+    res.json({ success: true, data: candidate });
+  } catch (err) {
+    next(err);
+  }
+};
+
 const getCandidates = async (req, res, next) => {
   try {
     const { rank, status, search, expectedSalaryMax } = req.query;
@@ -129,6 +149,7 @@ const getCandidates = async (req, res, next) => {
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
+        { cocNumber: { $regex: search, $options: 'i' } },
         { nationality: { $regex: search, $options: 'i' } },
         { currentVessel: { $regex: search, $options: 'i' } },
         { email: { $regex: search, $options: 'i' } },
@@ -160,7 +181,7 @@ const getCandidates = async (req, res, next) => {
 const createCandidate = async (req, res, next) => {
   try {
     const {
-      name, rank, nationality, phone, email, passportNumber, passportExpiryDate, cdcNumber, cdcExpiryDate,
+      name, rank, nationality, phone, email, cocNumber, passportNumber, passportExpiryDate, cdcNumber, cdcExpiryDate,
       currentVessel, experienceYears, availableFrom, expectedSalary, currency, notes
     } = req.body;
 
@@ -168,11 +189,23 @@ const createCandidate = async (req, res, next) => {
       return res.status(400).json({ success: false, message: 'Name and rank are required.' });
     }
 
+    const normalizedCoc = normalizeCoc(cocNumber);
+    if (normalizedCoc) {
+      const existingCoc = await Candidate.findOne({ cocNumber: normalizedCoc });
+      if (existingCoc) {
+        return res.status(400).json({
+          success: false,
+          message: 'COC number already exists. This seafarer is already registered.',
+        });
+      }
+    }
+
     const creator = req.currentUser;
     const isSourcingOfficer = creator.role === ROLES.SOURCING_OFFICER;
 
     const candidate = await Candidate.create({
       name, rank,
+      cocNumber: normalizedCoc || null,
       nationality: nationality || null,
       phone: phone || null,
       email: email || null,
@@ -201,12 +234,18 @@ const createCandidate = async (req, res, next) => {
         entityType: 'CANDIDATE',
         entityId: candidate._id.toString(),
         action: 'REGISTERED_CANDIDATE',
-        details: { name: candidate.name, rank: candidate.rank }
+        details: { name: candidate.name, rank: candidate.rank, cocNumber: candidate.cocNumber }
       });
     }
 
     res.status(201).json({ success: true, data: candidate });
   } catch (err) {
+    if (err.code === 11000 && err.keyPattern && err.keyPattern.cocNumber) {
+      return res.status(400).json({
+        success: false,
+        message: 'COC number already exists. This seafarer is already registered.',
+      });
+    }
     next(err);
   }
 };
@@ -216,15 +255,13 @@ const updateCandidate = async (req, res, next) => {
     const existing = await Candidate.findById(req.params.id);
     if (!existing) return res.status(404).json({ success: false, message: 'Candidate not found.' });
 
-    // §20 — record-level authorization: a role check alone is not enough.
-    // Verify this specific user actually has access to this specific record.
     const allowedToAccess = await canAccessRecord(req.currentUser, existing, 'CANDIDATE');
     if (!allowedToAccess) {
       return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
     }
 
     const allowedFields = [
-      'name', 'rank', 'nationality', 'phone', 'email', 'passportNumber', 'passportExpiryDate',
+      'name', 'rank', 'nationality', 'phone', 'email', 'cocNumber', 'passportNumber', 'passportExpiryDate',
       'cdcNumber', 'cdcExpiryDate',
       'currentVessel', 'experienceYears', 'availableFrom', 'expectedSalary', 'currency', 'status', 'notes'
     ];
@@ -232,6 +269,22 @@ const updateCandidate = async (req, res, next) => {
     for (const field of allowedFields) {
       if (req.body[field] !== undefined) {
         updateData[field] = req.body[field];
+      }
+    }
+
+    if (updateData.cocNumber !== undefined) {
+      const normalizedCoc = normalizeCoc(updateData.cocNumber);
+      if (normalizedCoc && normalizedCoc !== existing.cocNumber) {
+        const existingCoc = await Candidate.findOne({ cocNumber: normalizedCoc });
+        if (existingCoc && existingCoc._id.toString() !== existing._id.toString()) {
+          return res.status(400).json({
+            success: false,
+            message: 'COC number already exists. This seafarer is already registered.',
+          });
+        }
+        updateData.cocNumber = normalizedCoc;
+      } else if (!normalizedCoc) {
+        updateData.cocNumber = null;
       }
     }
     if (updateData.passportExpiryDate === '') updateData.passportExpiryDate = null;
@@ -608,6 +661,7 @@ module.exports = {
   updateRequirement,
   deleteRequirement,
   getCandidates,
+  getCandidateByCoc,
   createCandidate,
   updateCandidate,
   reassignCandidate,

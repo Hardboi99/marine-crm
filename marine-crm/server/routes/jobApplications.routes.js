@@ -116,6 +116,9 @@ function toArray(value) {
     return Array.isArray(value) ? value : [value];
 }
 
+const { normalizeCoc } = require('../utils/normalize');
+const Candidate = require('../models/Candidate');
+
 /* ============================================================
    POST /  — submit a new job application (public, no auth)
 ============================================================ */
@@ -132,6 +135,11 @@ router.post('/', uploadFields, async (req, res) => {
         const files = req.files || {};
         if (!files.resume || !files.resume[0]) {
             return res.status(400).json({ message: 'A resume/CV file is required.' });
+        }
+
+        const normalizedCoc = normalizeCoc(b.cocNumber || (b.coc && b.coc.number));
+        if (!normalizedCoc) {
+            return res.status(400).json({ message: 'A valid COC Number is required.' });
         }
 
         const doc = new JobApplication({
@@ -175,9 +183,10 @@ router.post('/', uploadFields, async (req, res) => {
             lastSignOffDate: b.lastSignOffDate || undefined,
             signOffReason: b.signOffReason,
 
+            cocNumber: normalizedCoc,
             coc: {
                 class: b.cocClass,
-                number: b.cocNumber,
+                number: normalizedCoc,
                 issuingAuthority: b.cocIssuingAuthority,
                 expiryDate: b.cocExpiryDate || undefined,
             },
@@ -224,6 +233,24 @@ router.post('/', uploadFields, async (req, res) => {
 ============================================================ */
 router.use(authenticate, loadCurrentUser, requireRole('ADMIN', 'HR', 'ADMIN_OFFICER', 'DIRECTOR', 'COO'));
 
+/** GET /by-coc/:cocNumber — list all job applications matching a COC Number */
+router.get('/by-coc/:cocNumber', async (req, res) => {
+    try {
+        const normalized = normalizeCoc(req.params.cocNumber);
+        if (!normalized) {
+            return res.status(400).json({ message: 'Valid COC Number is required.' });
+        }
+        const applications = await JobApplication.find({
+            $or: [{ cocNumber: normalized }, { 'coc.number': normalized }]
+        }).sort({ createdAt: -1 });
+
+        return res.json({ data: applications, total: applications.length });
+    } catch (err) {
+        console.error('Error fetching applications by COC:', err);
+        return res.status(500).json({ message: 'Failed to load applications for this COC.' });
+    }
+});
+
 /** GET / — list applications (filters: status, department, rank, search, page, limit) */
 router.get('/', async (req, res) => {
     try {
@@ -232,7 +259,15 @@ router.get('/', async (req, res) => {
         if (status) query.status = status;
         if (department) query.department = department;
         if (rank) query.rankAppliedFor = rank;
-        if (search) query.$text = { $search: search };
+        if (search) {
+            query.$or = [
+                { fullName: { $regex: search, $options: 'i' } },
+                { cocNumber: { $regex: search, $options: 'i' } },
+                { applicationId: { $regex: search, $options: 'i' } },
+                { email: { $regex: search, $options: 'i' } },
+                { rankAppliedFor: { $regex: search, $options: 'i' } }
+            ];
+        }
 
         const skip = (Number(page) - 1) * Number(limit);
         const [items, total] = await Promise.all([
@@ -296,6 +331,45 @@ router.patch('/:id/status', async (req, res) => {
         }
 
         await doc.save();
+
+        // HIRED Workflow — link to existing candidate or auto-create candidate profile using COC
+        if (status === 'HIRED' && doc.cocNumber) {
+            const normalizedCoc = normalizeCoc(doc.cocNumber);
+            let candidate = await Candidate.findOne({ cocNumber: normalizedCoc });
+            if (!candidate) {
+                try {
+                    const userId = req.currentUser?._id || req.user?.id || req.user?._id;
+                    candidate = await Candidate.create({
+                        name: doc.fullName,
+                        rank: doc.rankAppliedFor || doc.currentRank || 'Seafarer',
+                        cocNumber: normalizedCoc,
+                        nationality: doc.nationality || null,
+                        phone: doc.mobileNumber || null,
+                        email: doc.email || null,
+                        passportNumber: doc.passportNumber || null,
+                        passportExpiryDate: doc.passportExpiryDate || null,
+                        cdcNumber: doc.cdcNumber || null,
+                        cdcExpiryDate: doc.cdcExpiryDate || null,
+                        currentVessel: doc.lastVesselName || null,
+                        experienceYears: doc.totalSeaExperience?.years || 0,
+                        availableFrom: doc.availableFromDate || null,
+                        expectedSalary: doc.expectedSalary ? parseFloat(doc.expectedSalary) : null,
+                        currency: 'USD',
+                        notes: `Auto-created from Job Application ${doc.applicationId}`,
+                        createdById: userId,
+                        assignedToId: userId,
+                        currentOwnerId: userId,
+                        department: 'SOURCING',
+                        currentDepartment: 'SOURCING',
+                        status: 'AVAILABLE',
+                        workflowStage: 'SOURCING',
+                    });
+                } catch (candErr) {
+                    if (candErr.code !== 11000) console.error('Error auto-creating candidate on HIRED:', candErr);
+                }
+            }
+        }
+
         return res.json({ data: doc });
     } catch (err) {
         console.error('Error updating job application status:', err);

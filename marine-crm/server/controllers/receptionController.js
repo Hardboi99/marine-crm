@@ -847,35 +847,68 @@ const listDocIntakes = async (req, res, next) => {
 };
 
 const createDocIntake = async (req, res, next) => {
-  try {
-    const { candidateId, employeeId, seafarerName, documentType, documentNumber, custodyLocation, remarks } = req.body;
-    if (!seafarerName || !documentType) {
-      return res.status(400).json({ success: false, message: 'Seafarer name and document type are required.' });
+    try {
+        const {
+            candidateId,
+            employeeId,
+            seafarerName,
+            documentType,
+            documentNumber,
+            custodyLocation,
+            remarks
+        } = req.body;
+
+        if (!seafarerName || !documentType) {
+            return res.status(400).json({
+                success: false,
+                message: 'Seafarer name and document type are required.'
+            });
+        }
+
+        // Always convert documentType into an array
+        const documentTypes = Array.isArray(documentType)
+            ? [...new Set(documentType.map(type => String(type).trim()).filter(Boolean))]
+            : [String(documentType).trim()];
+
+        if (documentTypes.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: 'At least one document type is required.'
+            });
+        }
+
+        // ONE database record containing ALL selected document types
+        const doc = await DocIntake.create({
+            candidateId: candidateId || null,
+            employeeId: employeeId || null,
+            seafarerName: seafarerName.trim(),
+            documentType: documentTypes,
+            documentNumber: documentNumber || '',
+            custodyLocation: custodyLocation || '',
+            remarks: remarks || '',
+            createdById: req.user.id
+        });
+
+        await logActivity({
+            userId: req.user.id,
+            entityType: 'DOCUMENT_INTAKE',
+            entityId: doc._id.toString(),
+            action: 'DOC_COLLECTED',
+            details: {
+                seafarerName: doc.seafarerName,
+                documentType: doc.documentType,
+                number: doc.documentNumber
+            }
+        });
+
+        res.status(201).json({
+            success: true,
+            data: doc
+        });
+
+    } catch (err) {
+        next(err);
     }
-
-    const doc = await DocIntake.create({
-      candidateId: candidateId || null,
-      employeeId: employeeId || null,
-      seafarerName,
-      documentType,
-      documentNumber: documentNumber || '',
-      custodyLocation: custodyLocation || '',
-      remarks: remarks || '',
-      createdById: req.user.id
-    });
-
-    await logActivity({
-      userId: req.user.id,
-      entityType: 'DOCUMENT_INTAKE',
-      entityId: doc._id.toString(),
-      action: 'DOC_COLLECTED',
-      details: { seafarerName: doc.seafarerName, documentType: doc.documentType, number: doc.documentNumber }
-    });
-
-    res.status(201).json({ success: true, data: doc });
-  } catch (err) {
-    next(err);
-  }
 };
 
 const updateDocIntakeStatus = async (req, res, next) => {
