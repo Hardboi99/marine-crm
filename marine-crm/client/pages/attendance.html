@@ -2232,7 +2232,7 @@
 
         const dayWorksheet = myWorksheets.find((w) => w.date === dateIso);
         const worksheetRow = dayWorksheet
-          ? `<div class="day-detail-row"><span class="day-detail-label">Worksheet</span><span class="day-detail-value">${dayWorksheet.status === "REVIEWED" ? "Reply Sent" : "Submitted"} — <a href="#" id="att-day-view-worksheet" style="color:var(--accent-primary);">View</a></span></div>`
+          ? `<div class="day-detail-row"><span class="day-detail-label">Worksheet</span><span class="day-detail-value">${dayWorksheet.status === "REVIEWED" ? "Reply Sent" : "Submitted"} — <a href="javascript:void(0)" id="att-day-view-worksheet" style="color:var(--accent-primary);">View</a></span></div>`
           : record && record.checkOutTime
             ? `<div class="day-detail-row"><span class="day-detail-label">Worksheet</span><span class="day-detail-value dim">Not found</span></div>`
             : "";

@@ -792,7 +792,7 @@
 
         let currentSmartSummary = null;
 
-        document.addEventListener('DOMContentLoaded', async () => {
+        document.addEventListener('DOMContentLoaded'    , async () => {
             if (!localStorage.getItem('token')) {
                 window.location.href = '/pages/login.html';
                 return;
@@ -807,10 +807,18 @@
                 });
             });
 
-            document.getElementById('ppe-search-input').addEventListener('input', (e) => {
+            function debounce(fn, wait) {
+                let timeout;
+                return function (...args) {
+                    clearTimeout(timeout);
+                    timeout = setTimeout(() => fn.apply(this, args), wait);
+                };
+            }
+
+            document.getElementById('ppe-search-input').addEventListener('input', debounce((e) => {
                 searchQuery = e.target.value.toLowerCase().trim();
                 renderPpeStock();
-            });
+            }, 200));
 
             document.getElementById('ppe-category-filter').addEventListener('change', (e) => {
                 categoryFilter = e.target.value;
@@ -822,10 +830,10 @@
                 renderPpeStock();
             });
 
-            document.getElementById('issuance-search-input').addEventListener('input', (e) => {
+            document.getElementById('issuance-search-input').addEventListener('input', debounce((e) => {
                 issuanceSearchQuery = e.target.value.toLowerCase().trim();
                 renderPpeIssuances();
-            });
+            }, 200));
 
             document.getElementById('issuance-status-filter').addEventListener('change', (e) => {
                 issuanceStatusFilter = e.target.value;

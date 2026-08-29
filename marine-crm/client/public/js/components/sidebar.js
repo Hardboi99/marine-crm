@@ -950,6 +950,10 @@ document.addEventListener('DOMContentLoaded', () => {
   document.body.addEventListener('click', (e) => {
     const link = e.target.closest('a[href^="/pages/"]');
     if (!link || link.target === '_blank' || e.metaKey || e.ctrlKey) return;
+    if (link.pathname === window.location.pathname) {
+      e.preventDefault();
+      return;
+    }
     e.preventDefault();
     page.classList.add('page-exit');
     window.setTimeout(() => { window.location.href = link.href; }, 160);

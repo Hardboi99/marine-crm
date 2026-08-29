@@ -274,6 +274,7 @@ const ApiService = {
     },
     candidates: {
       getAll:   (params)   => api.get('/crewing/candidates', { params }),
+      getByCoc: (cocNumber) => api.get(`/crewing/candidates/by-coc/${encodeURIComponent(cocNumber)}`),
       create:   (data)     => api.post('/crewing/candidates', data),
       update:   (id, data) => api.put(`/crewing/candidates/${id}`, data),
       reassign: (id, data) => api.patch(`/crewing/candidates/${id}/reassign`, data),
@@ -289,6 +290,7 @@ const ApiService = {
   recruitment: {
     jobApplications: {
       getAll:       (params)   => api.get('/recruitment/job-applications', { params }),
+      getByCoc:     (cocNumber) => api.get(`/recruitment/job-applications/by-coc/${encodeURIComponent(cocNumber)}`),
       getStats:     ()         => api.get('/recruitment/job-applications/stats/summary'),
       get:          (id)       => api.get(`/recruitment/job-applications/${id}`),
       updateStatus: (id, data) => api.patch(`/recruitment/job-applications/${id}/status`, data),
@@ -407,6 +409,12 @@ const ApiService = {
     create: (data) => api.post('/employees/holidays', data),
     update: (id, data) => api.put(`/employees/holidays/${id}`, data),
     delete: (id) => api.delete(`/employees/holidays/${id}`),
+  },
+
+  // ── Reports & Analytics ────────────────────────────────────────────────────
+  reports: {
+    getCrewingReport:   (params) => api.get('/reports/crewing',   { params }),
+    getFrontDeskReport: (params) => api.get('/reports/frontdesk', { params }),
   },
 };
 

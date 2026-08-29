@@ -8,32 +8,187 @@
     <link rel="stylesheet" href="/public/css/styles1.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <style>
+        /* =========================================================
+           PAGE HEADER
+           ========================================================= */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+
+        .page-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .page-header .btn i {
+            margin-right: 6px;
+        }
+
+        /* =========================================================
+           RECEPTION TABS
+           ========================================================= */
         .reception-tabs {
             display: flex;
-            border-bottom: 1px solid var(--border-color, #1e293b);
-            margin-bottom: 20px;
-            gap: 15px;
+            align-items: center;
+            gap: 6px;
+            padding: 6px;
+            margin-bottom: 22px;
+            border: 1px solid var(--border-color, #1e293b);
+            border-radius: 14px;
+            background: var(--bg-secondary, rgba(148, 163, 184, 0.06));
+            width: fit-content;
+            max-width: 100%;
+            overflow-x: auto;
         }
 
         .reception-tab {
+            display: flex;
+            align-items: center;
+            gap: 8px;
             cursor: pointer;
             border: none;
-            padding: 12px 16px;
+            padding: 10px 18px;
             background: none;
             color: var(--text-secondary, #94a3b8);
             font-weight: 600;
-            font-size: 0.95rem;
-            border-bottom: 3px solid transparent;
-            transition: all var(--transition, 0.2s);
+            font-size: 0.9rem;
+            border-radius: 10px;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .reception-tab i {
+            font-size: 0.85rem;
         }
 
         .reception-tab:hover {
             color: var(--text-primary, #fff);
+            background: rgba(148, 163, 184, 0.1);
         }
 
         .reception-tab.active {
+            color: #fff;
+            background: var(--accent-primary, #0ea5e9);
+            box-shadow: 0 2px 8px rgba(14, 165, 233, 0.35);
+        }
+
+        /* =========================================================
+           STAT CARDS
+           ========================================================= */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px;
+        }
+
+        .stat-card {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            padding: 18px 20px;
+            border-radius: 14px;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+        }
+
+        .stat-icon {
+            flex: 0 0 44px;
+            width: 44px;
+            height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            font-size: 1.05rem;
+        }
+
+        .stat-icon.icon-blue { background: rgba(14, 165, 233, 0.14); color: #0ea5e9; }
+        .stat-icon.icon-amber { background: rgba(251, 191, 36, 0.14); color: #fbbf24; }
+        .stat-icon.icon-green { background: rgba(34, 197, 94, 0.14); color: #22c55e; }
+
+        .stat-card .stat-label {
+            display: block;
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .stat-card .stat-value {
+            display: block;
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-top: 2px;
+        }
+
+        /* =========================================================
+           CARD / TABLE POLISH
+           ========================================================= */
+        .card {
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .card-header {
+            border-bottom: 1px solid var(--border-color, #1e293b);
+        }
+
+        .card-title {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .card-title i {
             color: var(--accent-primary, #0ea5e9);
-            border-bottom-color: var(--accent-primary, #0ea5e9);
+        }
+
+        .table thead th {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            color: var(--text-secondary, #94a3b8);
+        }
+
+        .table tbody tr {
+            transition: background 0.15s ease;
+        }
+
+        .table tbody tr:hover {
+            background: rgba(148, 163, 184, 0.06);
+        }
+
+        .table .row-actions {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 48px 20px;
+            color: #94a3b8;
+        }
+
+        .empty-state i {
+            font-size: 1.8rem;
+            opacity: 0.5;
+        }
+
+        .empty-state span {
+            font-size: 0.9rem;
         }
 
         /* =========================================================
@@ -190,6 +345,10 @@
             .doc-form-grid {
                 grid-template-columns: 1fr;
             }
+
+            .page-header {
+                align-items: flex-start;
+            }
         }
     </style>
 </head>
@@ -210,10 +369,6 @@
                     </div>
 
                     <div style="display:flex; align-items:center; gap:10px;">
-                        <a href="/pages/ppe-stock.html" class="btn btn-secondary">
-                            <i class="fas fa-hard-hat"></i>
-                            PPE Stock
-                        </a>
                         <a href="/pages/job-application.html" class="btn btn-primary">
                             <i class="fas fa-user-plus"></i>
                             Job Application
@@ -234,19 +389,25 @@
                 <div id="tab-content-visitors" class="reception-tab-content">
                     <div class="stats-grid" style="margin-bottom: 20px;">
                         <div class="stat-card">
-                            <span class="stat-label">Currently In Office</span>
-                            <span class="stat-value" id="stats-visitors-in">0</span>
+                            <span class="stat-icon icon-blue"><i class="fas fa-door-open"></i></span>
+                            <span>
+                                <span class="stat-label">Currently In Office</span>
+                                <span class="stat-value" id="stats-visitors-in">0</span>
+                            </span>
                         </div>
                         <div class="stat-card">
-                            <span class="stat-label">Total Visits Today</span>
-                            <span class="stat-value" id="stats-visitors-total">0</span>
+                            <span class="stat-icon icon-green"><i class="fas fa-users"></i></span>
+                            <span>
+                                <span class="stat-label">Total Visits Today</span>
+                                <span class="stat-value" id="stats-visitors-total">0</span>
+                            </span>
                         </div>
                     </div>
                     <div class="card">
                         <div class="card-header"
                             style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
-                            <h2 class="card-title" style="margin:0;">Visitor Check-In Log</h2>
-                            <button class="btn btn-primary btn-sm" onclick="openVisitorModal()">+ Check In
+                            <h2 class="card-title" style="margin:0;"><i class="fas fa-id-card"></i> Visitor Check-In Log</h2>
+                            <button class="btn btn-primary btn-sm" onclick="openVisitorModal()"><i class="fas fa-plus"></i> Check In
                                 Visitor</button>
                         </div>
                         <div class="card-body" style="padding:0;">
@@ -277,19 +438,25 @@
                 <div id="tab-content-calls" class="reception-tab-content" style="display:none;">
                     <div class="stats-grid" style="margin-bottom: 20px;">
                         <div class="stat-card">
-                            <span class="stat-label">Pending Callback</span>
-                            <span class="stat-value" id="stats-calls-pending" style="color: #fbbf24;">0</span>
+                            <span class="stat-icon icon-amber"><i class="fas fa-phone-volume"></i></span>
+                            <span>
+                                <span class="stat-label">Pending Callback</span>
+                                <span class="stat-value" id="stats-calls-pending" style="color: #fbbf24;">0</span>
+                            </span>
                         </div>
                         <div class="stat-card">
-                            <span class="stat-label">Total Inquiries</span>
-                            <span class="stat-value" id="stats-calls-total">0</span>
+                            <span class="stat-icon icon-blue"><i class="fas fa-headset"></i></span>
+                            <span>
+                                <span class="stat-label">Total Inquiries</span>
+                                <span class="stat-value" id="stats-calls-total">0</span>
+                            </span>
                         </div>
                     </div>
                     <div class="card">
                         <div class="card-header"
                             style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
-                            <h2 class="card-title" style="margin:0;">Incoming Calls Log</h2>
-                            <button class="btn btn-primary btn-sm" onclick="openCallModal()">+ Log Incoming
+                            <h2 class="card-title" style="margin:0;"><i class="fas fa-phone-alt"></i> Incoming Calls Log</h2>
+                            <button class="btn btn-primary btn-sm" onclick="openCallModal()"><i class="fas fa-plus"></i> Log Incoming
                                 Call</button>
                         </div>
                         <div class="card-body" style="padding:0;">
@@ -321,8 +488,8 @@
                     <div class="card">
                         <div class="card-header"
                             style="display:flex; justify-content:space-between; align-items:center; padding: 16px 20px;">
-                            <h2 class="card-title" style="margin:0;">Physical Passport & CDC Collection Logs</h2>
-                            <button class="btn btn-primary btn-sm" onclick="openDocModal()">+ Log Document
+                            <h2 class="card-title" style="margin:0;"><i class="fas fa-passport"></i> Physical Passport & CDC Collection Logs</h2>
+                            <button class="btn btn-primary btn-sm" onclick="openDocModal()"><i class="fas fa-plus"></i> Log Document
                                 Intake</button>
                         </div>
                         <div class="card-body" style="padding:0;">
@@ -610,16 +777,21 @@
 
             // Tab Navigation Setup
             const tabs = document.querySelectorAll('.reception-tab');
+            const tabContents = document.querySelectorAll('.reception-tab-content');
             tabs.forEach(tab => {
-                tab.addEventListener('click', () => {
+                tab.addEventListener('click', (e) => {
+                    if (e) e.preventDefault();
                     tabs.forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
 
                     const target = tab.getAttribute('data-tab');
-                    document.querySelectorAll('.reception-tab-content').forEach(content => {
+                    tabContents.forEach(content => {
                         content.style.display = 'none';
                     });
-                    document.getElementById(`tab-content-${target}`).style.display = 'block';
+                    const targetEl = document.getElementById(`tab-content-${target}`);
+                    if (targetEl) {
+                        targetEl.style.display = 'block';
+                    }
                     loadTab(target);
                 });
             });
@@ -641,15 +813,15 @@
         }
 
         async function loadTab(tabName) {
+            const targetEl = document.getElementById(`tab-content-${tabName}`);
+            if (targetEl) targetEl.style.opacity = '0.75';
             try {
                 if (tabName === 'visitors') {
                     const res = await window.ApiService.reception.visitors.getAll();
-                    const list = res.data || [];
-                    renderVisitors(list);
+                    renderVisitors(res.data || []);
                 } else if (tabName === 'calls') {
                     const res = await window.ApiService.reception.calls.getAll();
-                    const list = res.data || [];
-                    renderCalls(list);
+                    renderCalls(res.data || []);
                 } else if (tabName === 'docs') {
                     const res = await window.ApiService.reception.docs.getAll();
                     renderDocs(res.data || []);
@@ -657,6 +829,8 @@
             } catch (err) {
                 console.error(`Error loading tab: ${tabName}`, err);
                 if (window.UI) window.UI.showToast('Failed to sync database logs', 'error');
+            } finally {
+                if (targetEl) targetEl.style.opacity = '1';
             }
         }
 
@@ -673,7 +847,7 @@
             document.getElementById('stats-visitors-total').textContent = total;
 
             if (total === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No visitors logged today.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-id-card"></i><span>No visitors logged today.</span></div></td></tr>';
                 return;
             }
 
@@ -773,7 +947,7 @@
             document.getElementById('stats-calls-total').textContent = total;
 
             if (total === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No incoming calls logged.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-phone-slash"></i><span>No incoming calls logged.</span></div></td></tr>';
                 return;
             }
 
@@ -873,7 +1047,7 @@
             tbody.innerHTML = '';
 
             if (docs.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:20px; color:#94a3b8;">No documents logged in custody storage.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="8"><div class="empty-state"><i class="fas fa-folder-open"></i><span>No documents logged in custody storage.</span></div></td></tr>';
                 return;
             }
 
@@ -883,33 +1057,158 @@
                 SENT_TO_VESSEL_OWNER: '<span class="badge badge-green">Sent to Vessel</span>'
             };
 
+            const documentTypeLabels = {
+                PASSPORT: 'Passport',
+                CDC: 'CDC',
+                COC: 'COC',
+                OTHER: 'Other'
+            };
+
+            // Supports both the new format (documentType: [...]) and old records
+            // (documentType: 'PASSPORT') so existing records continue to display.
+            const normalizeDocumentTypes = (documentType) => {
+                const values = Array.isArray(documentType)
+                    ? documentType
+                    : [documentType];
+
+                return [...new Set(
+                    values
+                        .flatMap(value => String(value || '').split(','))
+                        .map(value => value.trim())
+                        .filter(Boolean)
+                )];
+            };
+
+            /*
+             * Group legacy records that were created before documentType became
+             * an array. New records are already one database record per intake.
+             * This prevents old Passport/CDC/COC rows from appearing separately.
+             */
+            const grouped = new Map();
+
             docs.forEach(d => {
+                const normalizedTypes = normalizeDocumentTypes(d.documentType);
+                const key = [
+                    String(d.seafarerName || '').trim().toLowerCase(),
+                    d.documentNumber || '',
+                    d.collectedDate || '',
+                    d.custodyLocation || '',
+                    d.status || '',
+                    d.remarks || ''
+                ].join('||');
+
+                if (!grouped.has(key)) {
+                    grouped.set(key, {
+                        seafarerName: d.seafarerName || '-',
+                        documentNumber: d.documentNumber || '-',
+                        collectedDate: d.collectedDate,
+                        custodyLocation: d.custodyLocation || '-',
+                        status: d.status,
+                        remarks: d.remarks || '-',
+                        documentTypes: [],
+                        ids: []
+                    });
+                }
+
+                const group = grouped.get(key);
+
+                normalizedTypes.forEach(type => {
+                    if (!group.documentTypes.includes(type)) {
+                        group.documentTypes.push(type);
+                    }
+                });
+
+                if (d.id && !group.ids.includes(d.id)) {
+                    group.ids.push(d.id);
+                }
+            });
+
+            grouped.forEach(group => {
                 const tr = document.createElement('tr');
-                const date = new Date(d.collectedDate).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+
+                const date = group.collectedDate
+                    ? new Date(group.collectedDate).toLocaleDateString([], {
+                        month: 'short',
+                        day: 'numeric',
+                        year: 'numeric'
+                    })
+                    : '-';
+
+                const documentTypeHtml = group.documentTypes.length
+                    ? `<div style="display:flex; flex-wrap:wrap; gap:6px;">
+                        ${group.documentTypes.map(type => `
+                            <span class="badge badge-gray">${documentTypeLabels[type] || type}</span>
+                        `).join('')}
+                       </div>`
+                    : '-';
 
                 let actions = '';
-                if (d.status === 'WITH_AGENCY') {
+
+                if (group.status === 'WITH_AGENCY') {
+                    const idsJson = JSON.stringify(group.ids);
+
                     actions = `
-                        <button class="btn btn-secondary btn-xs" onclick="updateDocStatus('${d.id}', 'RETURNED_TO_SEAFARER')">Return</button>
-                        <button class="btn btn-primary btn-xs" onclick="updateDocStatus('${d.id}', 'SENT_TO_VESSEL_OWNER')">Send to Owner</button>
+                        <button class="btn btn-secondary btn-xs"
+                            onclick='updateGroupedDocStatus(${idsJson}, "RETURNED_TO_SEAFARER")'>
+                            Return
+                        </button>
+                        <button class="btn btn-primary btn-xs"
+                            onclick='updateGroupedDocStatus(${idsJson}, "SENT_TO_VESSEL_OWNER")'>
+                            Send to Owner
+                        </button>
                     `;
                 } else {
                     actions = `<span style="font-size:0.85em; color:#94a3b8;">Completed</span>`;
                 }
 
                 tr.innerHTML = `
-                    <td><strong>${d.seafarerName}</strong></td>
-                    <td><span class="badge badge-gray">${d.documentType}</span></td>
-                    <td>${d.documentNumber || '-'}</td>
+                    <td><strong>${group.seafarerName}</strong></td>
+                    <td>${documentTypeHtml}</td>
+                    <td>${group.documentNumber}</td>
                     <td style="font-size:0.85em; color:#94a3b8;">${date}</td>
-                    <td>${d.custodyLocation || '-'}</td>
-                    <td>${badges[d.status] || d.status}</td>
-                    <td style="font-size:0.85em; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${d.remarks}">${d.remarks || '-'}</td>
+                    <td>${group.custodyLocation}</td>
+                    <td>${badges[group.status] || group.status || '-'}</td>
+                    <td style="font-size:0.85em; max-width:180px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${group.remarks}">${group.remarks}</td>
                     <td class="row-actions">${actions}</td>
                 `;
+
                 tbody.appendChild(tr);
             });
         }
+
+        // Update all records that belong to one displayed grouped intake.
+        // For new records this is normally a single id; for legacy records it
+        // updates every old record that was visually grouped together.
+        async function updateGroupedDocStatus(ids, newStatus) {
+            if (!Array.isArray(ids) || ids.length === 0) {
+                window.UI.showToast('No document records found for this entry.', 'warning');
+                return;
+            }
+
+            try {
+                await Promise.all(
+                    ids.map(id =>
+                        window.ApiService.reception.docs.updateStatus(id, { status: newStatus })
+                    )
+                );
+
+                window.UI.showToast(
+                    ids.length === 1
+                        ? 'Document status updated successfully.'
+                        : `${ids.length} document statuses updated successfully.`,
+                    'success'
+                );
+
+                await loadTab('docs');
+            } catch (err) {
+                console.error('Document status update error:', err);
+                window.UI.showToast(
+                    err.message || 'Failed to update document status.',
+                    'error'
+                );
+            }
+        }
+
 
         function openDocModal() {
 
@@ -989,27 +1288,25 @@
                     saveButton.disabled = true;
                     saveButton.innerHTML = `<i class="fas fa-spinner fa-spin"></i> Saving...`;
 
-                    for (const documentType of selectedDocTypes) {
-                        const postData = {
-                            seafarerName: seafarerName,
-                            documentType: documentType,
-                            documentNumber: documentNumber,
-                            custodyLocation: custodyLocation,
-                            remarks: remarks
-                        };
+                    // IMPORTANT: Send ALL selected document types in ONE request.
+                    // The backend should store documentType as an array, so one intake
+                    // creates one MongoDB document instead of one record per checkbox.
+                    const postData = {
+                        seafarerName: seafarerName,
+                        documentType: selectedDocTypes,
+                        documentNumber: documentNumber,
+                        custodyLocation: custodyLocation,
+                        remarks: remarks
+                    };
 
-                        console.log('Saving document custody record:', postData);
+                    console.log('Saving grouped document custody record:', postData);
 
-                        await window.ApiService.reception.docs.create(postData);
-                    }
+                    await window.ApiService.reception.docs.create(postData);
 
                     window.UI.showToast(
-                        selectedDocTypes.length === 1
-                            ? 'Document custody logged successfully.'
-                            : `${selectedDocTypes.length} documents logged successfully.`,
+                        `${selectedDocTypes.length} document type(s) logged successfully in one intake record.`,
                         'success'
                     );
-
                     const modal = document.querySelector('.modal-overlay');
                     if (modal) {
                         modal.close();
