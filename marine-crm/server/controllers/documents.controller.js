@@ -1,8 +1,10 @@
 // controllers/documents.controller.js
 
 const fs = require('fs');
-const { Document } = require('../models');
-const { ROLES, ORG_WIDE_ROLES } = require('../utils/roles');
+const { Document, Candidate } = require('../models');
+const { ROLES, ORG_WIDE_ROLES, DEPARTMENTS } = require('../utils/roles');
+const { isValidTransition, computeDocumentationStatus } = require('../utils/workflow');
+const { logActivity } = require('../utils/activityLogger');
 
 // GET /api/documents
 // NOTE (limitation — see final response §H): the Document model has no
@@ -34,6 +36,7 @@ async function getAllDocuments(req, res, next) {
 
     const documents = await Document.find(filter)
       .populate('uploadedBy', 'name email')
+      .populate('candidateId', 'name rank')
       .sort({ createdAt: -1 });
 
     // Self-heal: fileUrl is computed from the working /:id/file route on
@@ -137,6 +140,12 @@ async function downloadDocumentFile(req, res, next) {
 }
 
 // PATCH /api/documents/:id/status
+// (§11) Documentation Manager/Officer review action — approve or reject
+// an uploaded document. When this is the candidate's LAST required
+// document type to reach APPROVED, the candidate is automatically
+// advanced DOCUMENTATION -> ACCOUNTS (§14) using the existing
+// workflow.js transition mechanism, same as every other candidate
+// status change in this project — never a bare frontend-driven write.
 async function updateDocumentStatus(req, res, next) {
   try {
     const { status, notes } = req.body;
@@ -147,9 +156,47 @@ async function updateDocumentStatus(req, res, next) {
     const doc = await Document.findById(req.params.id);
     if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
 
+    const previousStatus = doc.status;
     if (status) doc.status = status;
     if (notes !== undefined) doc.notes = notes;
     await doc.save();
+
+    await logActivity({
+      userId: req.user?.id,
+      entityType: 'DOCUMENT',
+      entityId: doc._id.toString(),
+      action: status === 'APPROVED' ? 'DOCUMENT_APPROVED' : status === 'REJECTED' ? 'DOCUMENT_REJECTED' : 'DOCUMENT_STATUS_UPDATED',
+      details: { name: doc.name, from: previousStatus, to: doc.status },
+    });
+
+    // Only candidate-linked documents (Part 3) participate in the
+    // Documentation -> Accounts auto-advance; general company documents
+    // (contracts/HR/compliance, no candidateId) never trigger this.
+    if (status === 'APPROVED' && doc.candidateId) {
+      const candidate = await Candidate.findById(doc.candidateId);
+      if (candidate && candidate.status === 'DOCUMENTATION') {
+        const candidateDocs = await Document.find({ candidateId: candidate._id }).sort({ createdAt: -1 });
+        const { overallStatus } = computeDocumentationStatus(candidateDocs);
+
+        if (overallStatus === 'COMPLETE' && isValidTransition(candidate.status, 'ACCOUNTS')) {
+          candidate.status = 'ACCOUNTS';
+          candidate.currentDepartment = DEPARTMENTS.ACCOUNTS;
+          candidate.department = DEPARTMENTS.ACCOUNTS;
+          candidate.workflowStage = 'ACCOUNTS';
+          candidate.currentOwnerId = null;
+          await candidate.save();
+
+          await logActivity({
+            userId: req.user?.id,
+            entityType: 'CANDIDATE',
+            entityId: candidate._id.toString(),
+            action: 'CANDIDATE_MOVED_TO_ACCOUNTS',
+            details: { name: candidate.name, from: 'DOCUMENTATION', to: 'ACCOUNTS', reason: 'All required documents approved' },
+          });
+        }
+      }
+    }
+
     return res.json({ success: true, data: doc });
   } catch (err) {
     next(err);

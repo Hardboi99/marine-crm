@@ -30,6 +30,17 @@
 // 3. Collapsed state is now restored from localStorage on load, and
 //    is always stripped when entering mobile.
 // 4. Mobile toggle defensively strips 'collapsed' before opening.
+//
+// v4.1 adds:
+// 1. Email-based hard restriction for three specific sourcing
+//    accounts (sourcing.manager@marinecrm.com,
+//    sourcing.officer1@marinecrm.com, sourcing.officer2@marinecrm.com).
+//    These accounts only ever see the "Employees" and
+//    "Crewing & Recruitment" groups (with "Job Applications" excluded
+//    from Crewing & Recruitment), regardless of their assigned role.
+// 2. A page-load guard (enforceSourcingPageRestriction) that redirects
+//    those same three accounts back to the dashboard if they try to
+//    open a restricted page directly via URL.
 
 const NAV_GROUPS = [
   {
@@ -63,6 +74,7 @@ const NAV_GROUPS = [
     items: [
       { href: '/pages/candidates.html', icon: '👨‍✈️', label: 'Seafarers Directory', match: 'candidates' },
       { href: '/pages/requirements.html', icon: '📋', label: 'Requirements Vacancies', match: 'requirements' },
+      { href: '/pages/proposals.html', icon: '📨', label: 'Candidate Proposals', match: 'proposals' },
       { href: '/pages/job-applicants.html', icon: '📝', label: 'Job Applications', match: 'job-applicants' }
     ]
   },
@@ -104,6 +116,62 @@ const NAV_GROUPS = [
   }
 ];
 
+// ── Email-restricted sourcing accounts ─────────────────────────────
+// These three accounts must ONLY ever see:
+//   - Employees (Employees, HR Operations, Task Management, Worksheets, My Profile)
+//   - Crewing & Recruitment (Seafarers Directory, Requirements Vacancies only —
+//     Job Applications is explicitly excluded)
+// This check is based on the logged-in user's EMAIL (not just role), since
+// these specific accounts may otherwise carry a role (e.g. SOURCING_MANAGER /
+// SOURCING_OFFICER) that would normally grant broader access (Front Desk, etc.).
+const restrictedSourcingEmails = [
+  'sourcing.manager@marinecrm.com',
+  'sourcing.officer1@marinecrm.com',
+  'sourcing.officer2@marinecrm.com'
+];
+
+function getRestrictedSourcingEmail() {
+  try {
+    const user = JSON.parse(localStorage.getItem('user') || '{}');
+    return (user.email || '').trim().toLowerCase();
+  } catch (e) {
+    return '';
+  }
+}
+
+function isRestrictedSourcingUser(userEmail) {
+  const normalizedEmail = (userEmail || getRestrictedSourcingEmail() || '').trim().toLowerCase();
+  return restrictedSourcingEmails.includes(normalizedEmail);
+}
+
+// Allowed page paths for the restricted sourcing accounts. Anything not in
+// this list will bounce the user back to the dashboard (see
+// enforceSourcingPageRestriction below) so direct URL entry can't bypass
+// the sidebar restriction.
+const RESTRICTED_SOURCING_ALLOWED_PATHS = [
+  '/pages/dashboard.html',
+  '/pages/employee.html',
+  '/pages/hr-operations.html',
+  '/pages/tasks.html',
+  '/pages/worksheets.html',
+  '/pages/profile.html',
+  '/pages/candidates.html',
+  '/pages/requirements.html',
+  '/pages/proposals.html',
+  '/pages/attendance.html'
+];
+
+function enforceSourcingPageRestriction() {
+  const userEmail = getRestrictedSourcingEmail();
+  if (!isRestrictedSourcingUser(userEmail)) return;
+
+  const currentPath = window.location.pathname;
+  const isAllowed = RESTRICTED_SOURCING_ALLOWED_PATHS.some(p => currentPath.includes(p));
+  if (!isAllowed) {
+    window.location.replace('/pages/dashboard.html');
+  }
+}
+
 // ── Single source of truth for "are we in mobile-drawer mode?" ────
 // MUST match the 991.98px breakpoint in styles1.css where the sidebar
 // becomes a fixed off-canvas drawer (transform: translateX(-105%)).
@@ -112,151 +180,175 @@ function isMobileViewport() {
   return MOBILE_QUERY.matches;
 }
 
-function buildNavGroups(currentPath, userRole) {
+function buildNavGroups(currentPath, userRole, userEmail) {
   const isActive = (keyword) => currentPath.includes(keyword);
-  let groups = NAV_GROUPS.map(g => ({ ...g, items: [...g.items] }));
+  let groups;
 
-  // Reports & Analytics: ADMIN / DIRECTOR / COO / HR
-  if (['ADMIN', 'DIRECTOR', 'COO', 'HR'].includes(userRole)) {
-    const updateGroup = groups.find(g => g.id === 'updates');
-    if (updateGroup) {
-      updateGroup.items.push(
-        {
-          href: '/pages/reports.html',
-          icon: '📈',
-          label: 'Reports & Analytics',
-          match: 'reports'
+  // ── Hard restriction for the three sourcing accounts, by email ──
+  // This takes priority over role-based logic below: even if these
+  // accounts carry a role that would normally see more (e.g.
+  // SOURCING_MANAGER / SOURCING_OFFICER), they are locked down to
+  // exactly Employees + Crewing & Recruitment (minus Job Applications).
+  if (isRestrictedSourcingUser(userEmail)) {
+    groups = NAV_GROUPS
+      .filter(g => ['hr-employees', 'crewing'].includes(g.id))
+      .map(g => {
+        if (g.id === 'crewing') {
+          return {
+            ...g,
+            items: g.items.filter(i => ['candidates', 'requirements', 'proposals'].includes(i.match))
+          };
         }
+        // hr-employees already contains exactly: employee, hr-operations,
+        // tasks, worksheets, profile — matches the required allow-list.
+        return { ...g, items: [...g.items] };
+      });
+  } else {
+    groups = NAV_GROUPS.map(g => ({ ...g, items: [...g.items] }));
+
+    // Reports & Analytics: ADMIN / DIRECTOR / COO / HR
+    if (['ADMIN', 'DIRECTOR', 'COO', 'HR'].includes(userRole)) {
+      const updateGroup = groups.find(g => g.id === 'updates');
+      if (updateGroup) {
+        updateGroup.items.push(
+          {
+            href: '/pages/reports.html',
+            icon: '📈',
+            label: 'Reports & Analytics',
+            match: 'reports'
+          }
+        );
+      }
+    }
+
+    // Role-based visibility using canonical roles
+    if (['ADMIN', 'DIRECTOR', 'COO'].includes(userRole)) {
+      // Org-wide roles see all groups plus documents
+      groups.push({
+        id: 'docs',
+        label: 'Documents',
+        icon: '📄',
+        items: [
+          {
+            href: '/pages/documents.html',
+            icon: '📄',
+            label: 'Documents',
+            match: 'documents'
+          }
+        ]
+      });
+    } else if (userRole === 'BDM') {
+      groups = groups.filter(g =>
+        ['sales-pipeline', 'hr-employees', 'updates'].includes(g.id)
+      );
+    } else if (['SOURCING_MANAGER', 'SOURCING_OFFICER'].includes(userRole)) {
+      groups = groups
+        .map(g => {
+          if (g.id === 'crewing') return g;
+          if (g.id === 'frontdesk') return g;
+
+          if (g.id === 'hr-employees') {
+            return {
+              ...g,
+              items: g.items.filter(i =>
+                ['employee', 'hr-operations', 'tasks', 'worksheets', 'profile'].includes(i.match)
+              )
+            };
+          }
+
+          if (g.id === 'updates') {
+            return {
+              ...g,
+              items: g.items.filter(i => ['followups'].includes(i.match))
+            };
+          }
+
+          return { ...g, items: [] };
+        })
+        .filter(g => g.items.length > 0);
+    } else if (['DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'].includes(userRole)) {
+      groups = groups
+        .map(g => {
+          if (g.id === 'crewing') {
+            return {
+              ...g,
+              items: g.items.filter(i => ['candidates', 'requirements'].includes(i.match))
+            };
+          }
+          if (g.id === 'hr-employees') {
+            return {
+              ...g,
+              items: g.items.filter(i =>
+                ['employee', 'tasks', 'worksheets', 'profile'].includes(i.match)
+              )
+            };
+          }
+          return { ...g, items: [] };
+        })
+        .filter(g => g.items.length > 0);
+
+      groups.push({
+        id: 'docs',
+        label: 'Documents',
+        icon: '📄',
+        items: [
+          {
+            href: '/pages/documents.html',
+            icon: '📄',
+            label: 'Documents',
+            match: 'documents'
+          }
+        ]
+      });
+    } else if (userRole === 'ACCOUNTS_OFFICER') {
+      groups = groups
+        .map(g => {
+          if (g.id === 'compliance') return g;
+          if (g.id === 'crewing') {
+            return {
+              ...g,
+              items: g.items.filter(i => ['candidates'].includes(i.match))
+            };
+          }
+          if (g.id === 'hr-employees') {
+            return {
+              ...g,
+              items: g.items.filter(i =>
+                ['tasks', 'worksheets', 'profile'].includes(i.match)
+              )
+            };
+          }
+          return { ...g, items: [] };
+        })
+        .filter(g => g.items.length > 0);
+    } else if (['ADMIN_OFFICER', 'RECEPTION'].includes(userRole)) {
+      groups = groups
+        .map(g => {
+          if (g.id === 'frontdesk') return g;
+          if (g.id === 'crewing') {
+            return {
+              ...g,
+              items: g.items.filter(i => ['job-applicants'].includes(i.match))
+            };
+          }
+          if (g.id === 'hr-employees') {
+            return {
+              ...g,
+              items: g.items.filter(i =>
+                ['tasks', 'worksheets', 'profile'].includes(i.match)
+              )
+            };
+          }
+          return { ...g, items: [] };
+        })
+        .filter(g => g.items.length > 0);
+    } else if (userRole === 'HR') {
+      groups = groups.filter(g =>
+        ['hr-employees', 'crewing', 'frontdesk', 'updates'].includes(g.id)
       );
     }
   }
 
-  // Role-based visibility using canonical roles
-  if (['ADMIN', 'DIRECTOR', 'COO'].includes(userRole)) {
-    // Org-wide roles see all groups plus documents
-    groups.push({
-      id: 'docs',
-      label: 'Documents',
-      icon: '📄',
-      items: [
-        {
-          href: '/pages/documents.html',
-          icon: '📄',
-          label: 'Documents',
-          match: 'documents'
-        }
-      ]
-    });
-  } else if (userRole === 'BDM') {
-    groups = groups.filter(g =>
-      ['sales-pipeline', 'hr-employees', 'updates'].includes(g.id)
-    );
-  } else if (['SOURCING_MANAGER', 'SOURCING_OFFICER'].includes(userRole)) {
-    groups = groups
-      .map(g => {
-        if (g.id === 'crewing') return g;
-        if (g.id === 'frontdesk') return g;
-
-        if (g.id === 'hr-employees') {
-          return {
-            ...g,
-            items: g.items.filter(i =>
-              ['employee', 'hr-operations', 'tasks', 'worksheets', 'profile'].includes(i.match)
-            )
-          };
-        }
-
-        if (g.id === 'updates') {
-          return {
-            ...g,
-            items: g.items.filter(i => ['followups'].includes(i.match))
-          };
-        }
-
-        return { ...g, items: [] };
-      })
-      .filter(g => g.items.length > 0);
-  } else if (['DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'].includes(userRole)) {
-    groups = groups
-      .map(g => {
-        if (g.id === 'crewing') {
-          return {
-            ...g,
-            items: g.items.filter(i => ['candidates', 'requirements'].includes(i.match))
-          };
-        }
-        if (g.id === 'hr-employees') {
-          return {
-            ...g,
-            items: g.items.filter(i =>
-              ['employee', 'tasks', 'worksheets', 'profile'].includes(i.match)
-            )
-          };
-        }
-        return { ...g, items: [] };
-      })
-      .filter(g => g.items.length > 0);
-
-    groups.push({
-      id: 'docs',
-      label: 'Documents',
-      icon: '📄',
-      items: [
-        {
-          href: '/pages/documents.html',
-          icon: '📄',
-          label: 'Documents',
-          match: 'documents'
-        }
-      ]
-    });
-  } else if (userRole === 'ACCOUNTS_OFFICER') {
-    groups = groups
-      .map(g => {
-        if (g.id === 'compliance') return g;
-        if (g.id === 'crewing') {
-          return {
-            ...g,
-            items: g.items.filter(i => ['candidates'].includes(i.match))
-          };
-        }
-        if (g.id === 'hr-employees') {
-          return {
-            ...g,
-            items: g.items.filter(i =>
-              ['tasks', 'worksheets', 'profile'].includes(i.match)
-            )
-          };
-        }
-        return { ...g, items: [] };
-      })
-      .filter(g => g.items.length > 0);
-  } else if (['ADMIN_OFFICER', 'RECEPTION'].includes(userRole)) {
-    groups = groups
-      .map(g => {
-        if (g.id === 'frontdesk') return g;
-        if (g.id === 'crewing') {
-          return {
-            ...g,
-            items: g.items.filter(i => ['job-applicants'].includes(i.match))
-          };
-        }
-        if (g.id === 'hr-employees') {
-          return {
-            ...g,
-            items: g.items.filter(i =>
-              ['tasks', 'worksheets', 'profile'].includes(i.match)
-            )
-          };
-        }
-        return { ...g, items: [] };
-      })
-      .filter(g => g.items.length > 0);
-  } else if (userRole === 'HR') {
-    groups = groups.filter(g =>
-      ['hr-employees', 'crewing', 'frontdesk', 'updates'].includes(g.id)
-    );
-  }
   let activeGroupId = null;
 
   const groupsHtml = groups.map(group => {
@@ -299,7 +391,7 @@ function renderSidebar() {
 
   const isActive = (keyword) => currentPath.includes(keyword) ? 'active' : '';
   const user = JSON.parse(localStorage.getItem('user') || '{}');
-  const { groupsHtml, activeGroupId } = buildNavGroups(currentPath, user.role);
+  const { groupsHtml, activeGroupId } = buildNavGroups(currentPath, user.role, user.email);
 
   sidebarContainer.innerHTML = `
     <div class="sidebar" id="app-sidebar">
@@ -839,6 +931,10 @@ MOBILE_QUERY.addEventListener('change', (e) => {
 
 document.addEventListener('DOMContentLoaded', () => {
   if (!UI.requireAuth()) return;
+
+  // Block direct-URL access to restricted pages for the three
+  // email-restricted sourcing accounts before rendering anything else.
+  enforceSourcingPageRestriction();
 
   renderSidebar();
   renderNavbar();

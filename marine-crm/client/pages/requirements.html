@@ -289,23 +289,73 @@
                 }
             }
 
+            // ── Safe formatting helpers ─────────────────────────────────
+            // Candidate.availableFrom / expectedSalary are optional fields on
+            // the real model — never assume they're populated. Falls back to
+            // "N/A" instead of ever rendering "undefined" or "Invalid Date".
+            function formatDateSafe(value) {
+                if (!value) return 'N/A';
+                const d = new Date(value);
+                return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+
+            function formatSalarySafe(amount, currency) {
+                if (amount === null || amount === undefined || amount === '') return 'N/A';
+                const num = Number(amount);
+                if (isNaN(num)) return 'N/A';
+                return `${currency || 'USD'} ${num.toLocaleString()}/m`;
+            }
+
+            function escapeHtml(value) {
+                if (value === null || value === undefined || value === '') return 'N/A';
+                return String(value).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+            }
+
             window.matchCandidates = async (id) => {
                 try {
-                    const matchedRes = await window.ApiService.crewing.requirements.match(id);
-                    const matchedCrew = matchedRes.data || [];
-                    openMatchingModal(id, matchedCrew);
+                    await refreshMatchModal(id);
                 } catch (error) {
                     console.error('Matching Error:', error);
-                    if (window.UI?.showToast) window.UI.showToast('Error finding matched candidates', 'error');
+                    if (window.UI?.showToast) window.UI.showToast(error?.message || 'Error finding matched candidates', 'error');
                 }
             };
 
-            function openMatchingModal(reqId, crewList) {
+            // Loads matched candidates for the requirement AND the set of
+            // candidateIds already PROPOSED for that same requirement (from
+            // the existing Applications API), so the modal can correctly
+            // show "Already Proposed" instead of letting the same candidate
+            // be proposed twice.
+            async function loadMatchedCrew(reqId) {
+                const [matchedRes, appsRes] = await Promise.all([
+                    window.ApiService.crewing.requirements.match(reqId),
+                    window.ApiService.crewing.applications
+                        .getAll({ requirementId: reqId, status: 'PROPOSED' })
+                        .catch(() => ({ data: [] }))
+                ]);
+
+                const matchedCrew = matchedRes.data || [];
+                const proposedApps = appsRes.data || [];
+                const proposedCandidateIds = new Set(
+                    proposedApps
+                        .map(a => (a.candidateId && (a.candidateId.id || a.candidateId._id)) || a.candidateId)
+                        .filter(Boolean)
+                        .map(String)
+                );
+
+                return { matchedCrew, proposedCandidateIds };
+            }
+
+            async function refreshMatchModal(reqId) {
+                const { matchedCrew, proposedCandidateIds } = await loadMatchedCrew(reqId);
+                renderMatchModal(reqId, matchedCrew, proposedCandidateIds);
+            }
+
+            function renderMatchModal(reqId, crewList, proposedCandidateIds) {
                 let matchingRowsHtml = '';
                 if (crewList.length === 0) {
                     matchingRowsHtml = `
                         <tr>
-                            <td colspan="5" style="text-align: center; padding: 20px;">
+                            <td colspan="8" style="text-align: center; padding: 20px;">
                                 <i class="fas fa-exclamation-triangle fa-2x" style="color: var(--yellow);"></i>
                                 <p style="margin-top: 10px;">No candidates currently match this Rank + Vessel Type experience.</p>
                             </td>
@@ -313,16 +363,21 @@
                     `;
                 } else {
                     crewList.forEach(c => {
-                        const formatAvail = new Date(c.availabilityDate).toLocaleDateString();
+                        const alreadyProposed = proposedCandidateIds.has(String(c.id));
+                        const actionHtml = alreadyProposed
+                            ? `<button class="btn btn-secondary btn-sm" disabled><i class="fas fa-check"></i> Already Proposed</button>`
+                            : `<button class="btn btn-primary btn-sm" data-candidate-id="${c.id}" onclick="proposeCandidate('${reqId}', '${c.id}', this)"><i class="fas fa-paper-plane"></i> Propose</button>`;
+
                         matchingRowsHtml += `
                             <tr>
-                                <td><strong>${c.name}</strong></td>
-                                <td>${c.location}</td>
-                                <td><strong style="color: var(--accent-primary);">$${c.expectedWages}/m</strong></td>
-                                <td>${formatAvail}</td>
-                                <td>
-                                    <button class="btn btn-primary btn-sm" onclick="proposeCandidate('${reqId}', '${c.id}')"><i class="fas fa-paper-plane"></i> Propose</button>
-                                </td>
+                                <td><strong>${escapeHtml(c.name)}</strong></td>
+                                <td>${escapeHtml(c.rank)}</td>
+                                <td>${escapeHtml(c.nationality)}</td>
+                                <td>${c.experienceYears !== undefined && c.experienceYears !== null ? c.experienceYears + ' yrs' : 'N/A'}</td>
+                                <td><strong style="color: var(--accent-primary);">${formatSalarySafe(c.expectedSalary, c.currency)}</strong></td>
+                                <td>${formatDateSafe(c.availableFrom)}</td>
+                                <td>${escapeHtml(c.currentVessel)}</td>
+                                <td>${actionHtml}</td>
                             </tr>
                         `;
                     });
@@ -334,9 +389,12 @@
                             <thead>
                                 <tr>
                                     <th>Crew Name</th>
-                                    <th>Location</th>
-                                    <th>Expected Wages</th>
+                                    <th>Rank</th>
+                                    <th>Nationality</th>
+                                    <th>Experience</th>
+                                    <th>Expected Salary</th>
                                     <th>Available From</th>
+                                    <th>Current Vessel</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -347,7 +405,12 @@
                     </div>
                 `;
 
-                if (window.UI?.createModal) {
+                if (_matchModal) {
+                    // Modal already open for this requirement — refresh its
+                    // body in place instead of closing/reopening.
+                    const bodyEl = _matchModal.querySelector('.modal-body');
+                    if (bodyEl) bodyEl.innerHTML = bodyHtml;
+                } else if (window.UI?.createModal) {
                     _matchModal = window.UI.createModal({
                         title: 'Auto-Matched Qualified Seafarers',
                         bodyHtml,
@@ -361,14 +424,26 @@
                 if (_matchModal) _matchModal.close();
             };
 
-            window.proposeCandidate = async (reqId, candidateId) => {
+            window.proposeCandidate = async (reqId, candidateId, btnEl) => {
+                // Disable immediately to prevent a duplicate submission from a
+                // fast double-click while the request is in flight.
+                if (btnEl) {
+                    btnEl.disabled = true;
+                    btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Proposing...';
+                }
                 try {
-                    await window.ApiService.crewing.applications.propose({ requirementId: reqId, candidateId });
-                    if (window.UI?.showToast) window.UI.showToast('✅ Candidate successfully proposed to client', 'success');
-                    if (_matchModal) _matchModal.close();
+                    const res = await window.ApiService.crewing.applications.propose({ requirementId: reqId, candidateId });
+                    if (window.UI?.showToast) window.UI.showToast('✅ ' + (res?.message || 'Candidate successfully proposed.'), 'success');
+                    // Refresh matching candidates so the proposed candidate no
+                    // longer shows as freshly AVAILABLE / can't be proposed again.
+                    await refreshMatchModal(reqId);
                 } catch (error) {
                     console.error('Propose error:', error);
-                    if (window.UI?.showToast) window.UI.showToast('Error proposing candidate', 'error');
+                    if (window.UI?.showToast) window.UI.showToast(error?.message || 'Error proposing candidate', 'error');
+                    if (btnEl) {
+                        btnEl.disabled = false;
+                        btnEl.innerHTML = '<i class="fas fa-paper-plane"></i> Propose';
+                    }
                 }
             };
 

@@ -14,12 +14,21 @@
 
 const mongoose = require('mongoose');
 const { Schema } = mongoose;
+const { getNextSequence } = require('./Counter.model');
 
-/** Small helper — generates a human-friendly reference like JA-20260814-7F3K2Q */
-function generateApplicationId() {
-    const datePart = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-    const randPart = Math.random().toString(36).slice(2, 8).toUpperCase();
-    return `JA-${datePart}-${randPart}`;
+/** Counter name used for the Job Application ID sequence. */
+const APPLICATION_ID_COUNTER = 'jobApplicationId';
+
+/**
+ * Generates the next Application ID: a plain, sequential, zero-padded
+ * 5-digit number — 00001, 00002, 00003, ... — with no prefix, date,
+ * letters, or special characters. The sequence is stored in the
+ * `Counter` collection so it survives restarts and stays unique even
+ * under concurrent submissions.
+ */
+async function generateApplicationId() {
+    const next = await getNextSequence(APPLICATION_ID_COUNTER);
+    return String(next).padStart(5, '0');
 }
 
 /** Sub-schema for an uploaded file's metadata (resume, passport copy, etc.) */
@@ -27,7 +36,7 @@ const UploadedFileSchema = new Schema(
     {
         originalName: { type: String },
         storedFileName: { type: String },
-        // path relative to your uploads root, e.g. "job-applications/2026/08/JA-.../resume.pdf"
+        // path relative to your uploads root, e.g. "job-applications/2026/08/resume.pdf"
         path: { type: String },
         mimeType: { type: String },
         sizeBytes: { type: Number },
@@ -38,7 +47,14 @@ const UploadedFileSchema = new Schema(
 const JobApplicationSchema = new Schema(
     {
         // ---- system fields ----
-        applicationId: { type: String, unique: true, index: true, default: generateApplicationId },
+        applicationId: {
+            type: String,
+            unique: true,
+            index: true,
+            default: generateApplicationId,
+            immutable: true, // once assigned, never changes on later updates
+            match: /^\d{5}$/, // exactly 5 numeric digits, e.g. 00001 — no prefixes/letters/dates
+        },
         status: {
             type: String,
             enum: ['NEW', 'REVIEWED', 'SHORTLISTED', 'INTERVIEW_SCHEDULED', 'REJECTED', 'HIRED'],

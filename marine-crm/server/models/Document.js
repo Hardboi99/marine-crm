@@ -31,7 +31,17 @@ const documentSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      enum: ['CONTRACT', 'CREW_CERTIFICATE', 'COMPLIANCE', 'HR', 'OTHER'],
+      // CONTRACT / CREW_CERTIFICATE / COMPLIANCE / HR / OTHER are the
+      // original general-document categories (documents.html). PASSPORT /
+      // CDC / COC / MEDICAL_CERTIFICATE / STCW were added for Part 3's
+      // candidate-specific documentation workflow (Documentation section
+      // on an accepted proposal) — these are additive only, nothing
+      // existing was renamed or removed, so old records keep working
+      // unchanged.
+      enum: [
+        'CONTRACT', 'CREW_CERTIFICATE', 'COMPLIANCE', 'HR', 'OTHER',
+        'PASSPORT', 'CDC', 'COC', 'MEDICAL_CERTIFICATE', 'STCW',
+      ],
       default: 'OTHER',
     },
     status: {

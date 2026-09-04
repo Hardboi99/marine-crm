@@ -83,8 +83,7 @@
                                     <tr>
                                         <th>Name</th>
                                         <th>Rank</th>
-                                        <th>Location / Contact</th>
-                                        <th>COC Info</th>
+                                        <th>Added By</th>
                                         <th>Availability</th>
                                         <th>Status</th>
                                         <th>Wages</th>
@@ -115,14 +114,8 @@
                                         <td>
                                             <div class="skeleton-box"></div>
                                         </td>
-                                        <td>
-                                            <div class="skeleton-box"></div>
-                                        </td>
                                     </tr>
                                     <tr class="skeleton-row">
-                                        <td>
-                                            <div class="skeleton-box"></div>
-                                        </td>
                                         <td>
                                             <div class="skeleton-box"></div>
                                         </td>
@@ -228,15 +221,7 @@
                         tr.innerHTML = `
                             <td><strong>${escapeHtml(c.name)}</strong></td>
                             <td><span class="badge badge-blue">${escapeHtml(c.rank)}</span></td>
-                            <td>
-                                <div><i class="fas fa-flag"></i> ${escapeHtml(c.nationality || '—')}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-envelope"></i> ${escapeHtml(c.email || '—')}</div>
-                                <div style="font-size: 0.8rem; color: var(--text-secondary);"><i class="fas fa-phone"></i> ${escapeHtml(c.phone || '—')}</div>
-                            </td>
-                            <td>
-                                <div><strong>Passport:</strong> ${escapeHtml(c.passportNumber || '—')}</div>
-                                <div style="font-size: 0.8rem; color: var(--accent-primary); font-weight:600;">COC: ${escapeHtml(c.cocNumber || '—')}</div>
-                            </td>
+                            <td>${renderAddedBy(c.createdById)}</td>
                             <td>${formatAvail}</td>
                             <td>
                                 ${window.UI?.renderStatusBadge ? window.UI.renderStatusBadge(c.status) : `<span class="badge">${c.status}</span>`}
@@ -265,6 +250,51 @@
                     .replace(/>/g, '&gt;')
                     .replace(/"/g, '&quot;')
                     .replace(/'/g, '&#039;');
+            }
+
+            // Readable labels for role codes — display only, never used for
+            // access logic (permissions stay entirely on the backend).
+            const ROLE_LABELS = {
+                ADMIN: 'Admin',
+                COO: 'COO',
+                DIRECTOR: 'Director',
+                SOURCING_MANAGER: 'Sourcing Manager',
+                SOURCING_OFFICER: 'Sourcing Officer',
+                DOCUMENTATION_MANAGER: 'Documentation Manager',
+                DOCUMENTATION_OFFICER: 'Documentation Officer',
+                ACCOUNTS_OFFICER: 'Accounts Officer',
+                HR: 'HR',
+            };
+
+            // "Added By" cell — always derived from the candidate's own
+            // createdById (populated by the backend), never from the
+            // frontend/form. Falls back to "Unknown" for old records
+            // where createdById is missing/unpopulated.
+            function renderAddedBy(creator) {
+                if (!creator) {
+                    // TEMP DEBUG — remove once "Added By" is confirmed working.
+                    console.warn('renderAddedBy: createdById is missing/null on this candidate.');
+                    return `<div><strong>Unknown</strong></div>`;
+                }
+                if (typeof creator !== 'object') {
+                    // createdById came back as a raw id string, NOT a populated
+                    // User object — the backend .populate() isn't taking effect
+                    // (stale server process, wrong file deployed, or a cached
+                    // response). This is the #1 real-world cause of "Unknown"
+                    // showing even for brand-new candidates.
+                    console.warn('renderAddedBy: createdById is not populated — got a raw id:', creator);
+                    return `<div><strong>Unknown</strong></div>`;
+                }
+                const name = creator.name || creator.email;
+                if (!name) {
+                    console.warn('renderAddedBy: populated createdById has no name/email:', creator);
+                    return `<div><strong>Unknown</strong></div>`;
+                }
+                const roleLabel = ROLE_LABELS[creator.role] || escapeHtml(creator.role || '');
+                return `
+                    <div><strong>${escapeHtml(name)}</strong></div>
+                    <div style="font-size:0.8rem; color:var(--text-secondary);">${escapeHtml(roleLabel)}</div>
+                `;
             }
 
             searchInput.addEventListener('input', renderTable);

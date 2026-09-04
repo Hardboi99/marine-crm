@@ -1,0 +1,591 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Candidate Proposals - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles1.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Detail-view styling for the Review modal — mirrors the
+           .profile-section / .info-grid pattern already used on the Job
+           Applications applicant-profile modal, reused here for
+           consistency rather than inventing a new detail layout. */
+        .profile-section {
+            background: var(--card-bg-soft, rgba(255, 255, 255, 0.03));
+            border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+            border-radius: var(--radius-md, 12px);
+            padding: 18px 20px;
+            margin-bottom: 20px;
+        }
+
+        .profile-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .profile-section-title {
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--accent-primary, #0ea5e9);
+            border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+            padding-bottom: 8px;
+            margin-bottom: 14px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 14px 20px;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 3px;
+        }
+
+        .info-item.span-2 {
+            grid-column: span 2;
+        }
+
+        @media (max-width: 576px) {
+            .info-item.span-2 {
+                grid-column: span 1;
+            }
+        }
+
+        .info-label {
+            font-size: 0.72rem;
+            color: var(--text-muted, #94a3b8);
+            font-weight: 500;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+
+        .info-value {
+            font-size: 0.9rem;
+            color: var(--text-primary, #f8fafc);
+            font-weight: 600;
+            word-break: break-word;
+        }
+
+        .decision-banner {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 16px;
+            border-radius: var(--radius-md, 10px);
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-top: 4px;
+        }
+
+        .decision-banner.accepted {
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .decision-banner.rejected {
+            background: rgba(239, 68, 68, 0.12);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <div id="sidebar-container"></div>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+            <main class="page-content">
+                <div class="page-header">
+                    <div>
+                        <h1 class="page-title">📨 Candidate Proposals</h1>
+                        <p class="page-subtitle">Review and manage seafarer proposals submitted against vessel requirements.</p>
+                    </div>
+                </div>
+
+                <div class="filter-bar">
+                    <div class="filter-group">
+                        <input type="text" id="search-input" class="form-control" placeholder="Search candidate name, COC, or email...">
+                    </div>
+                    <div class="filter-group">
+                        <select id="status-filter" class="form-control">
+                            <option value="">All Statuses</option>
+                            <option value="PROPOSED">PROPOSED</option>
+                            <option value="CLIENT_ACCEPTED">CLIENT_ACCEPTED</option>
+                            <option value="CLIENT_REJECTED">CLIENT_REJECTED</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="vessel-filter" class="form-control">
+                            <option value="">All Vessels</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <select id="rank-filter" class="form-control">
+                            <option value="">All Ranks</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <input type="date" id="date-filter" class="form-control" title="Filter by proposal date">
+                    </div>
+                    <div class="filter-group">
+                        <button id="clear-filters-btn" class="btn btn-secondary" type="button">
+                            <i class="fas fa-times"></i> Clear
+                        </button>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-body">
+                        <div class="table-container">
+                            <table id="proposals-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Candidate</th>
+                                        <th>Rank</th>
+                                        <th>Vessel</th>
+                                        <th>Vessel Type</th>
+                                        <th>Requirement</th>
+                                        <th>Expected Salary</th>
+                                        <th>Available From</th>
+                                        <th>Proposal Date</th>
+                                        <th>Status</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="proposals-tbody">
+                                    <tr class="skeleton-row">
+                                        <td><div class="skeleton-box"></div></td>
+                                        <td><div class="skeleton-box"></div></td>
+                                        <td><div class="skeleton-box"></div></td>
+                                        <td><div class="skeleton-box"></div></td>
+                                        <td><div class="skeleton-box"></div></td>
+                                        <td><div class="skeleton-box"></div></td>
+                                        <td><div class="skeleton-box"></div></td>
+                                        <td><div class="skeleton-box"></div></td>
+                                        <td><div class="skeleton-box"></div></td>
+                                        <td><div class="skeleton-box"></div></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        <div id="empty-state" class="empty-state" style="display: none;">
+                            <i class="fas fa-inbox fa-3x"></i>
+                            <p>No candidate proposals found matching criteria.</p>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script src="/public/js/components/birthday.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let proposalsData = [];   // all PROPOSED / CLIENT_ACCEPTED / CLIENT_REJECTED applications
+            let reasonsData = [];     // shared Reason taxonomy, reused as-is
+            let _reviewModal = null;
+            let _rejectModal = null;
+            let currentReviewId = null;
+
+            const tbody = document.getElementById('proposals-tbody');
+            const table = document.getElementById('proposals-table');
+            const emptyState = document.getElementById('empty-state');
+            const searchInput = document.getElementById('search-input');
+            const statusFilter = document.getElementById('status-filter');
+            const vesselFilter = document.getElementById('vessel-filter');
+            const rankFilter = document.getElementById('rank-filter');
+            const dateFilter = document.getElementById('date-filter');
+            const clearFiltersBtn = document.getElementById('clear-filters-btn');
+
+            // ── Safe formatting helpers ─────────────────────────────────
+            // Never render "undefined" / "Invalid Date" / "$undefined" —
+            // every optional field falls back to "N/A".
+            function esc(value) {
+                if (value === null || value === undefined || value === '') return 'N/A';
+                return String(value).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+            }
+
+            function rawEsc(value) {
+                if (value === null || value === undefined) return '';
+                return String(value).replace(/[<>&]/g, (c) => ({ '<': '&lt;', '>': '&gt;', '&': '&amp;' }[c]));
+            }
+
+            function formatDateSafe(value) {
+                if (!value) return 'N/A';
+                const d = new Date(value);
+                return isNaN(d.getTime()) ? 'N/A' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+            }
+
+            function formatDateTimeSafe(value) {
+                if (!value) return 'N/A';
+                const d = new Date(value);
+                return isNaN(d.getTime()) ? 'N/A' : d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' });
+            }
+
+            function formatSalarySafe(amount, currency) {
+                if (amount === null || amount === undefined || amount === '') return 'N/A';
+                const num = Number(amount);
+                if (isNaN(num)) return 'N/A';
+                return `${currency || 'USD'} ${num.toLocaleString()}/m`;
+            }
+
+            function formatExperienceSafe(years) {
+                if (years === null || years === undefined || years === '') return 'N/A';
+                const num = Number(years);
+                if (isNaN(num)) return 'N/A';
+                return `${num} year${num === 1 ? '' : 's'}`;
+            }
+
+            function getId(refOrId) {
+                if (!refOrId) return null;
+                return refOrId.id || refOrId._id || refOrId;
+            }
+
+            // ── Data loading ─────────────────────────────────────────────
+            async function fetchData() {
+                try {
+                    const res = await window.ApiService.crewing.applications.getAll();
+                    const all = res.data || [];
+                    // Candidate Proposals covers the post-Propose pipeline only —
+                    // SHORTLISTED applications belong to the Match Crew step, not
+                    // here. Never invent a new status system; just scope the view.
+                    proposalsData = all.filter(a => ['PROPOSED', 'CLIENT_ACCEPTED', 'CLIENT_REJECTED'].includes(a.status));
+                    populateDynamicFilters();
+                    renderTable();
+                } catch (error) {
+                    console.error('Error fetching proposals:', error);
+                    if (window.UI?.showToast) window.UI.showToast(error?.message || 'Failed to load candidate proposals', 'error');
+                    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; padding:24px; color:#ef4444;">Failed to load candidate proposals. Please try again.</td></tr>`;
+                }
+            }
+
+            async function fetchReasons() {
+                try {
+                    const res = await window.ApiService.getReasons();
+                    reasonsData = res.data || [];
+                } catch (error) {
+                    console.error('Error fetching rejection reasons:', error);
+                }
+            }
+
+            function populateDynamicFilters() {
+                const vessels = new Set();
+                const ranks = new Set();
+                proposalsData.forEach(a => {
+                    const companyName = a.requirementId?.companyId?.name;
+                    if (companyName) vessels.add(companyName);
+                    const rank = a.candidateId?.rank;
+                    if (rank) ranks.add(rank);
+                });
+
+                const currentVessel = vesselFilter.value;
+                const currentRank = rankFilter.value;
+
+                vesselFilter.innerHTML = '<option value="">All Vessels</option>' +
+                    Array.from(vessels).sort().map(v => `<option value="${rawEsc(v)}">${esc(v)}</option>`).join('');
+                rankFilter.innerHTML = '<option value="">All Ranks</option>' +
+                    Array.from(ranks).sort().map(r => `<option value="${rawEsc(r)}">${esc(r)}</option>`).join('');
+
+                if (Array.from(vessels).includes(currentVessel)) vesselFilter.value = currentVessel;
+                if (Array.from(ranks).includes(currentRank)) rankFilter.value = currentRank;
+            }
+
+            // ── Table rendering ──────────────────────────────────────────
+            function renderTable() {
+                const search = searchInput.value.trim().toLowerCase();
+                const status = statusFilter.value;
+                const vessel = vesselFilter.value;
+                const rank = rankFilter.value;
+                const dateVal = dateFilter.value; // yyyy-mm-dd
+
+                const filtered = proposalsData.filter(a => {
+                    const candidate = a.candidateId || {};
+                    const requirement = a.requirementId || {};
+                    const companyName = requirement.companyId?.name || '';
+
+                    const matchesSearch = !search || [candidate.name, candidate.cocNumber, candidate.email]
+                        .some(v => (v || '').toString().toLowerCase().includes(search));
+                    const matchesStatus = !status || a.status === status;
+                    const matchesVessel = !vessel || companyName === vessel;
+                    const matchesRank = !rank || candidate.rank === rank;
+                    const matchesDate = !dateVal || (a.createdAt && new Date(a.createdAt).toISOString().slice(0, 10) === dateVal);
+
+                    return matchesSearch && matchesStatus && matchesVessel && matchesRank && matchesDate;
+                });
+
+                tbody.innerHTML = '';
+
+                if (filtered.length === 0) {
+                    table.style.display = 'none';
+                    emptyState.style.display = 'block';
+                    return;
+                }
+
+                table.style.display = 'table';
+                emptyState.style.display = 'none';
+
+                filtered.forEach(a => {
+                    const candidate = a.candidateId || {};
+                    const requirement = a.requirementId || {};
+                    const companyName = requirement.companyId?.name;
+
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td><strong>${esc(candidate.name)}</strong></td>
+                        <td><span class="badge badge-blue">${esc(candidate.rank)}</span></td>
+                        <td>${esc(companyName)}</td>
+                        <td>${esc(requirement.vesselType)}</td>
+                        <td>${requirement.rank ? `${esc(requirement.rank)} <span style="color:var(--text-muted); font-size:0.8rem;">(${requirement.experienceMonthsRequired ?? 0} mo exp)</span>` : 'N/A'}</td>
+                        <td><strong style="color: var(--accent-primary);">${formatSalarySafe(candidate.expectedSalary, candidate.currency)}</strong></td>
+                        <td>${formatDateSafe(candidate.availableFrom)}</td>
+                        <td>${formatDateSafe(a.createdAt)}</td>
+                        <td>${window.UI?.renderStatusBadge ? window.UI.renderStatusBadge(a.status) : `<span class="badge">${esc(a.status)}</span>`}</td>
+                        <td class="row-actions">
+                            <button class="btn btn-primary btn-sm" onclick="openReviewModal('${a.id}')" title="Review Proposal">
+                                <i class="fas fa-eye"></i> Review
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+
+            searchInput.addEventListener('input', renderTable);
+            statusFilter.addEventListener('change', renderTable);
+            vesselFilter.addEventListener('change', renderTable);
+            rankFilter.addEventListener('change', renderTable);
+            dateFilter.addEventListener('change', renderTable);
+            clearFiltersBtn.addEventListener('click', () => {
+                searchInput.value = '';
+                statusFilter.value = '';
+                vesselFilter.value = '';
+                rankFilter.value = '';
+                dateFilter.value = '';
+                renderTable();
+            });
+
+            // ── Review modal ─────────────────────────────────────────────
+            function buildReviewModalHtml(a) {
+                const candidate = a.candidateId || {};
+                const requirement = a.requirementId || {};
+                const companyName = requirement.companyId?.name;
+                const createdByName = a.createdById?.name || a.createdById?.email;
+
+                let decisionBannerHtml = '';
+                if (a.status === 'CLIENT_ACCEPTED') {
+                    decisionBannerHtml = `<div class="decision-banner accepted"><i class="fas fa-check-circle"></i> This proposal has been accepted by the client.</div>`;
+                } else if (a.status === 'CLIENT_REJECTED') {
+                    const reasonLabel = a.rejectionReasonId?.label;
+                    decisionBannerHtml = `<div class="decision-banner rejected"><i class="fas fa-times-circle"></i> Rejected${reasonLabel ? ` — ${esc(reasonLabel)}` : ''}${a.rejectionNotes ? `: ${esc(a.rejectionNotes)}` : ''}</div>`;
+                }
+
+                return `
+                    <div class="profile-section">
+                        <div class="profile-section-title"><i class="fas fa-user"></i> Candidate Details</div>
+                        <div class="info-grid">
+                            <div class="info-item"><span class="info-label">Candidate Name</span><span class="info-value">${esc(candidate.name)}</span></div>
+                            <div class="info-item"><span class="info-label">Rank</span><span class="info-value">${esc(candidate.rank)}</span></div>
+                            <div class="info-item"><span class="info-label">Email</span><span class="info-value">${esc(candidate.email)}</span></div>
+                            <div class="info-item"><span class="info-label">Phone</span><span class="info-value">${esc(candidate.phone)}</span></div>
+                            <div class="info-item"><span class="info-label">Nationality</span><span class="info-value">${esc(candidate.nationality)}</span></div>
+                            <div class="info-item"><span class="info-label">Experience</span><span class="info-value">${formatExperienceSafe(candidate.experienceYears)}</span></div>
+                            <div class="info-item"><span class="info-label">Current Vessel</span><span class="info-value">${esc(candidate.currentVessel)}</span></div>
+                            <div class="info-item"><span class="info-label">COC Number</span><span class="info-value">${esc(candidate.cocNumber)}</span></div>
+                            <div class="info-item"><span class="info-label">CDC Number</span><span class="info-value">${esc(candidate.cdcNumber)}</span></div>
+                            <div class="info-item"><span class="info-label">Available From</span><span class="info-value">${formatDateSafe(candidate.availableFrom)}</span></div>
+                            <div class="info-item"><span class="info-label">Expected Salary</span><span class="info-value">${formatSalarySafe(candidate.expectedSalary, candidate.currency)}</span></div>
+                            <div class="info-item span-2"><span class="info-label">Notes</span><span class="info-value">${esc(candidate.notes)}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <div class="profile-section-title"><i class="fas fa-ship"></i> Requirement Details</div>
+                        <div class="info-grid">
+                            <div class="info-item"><span class="info-label">Vessel</span><span class="info-value">${esc(companyName)}</span></div>
+                            <div class="info-item"><span class="info-label">Vessel Type</span><span class="info-value">${esc(requirement.vesselType)}</span></div>
+                            <div class="info-item"><span class="info-label">Rank Required</span><span class="info-value">${esc(requirement.rank)}</span></div>
+                            <div class="info-item"><span class="info-label">Experience Required</span><span class="info-value">${requirement.experienceMonthsRequired !== undefined && requirement.experienceMonthsRequired !== null ? `${requirement.experienceMonthsRequired} months` : 'N/A'}</span></div>
+                            <div class="info-item"><span class="info-label">Target Joining Date</span><span class="info-value">${formatDateSafe(requirement.joiningDate)}</span></div>
+                            <div class="info-item"><span class="info-label">Salary Offered</span><span class="info-value">${formatSalarySafe(requirement.salaryOffered, 'USD')}</span></div>
+                            <div class="info-item"><span class="info-label">Requirement Status</span><span class="info-value">${esc(requirement.status)}</span></div>
+                        </div>
+                    </div>
+
+                    <div class="profile-section">
+                        <div class="profile-section-title"><i class="fas fa-file-signature"></i> Proposal Details</div>
+                        <div class="info-grid">
+                            <div class="info-item"><span class="info-label">Proposal Status</span><span class="info-value">${esc(a.status)}</span></div>
+                            <div class="info-item"><span class="info-label">Created By</span><span class="info-value">${esc(createdByName)}</span></div>
+                            <div class="info-item"><span class="info-label">Created Date</span><span class="info-value">${formatDateTimeSafe(a.createdAt)}</span></div>
+                            <div class="info-item"><span class="info-label">Last Updated</span><span class="info-value">${formatDateTimeSafe(a.updatedAt)}</span></div>
+                        </div>
+                        ${decisionBannerHtml ? `<div style="margin-top:14px;">${decisionBannerHtml}</div>` : ''}
+                    </div>
+                `;
+            }
+
+            window.openReviewModal = (id) => {
+                const application = proposalsData.find(a => a.id === id);
+                if (!application) {
+                    if (window.UI?.showToast) window.UI.showToast('Proposal not found', 'error');
+                    return;
+                }
+                currentReviewId = id;
+
+                const isPending = application.status === 'PROPOSED';
+                const footerHtml = `
+                    <button class="btn btn-secondary" onclick="closeReviewModal()">Close</button>
+                    ${isPending ? `
+                        <button class="btn btn-danger" id="reject-proposal-btn"><i class="fas fa-times-circle"></i> Reject Proposal</button>
+                        <button class="btn btn-success" id="accept-proposal-btn"><i class="fas fa-check-circle"></i> Accept Proposal</button>
+                    ` : ''}
+                `;
+
+                _reviewModal = window.UI.createModal({
+                    title: `Review Proposal — ${esc(application.candidateId?.name)}`,
+                    bodyHtml: buildReviewModalHtml(application),
+                    footerHtml,
+                    customClass: 'modal-lg-override',
+                    onClose: () => { _reviewModal = null; currentReviewId = null; }
+                });
+
+                if (isPending) {
+                    const acceptBtn = _reviewModal.querySelector('#accept-proposal-btn');
+                    const rejectBtn = _reviewModal.querySelector('#reject-proposal-btn');
+                    if (acceptBtn) acceptBtn.addEventListener('click', () => acceptProposal(id, acceptBtn));
+                    if (rejectBtn) rejectBtn.addEventListener('click', () => openRejectModal(id));
+                }
+            };
+
+            window.closeReviewModal = () => {
+                if (_reviewModal) _reviewModal.close();
+            };
+
+            // ── Accept ───────────────────────────────────────────────────
+            window.acceptProposal = async (id, btnEl) => {
+                if (window.UI?.confirm) {
+                    const confirmed = await window.UI.confirm({
+                        title: 'Accept Proposal?',
+                        message: 'This candidate will be marked as client-accepted and advanced in the workflow.',
+                        confirmText: 'Accept',
+                        danger: false
+                    });
+                    if (!confirmed) return;
+                }
+
+                if (btnEl) {
+                    btnEl.disabled = true;
+                    btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Accepting...';
+                }
+
+                try {
+                    await window.ApiService.crewing.applications.setDecision(id, { status: 'CLIENT_ACCEPTED' });
+                    if (window.UI?.showToast) window.UI.showToast('✅ Proposal accepted successfully.', 'success');
+                    if (_reviewModal) _reviewModal.close();
+                    await fetchData();
+                } catch (error) {
+                    console.error('Accept error:', error);
+                    if (window.UI?.showToast) window.UI.showToast(error?.message || 'Error accepting proposal', 'error');
+                    if (btnEl) {
+                        btnEl.disabled = false;
+                        btnEl.innerHTML = '<i class="fas fa-check-circle"></i> Accept Proposal';
+                    }
+                }
+            };
+
+            // ── Reject (reuses the existing Reason taxonomy / rejection fields) ──
+            window.openRejectModal = (id) => {
+                currentReviewId = id;
+                const options = reasonsData.map(r => `<option value="${r.id}">${esc(r.label)}${r.category ? ` (${esc(r.category)})` : ''}</option>`).join('');
+
+                const bodyHtml = `
+                    <form id="rejection-form">
+                        <div class="form-group">
+                            <label class="form-label">Rejection Reason *</label>
+                            <select id="rej-reason" class="form-control" required>
+                                <option value="">Select Rejection Reason</option>
+                                ${options}
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Additional Notes</label>
+                            <textarea id="rej-notes" class="form-control" placeholder="Provide extra feedback details..." rows="3"></textarea>
+                        </div>
+                    </form>
+                `;
+
+                _rejectModal = window.UI.createModal({
+                    title: 'Reject Proposal',
+                    bodyHtml,
+                    footerHtml: `
+                        <button class="btn btn-secondary" id="cancel-reject-btn">Cancel</button>
+                        <button class="btn btn-danger" id="confirm-reject-btn">Confirm Rejection</button>
+                    `,
+                    onClose: () => { _rejectModal = null; }
+                });
+
+                _rejectModal.querySelector('#cancel-reject-btn').addEventListener('click', () => {
+                    if (_rejectModal) _rejectModal.close();
+                });
+                _rejectModal.querySelector('#confirm-reject-btn').addEventListener('click', submitRejection);
+            };
+
+            window.closeRejectModal = () => {
+                if (_rejectModal) _rejectModal.close();
+            };
+
+            async function submitRejection(e) {
+                const btnEl = e.currentTarget;
+                const reasonId = document.getElementById('rej-reason').value;
+                const notes = document.getElementById('rej-notes').value.trim();
+
+                if (!reasonId) {
+                    if (window.UI?.showToast) window.UI.showToast('Please select a rejection reason', 'error');
+                    return;
+                }
+
+                btnEl.disabled = true;
+                btnEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Rejecting...';
+
+                try {
+                    await window.ApiService.crewing.applications.setDecision(currentReviewId, {
+                        status: 'CLIENT_REJECTED',
+                        rejectionReasonId: reasonId,
+                        rejectionNotes: notes || undefined
+                    });
+                    if (window.UI?.showToast) window.UI.showToast('❌ Proposal rejected successfully.', 'success');
+                    if (_rejectModal) _rejectModal.close();
+                    if (_reviewModal) _reviewModal.close();
+                    await fetchData();
+                } catch (error) {
+                    console.error('Reject error:', error);
+                    if (window.UI?.showToast) window.UI.showToast(error?.message || 'Error rejecting proposal', 'error');
+                    btnEl.disabled = false;
+                    btnEl.innerHTML = 'Confirm Rejection';
+                }
+            }
+
+            fetchReasons();
+            fetchData();
+        });
+    </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+    <script src="/public/js/components/cursor.js"></script>
+</body>
+
+</html>

@@ -1,7 +1,11 @@
-const { Candidate, Requirement, Application, Onboarding, Reason, Company, User } = require('../models');
+const fs = require('fs');
+const { Candidate, Requirement, Application, Onboarding, Reason, Company, User, Document } = require('../models');
 const { logActivity } = require('../utils/activityLogger');
 const { getDataScope, canAccessRecord } = require('../utils/accessScope');
-const { isValidTransition, isRoleAllowedForStatus } = require('../utils/workflow');
+const {
+  isValidTransition, isRoleAllowedForStatus,
+  REQUIRED_CANDIDATE_DOCUMENT_TYPES, computeDocumentationStatus,
+} = require('../utils/workflow');
 const { ROLES, ORG_WIDE_ROLES, DEPARTMENTS } = require('../utils/roles');
 const { normalizeCoc } = require('../utils/normalize');
 
@@ -171,7 +175,20 @@ const getCandidates = async (req, res, next) => {
       Object.assign(query, scope);
     }
 
-    const candidates = await Candidate.find(query).sort({ createdAt: -1 });
+    const candidates = await Candidate.find(query)
+      .populate('createdById', 'name email role')
+      .sort({ createdAt: -1 });
+
+    // TEMP DEBUG — remove once "Added By" is confirmed working end-to-end.
+    if (candidates[0]) {
+      console.log('GET CANDIDATES — first record createdById:', candidates[0].createdById);
+    }
+
+    // Express auto-generates an ETag for every JSON response by default;
+    // a browser can legitimately cache this list and only re-validate on
+    // navigation. Explicitly disabling caching here rules that out as a
+    // cause of a stale "Added By" — scoped to this one route only.
+    res.set('Cache-Control', 'no-store');
     res.json({ success: true, data: candidates });
   } catch (err) {
     next(err);
@@ -202,6 +219,13 @@ const createCandidate = async (req, res, next) => {
 
     const creator = req.currentUser;
     const isSourcingOfficer = creator.role === ROLES.SOURCING_OFFICER;
+
+    // TEMP DEBUG — remove once "Added By" is confirmed working end-to-end.
+    console.log('CREATE CANDIDATE USER:', {
+      id: req.user?.id,
+      currentUserId: req.currentUser?.id,
+      role: req.currentUser?.role,
+    });
 
     const candidate = await Candidate.create({
       name, rank,
@@ -473,9 +497,10 @@ const getApplications = async (req, res, next) => {
       .populate('candidateId')
       .populate({
         path: 'requirementId',
-        populate: { path: 'companyId', select: 'name' }
+        populate: { path: 'companyId', select: 'name contactPerson phone email' }
       })
-      .populate('rejectionReasonId', 'name');
+      .populate('rejectionReasonId', 'label category')
+      .populate('createdById', 'name email');
 
     res.json({ success: true, data: applications });
   } catch (err) {
@@ -501,11 +526,25 @@ const proposeCandidate = async (req, res, next) => {
     const requirement = await Requirement.findById(requirementId);
     if (!requirement) return res.status(404).json({ success: false, message: 'Requirement not found.' });
 
+    // §5 — the same candidate must not be proposed twice for the same
+    // requirement. Check this BEFORE the status-transition check below,
+    // since by the time an Application already exists with status
+    // PROPOSED, the candidate's own status is also already PROPOSED
+    // (see the bottom of this function) — which would otherwise surface
+    // as a confusing generic "Cannot propose a candidate in status
+    // PROPOSED" instead of a clear duplicate message.
+    let application = await Application.findOne({ requirementId, candidateId });
+    if (application && application.status === 'PROPOSED') {
+      return res.status(400).json({
+        success: false,
+        message: 'Candidate has already been proposed for this requirement.'
+      });
+    }
+
     if (!isValidTransition(candidate.status, 'PROPOSED')) {
       return res.status(400).json({ success: false, message: `Cannot propose a candidate in status ${candidate.status}.` });
     }
 
-    let application = await Application.findOne({ requirementId, candidateId });
     if (application) {
       application.status = 'PROPOSED';
       await application.save();
@@ -542,7 +581,7 @@ const proposeCandidate = async (req, res, next) => {
       details: { candidate: candidate.name, requirement: requirement.rank + ' - ' + requirement.vesselType }
     });
 
-    res.status(201).json({ success: true, data: application });
+    res.status(201).json({ success: true, data: application, message: 'Candidate successfully proposed.' });
   } catch (err) {
     next(err);
   }
@@ -577,6 +616,33 @@ const setApplicationDecision = async (req, res, next) => {
         candidate.status = 'APPROVED';
         candidate.workflowStage = 'CLIENT_ACCEPTED';
         await candidate.save();
+
+        // Part 3 §2: once a proposal is accepted, the candidate must
+        // immediately move on into the Documentation stage so the
+        // Documentation section on the Review Proposal screen has
+        // somewhere real to attach uploads to — this is a system-driven
+        // transition (not a client-supplied status write), but it still
+        // goes through the same workflow.js state machine as every other
+        // transition rather than setting workflowStage directly, so the
+        // rules stay in one place. APPROVED -> DOCUMENTATION is always a
+        // valid transition (see CANDIDATE_STATUS_TRANSITIONS), so this
+        // only defensively no-ops if that ever changes.
+        if (isValidTransition(candidate.status, 'DOCUMENTATION')) {
+          candidate.status = 'DOCUMENTATION';
+          candidate.currentDepartment = DEPARTMENTS.DOCUMENTATION;
+          candidate.department = DEPARTMENTS.DOCUMENTATION;
+          candidate.workflowStage = 'DOCUMENTATION';
+          candidate.currentOwnerId = null; // enters the documentation team's shared queue
+          await candidate.save();
+
+          await logActivity({
+            userId: req.user.id,
+            entityType: 'CANDIDATE',
+            entityId: candidate._id.toString(),
+            action: 'CANDIDATE_MOVED_TO_DOCUMENTATION',
+            details: { name: candidate.name, from: 'APPROVED', to: 'DOCUMENTATION' },
+          });
+        }
       }
       // M7: Do not create premature Onboarding record here upon client acceptance.
       // Onboarding record is created when the candidate reaches the Onboarding stage.
@@ -606,6 +672,157 @@ const setApplicationDecision = async (req, res, next) => {
 
     res.json({ success: true, data: application });
   } catch (err) {
+    next(err);
+  }
+};
+
+// ─── CANDIDATE DOCUMENTATION (Part 3) ───────────────────────────────
+// These live in crewingController (not documents.controller.js) and are
+// mounted under /api/crewing, deliberately separate from the general
+// /api/documents module — that module's router-level requireRole()
+// gates the WHOLE Documents page to Documentation staff + org-wide
+// roles only (§6/§24 of the Part 3 spec: sourcing/crewing officers must
+// get candidate-specific upload access, never full Documents module
+// access). Reusing the existing Document model (§4) and the existing
+// documentUpload multer middleware (§9) — no second document system.
+
+// GET /api/crewing/candidates/:candidateId/documents
+// Returns the candidate's documents plus a computed documentation
+// completeness summary (§12/§13). Available to anyone who can already
+// access this candidate record (canAccessRecord), which naturally
+// covers: the sourcing officer/manager who owns the candidate, the
+// documentation team once the candidate is in their queue, and
+// org-wide/HR roles.
+const getCandidateDocuments = async (req, res, next) => {
+  try {
+    const candidate = await Candidate.findById(req.params.candidateId);
+    if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, candidate, 'CANDIDATE');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
+    }
+
+    const documents = await Document.find({ candidateId: candidate._id })
+      .populate('uploadedBy', 'name email')
+      .sort({ createdAt: -1 });
+
+    // Self-heal fileUrl the same way getAllDocuments() does in
+    // documents.controller.js, so a stale/placeholder URL never leaks
+    // out of this endpoint either.
+    const withFreshUrls = documents.map((d) => {
+      const obj = d.toObject ? d.toObject() : d;
+      obj.fileUrl = `/api/documents/${obj._id}/file`;
+      return obj;
+    });
+
+    const documentationStatus = computeDocumentationStatus(withFreshUrls);
+
+    res.json({
+      success: true,
+      data: {
+        documents: withFreshUrls,
+        documentationStatus: documentationStatus.overallStatus,
+        requiredDocumentTypes: documentationStatus.requiredTypes,
+        byType: documentationStatus.byType,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// POST /api/crewing/candidates/:candidateId/documents (multipart/form-data: file, documentType, notes)
+// Expects `documentUpload.single('file')` to already have run (wired in
+// routes/crewing.js) so req.file / req.body are populated.
+const uploadCandidateDocument = async (req, res, next) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: 'No file was uploaded. Attach a file and try again.' });
+    }
+
+    const cleanupUploadedFile = () => {
+      if (req.file?.path) fs.unlink(req.file.path, () => {});
+    };
+
+    const userId = req.user?.id || req.user?._id;
+    if (!userId) {
+      cleanupUploadedFile();
+      return res.status(401).json({ success: false, message: 'Authentication required. No valid user session found.' });
+    }
+
+    const candidate = await Candidate.findById(req.params.candidateId);
+    if (!candidate) {
+      cleanupUploadedFile();
+      return res.status(404).json({ success: false, message: 'Candidate not found.' });
+    }
+
+    // §7.4 — candidate must be within this user's allowed access scope
+    // (this is what keeps the three restricted sourcing accounts scoped
+    // to only their own candidates, never the whole seafarer database).
+    const allowedToAccess = await canAccessRecord(req.currentUser, candidate, 'CANDIDATE');
+    if (!allowedToAccess) {
+      cleanupUploadedFile();
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
+    }
+
+    // §7.5 — candidate must actually be in the Documentation stage.
+    if (candidate.status !== 'DOCUMENTATION') {
+      cleanupUploadedFile();
+      return res.status(400).json({
+        success: false,
+        message: `Documents can only be uploaded once a candidate reaches the Documentation stage (current status: ${candidate.status}).`,
+      });
+    }
+
+    const { documentType, notes } = req.body;
+    if (!documentType || !REQUIRED_CANDIDATE_DOCUMENT_TYPES.includes(documentType)) {
+      cleanupUploadedFile();
+      return res.status(400).json({
+        success: false,
+        message: `documentType must be one of: ${REQUIRED_CANDIDATE_DOCUMENT_TYPES.join(', ')}.`,
+      });
+    }
+
+    // §8 — never trust a client-supplied uploadedBy; always the
+    // authenticated user. §19 — old rejected documents are never
+    // deleted here; a fresh upload simply creates a new PENDING record
+    // of the same category, and computeDocumentationStatus() already
+    // reads the most recent one per type.
+    const doc = await Document.create({
+      name: req.file.originalname,
+      filePath: req.file.path,
+      fileUrl: `/uploads/documents/${req.file.filename}`, // placeholder; corrected below, same pattern as documents.controller.js
+      mimeType: req.file.mimetype,
+      size: req.file.size,
+      category: documentType,
+      candidateId: candidate._id,
+      employeeId: null,
+      notes: notes ? notes.trim() : '',
+      status: 'PENDING',
+      uploadedBy: userId,
+    });
+
+    doc.fileUrl = `/api/documents/${doc._id}/file`;
+    await doc.save();
+
+    const populated = await doc.populate('uploadedBy', 'name email');
+
+    await logActivity({
+      userId: req.user.id,
+      entityType: 'DOCUMENT',
+      entityId: doc._id.toString(),
+      action: 'CANDIDATE_DOCUMENT_UPLOADED',
+      details: { candidate: candidate.name, documentType, fileName: doc.name },
+    });
+
+    res.status(201).json({ success: true, data: populated });
+  } catch (err) {
+    console.error('uploadCandidateDocument error:', err);
+    if (req.file?.path) fs.unlink(req.file.path, () => {});
+    if (err.name === 'ValidationError') {
+      return res.status(400).json({ success: false, message: err.message });
+    }
     next(err);
   }
 };
@@ -669,5 +886,7 @@ module.exports = {
   matchCandidates,
   getApplications,
   proposeCandidate,
-  setApplicationDecision
+  setApplicationDecision,
+  getCandidateDocuments,
+  uploadCandidateDocument
 };

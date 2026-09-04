@@ -284,7 +284,19 @@ const ApiService = {
       getAll:  (params)   => api.get('/crewing/applications', { params }),
       propose: (data)     => api.post('/crewing/applications/propose', data),
       setDecision: (id, data) => api.patch(`/crewing/applications/${id}/decision`, data),
-    }
+    },
+    // Candidate Documentation (Part 3) — separate from ApiService.documents
+    // below, which hits the general /api/documents module. These hit
+    // /api/crewing/candidates/:id/documents instead, which is reachable
+    // by sourcing/crewing officers scoped to just their own candidates
+    // (see server/routes/crewing.js), without granting access to the
+    // general Documents page.
+    candidateDocuments: {
+      getAll: (candidateId) => api.get(`/crewing/candidates/${candidateId}/documents`),
+      upload: (candidateId, formData) => api.post(`/crewing/candidates/${candidateId}/documents`, formData, {
+        headers: { 'Content-Type': undefined }
+      }),
+    },
   },
 
   recruitment: {
@@ -378,6 +390,7 @@ const ApiService = {
     create: (formData) => api.post('/documents', formData, {
       headers: { 'Content-Type': undefined }
     }),
+    updateStatus: (id, data) => api.patch(`/documents/${id}/status`, data),
   },
 
   // ── Attendance (navbar IN/OUT button + attendance.html) ────────────────────

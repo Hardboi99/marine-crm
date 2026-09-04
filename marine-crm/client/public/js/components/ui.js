@@ -219,6 +219,10 @@ const UI = {
       SELECTED:    'badge-green',
       YES:         'badge-green',
       NO:          'badge-red',
+      SHORTLISTED:      'badge-yellow',
+      PROPOSED:         'badge-blue',
+      CLIENT_ACCEPTED:  'badge-green',
+      CLIENT_REJECTED:  'badge-red',
     };
     const cls = map[status] || 'badge-gray';
     return `<span class="badge ${cls}">${status}</span>`;

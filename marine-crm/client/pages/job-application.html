@@ -1898,7 +1898,7 @@
                 "
               >
                 <label
-                  >Last Drawn Salary &amp; Currency Converter
+                  >Last Drawn Salary
                   <span class="opt">(optional)</span></label
                 >
                 <div
@@ -1922,27 +1922,7 @@
                     style="width: 30%"
                   >
                     <option value="USD">USD ($)</option>
-                    <option value="INR">INR (₹)</option>
                   </select>
-                  <div
-                    id="convertedSalaryText"
-                    style="
-                      font-size: 0.95rem;
-                      color: var(--accent-teal);
-                      font-weight: 700;
-                      width: 30%;
-                    "
-                  ></div>
-                </div>
-                <div
-                  style="
-                    font-size: 0.75rem;
-                    color: var(--text-muted);
-                    margin-top: 8px;
-                  "
-                >
-                  * Tip: Enter amount to see live conversion (Approx. 1 USD = 83
-                  INR)
                 </div>
               </div>
             </div>
@@ -2696,25 +2676,6 @@
           }
         }
 
-        /* ---------------- currency converter ---------------- */
-        var salInput = document.getElementById("lastSalaryAmount");
-        var curInput = document.getElementById("lastSalaryCurrency");
-        var outText = document.getElementById("convertedSalaryText");
-        function updateConversion() {
-          var val = parseFloat(salInput.value);
-          if (isNaN(val)) {
-            outText.textContent = "";
-            return;
-          }
-          if (curInput.value === "USD") {
-            outText.textContent = "≈ ₹ " + (val * 83).toLocaleString("en-IN");
-          } else {
-            outText.textContent = "≈ $ " + (val / 83).toFixed(2);
-          }
-        }
-        salInput.addEventListener("input", updateConversion);
-        curInput.addEventListener("change", updateConversion);
-
         /* ---------------- conditional fields ---------------- */
         document
           .getElementById("usVisaStatus")
@@ -3120,7 +3081,7 @@
               (data &&
                 (data.applicationId ||
                   (data.data && data.data.applicationId))) ||
-              "JA-" + Date.now();
+              "Pending";
             var docId =
               (data && (data.id || (data.data && data.data._id))) || refId;
             document.getElementById("refValue").textContent = refId;
