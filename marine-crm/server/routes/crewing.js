@@ -5,6 +5,7 @@ const { requireRole } = require('../middlewares/roleCheck');
 const { documentUpload } = require('../middlewares/documentUpload');
 const {
   getRequirements, createRequirement, updateRequirement, deleteRequirement,
+  getVessels, createVessel,
   getCandidates, getCandidateByCoc, createCandidate, updateCandidate, reassignCandidate, deleteCandidate,
   matchCandidates, getApplications, proposeCandidate, setApplicationDecision,
   getCandidateDocuments, uploadCandidateDocument
@@ -16,6 +17,8 @@ router.use(authenticate, loadCurrentUser);
 
 // Requirements vacancy routes
 router.get('/requirements', getRequirements);
+router.get('/vessels', getVessels);
+router.post('/vessels', requireRole('ADMIN', 'DIRECTOR', 'COO', 'BDM', 'SOURCING_MANAGER'), createVessel);
 router.post('/requirements', requireRole('ADMIN', 'DIRECTOR', 'COO', 'BDM', 'SOURCING_MANAGER'), createRequirement);
 router.put('/requirements/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'BDM', 'SOURCING_MANAGER', 'SOURCING_OFFICER'), updateRequirement);
 router.delete('/requirements/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'SOURCING_MANAGER'), deleteRequirement);

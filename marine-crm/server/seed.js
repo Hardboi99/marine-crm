@@ -810,7 +810,7 @@ async function main() {
   console.log('   System Admin (technical):     admin@marinecrm.com');
   console.log('   Director:                     director@marinecrm.com');
   console.log('   COO:                          coo@marinecrm.com');
-  console.log('   Sourcing Manager:              sourcing.manager@marinecrm.com');
+  console.log('   Sourcing Manager:               ');
   console.log('   Sourcing Officer 1:            sourcing.officer1@marinecrm.com');
   console.log('   Sourcing Officer 2:            sourcing.officer2@marinecrm.com');
   console.log('   Documentation Manager:         documentation.manager@marinecrm.com');

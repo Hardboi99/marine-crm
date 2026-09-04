@@ -2,6 +2,7 @@ const User = require('./User');
 const Country = require('./Country');
 const Reason = require('./Reason');
 const Company = require('./Company');
+const Vessel = require('./Vessel');
 const Call = require('./Call');
 const Appointment = require('./Appointment');
 const Contract = require('./Contract');
@@ -33,6 +34,7 @@ module.exports = {
   Country,
   Reason,
   Company,
+  Vessel,
   Call,
   Appointment,
   Contract,

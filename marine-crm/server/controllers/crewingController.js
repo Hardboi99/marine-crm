@@ -1,5 +1,5 @@
 const fs = require('fs');
-const { Candidate, Requirement, Application, Onboarding, Reason, Company, User, Document } = require('../models');
+const { Candidate, Requirement, Application, Onboarding, Reason, Company, Vessel, User, Document } = require('../models');
 const { logActivity } = require('../utils/activityLogger');
 const { getDataScope, canAccessRecord } = require('../utils/accessScope');
 const {
@@ -10,6 +10,39 @@ const { ROLES, ORG_WIDE_ROLES, DEPARTMENTS } = require('../utils/roles');
 const { normalizeCoc } = require('../utils/normalize');
 
 // ─── REQUIREMENTS CRUD ──────────────────────────────────────────
+
+const getVessels = async (req, res, next) => {
+  try {
+    const query = req.query.companyId ? { companyId: req.query.companyId } : {};
+    const vessels = await Vessel.find(query).sort({ name: 1 });
+    res.json({ success: true, data: vessels });
+  } catch (err) {
+    next(err);
+  }
+};
+
+const createVessel = async (req, res, next) => {
+  try {
+    const name = String(req.body.name || '').trim();
+    const { companyId } = req.body;
+    if (!name) return res.status(400).json({ success: false, message: 'Vessel name is required.' });
+
+    if (companyId) {
+      const company = await Company.findById(companyId).select('_id');
+      if (!company) return res.status(404).json({ success: false, message: 'Vessel owner not found.' });
+    }
+
+    const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const existing = await Vessel.findOne({ companyId, name: { $regex: `^${escapedName}$`, $options: 'i' } });
+    if (existing) return res.status(409).json({ success: false, message: 'A vessel with this name already exists for this owner.' });
+
+    const vessel = await Vessel.create({ name, companyId, createdById: req.user.id });
+    res.status(201).json({ success: true, data: vessel });
+  } catch (err) {
+    if (err.code === 11000) return res.status(409).json({ success: false, message: 'A vessel with this name already exists for this owner.' });
+    next(err);
+  }
+};
 
 const getRequirements = async (req, res, next) => {
   try {
@@ -27,7 +60,8 @@ const getRequirements = async (req, res, next) => {
 
     const requirements = await Requirement.find(query)
       .sort({ createdAt: -1 })
-      .populate('companyId', 'name contactPerson phone email');
+      .populate('companyId', 'name contactPerson phone email')
+      .populate('vesselId', 'name');
 
     res.json({ success: true, data: requirements });
   } catch (err) {
@@ -37,15 +71,27 @@ const getRequirements = async (req, res, next) => {
 
 const createRequirement = async (req, res, next) => {
   try {
-    const { companyId, vesselType, rank, experienceMonthsRequired, joiningDate, salaryOffered } = req.body;
-    if (!companyId || !vesselType || !rank || !joiningDate) {
-      return res.status(400).json({ success: false, message: 'companyId, vesselType, rank, and joiningDate are required.' });
+    const { companyId, vesselId, vesselName, vesselType, rank, experienceMonthsRequired, joiningDate, salaryOffered } = req.body;
+    if ((!vesselId && !vesselName) || !vesselType || !rank || !joiningDate) {
+      return res.status(400).json({ success: false, message: 'Vessel, vesselType, rank, and joiningDate are required.' });
+    }
+
+    let vessel;
+    if (vesselId) {
+      vessel = await Vessel.findOne(companyId ? { _id: vesselId, companyId } : { _id: vesselId });
+      if (!vessel) return res.status(400).json({ success: false, message: 'Selected vessel does not belong to the selected owner.' });
+    } else {
+      const name = String(vesselName).trim();
+      const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      vessel = await Vessel.findOne({ ...(companyId ? { companyId } : {}), name: { $regex: `^${escapedName}$`, $options: 'i' } });
+      if (!vessel) vessel = await Vessel.create({ name, companyId, createdById: req.user.id });
     }
 
     const creator = req.currentUser;
 
     const requirement = await Requirement.create({
       companyId,
+      vesselId: vessel._id,
       vesselType,
       rank,
       experienceMonthsRequired: experienceMonthsRequired ? parseInt(experienceMonthsRequired) : 0,
@@ -873,6 +919,8 @@ const reassignCandidate = async (req, res, next) => {
 };
 
 module.exports = {
+  getVessels,
+  createVessel,
   getRequirements,
   createRequirement,
   updateRequirement,

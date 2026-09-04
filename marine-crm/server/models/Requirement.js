@@ -2,7 +2,8 @@ const mongoose = require('mongoose');
 
 const requirementSchema = new mongoose.Schema(
   {
-    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', required: true },
+    companyId: { type: mongoose.Schema.Types.ObjectId, ref: 'Company', default: null },
+    vesselId: { type: mongoose.Schema.Types.ObjectId, ref: 'Vessel', default: null },
     vesselType: {
       type: String,
       required: true,
