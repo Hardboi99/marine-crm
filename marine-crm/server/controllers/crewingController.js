@@ -753,12 +753,10 @@ const getCandidateDocuments = async (req, res, next) => {
       .populate('uploadedBy', 'name email')
       .sort({ createdAt: -1 });
 
-    // Self-heal fileUrl the same way getAllDocuments() does in
-    // documents.controller.js, so a stale/placeholder URL never leaks
-    // out of this endpoint either.
+    // Self-heal fileUrl the same way getAllDocuments() does in documents.controller.js
     const withFreshUrls = documents.map((d) => {
       const obj = d.toObject ? d.toObject() : d;
-      obj.fileUrl = `/api/documents/${obj._id}/file`;
+      obj.fileUrl = `/api/documents/${obj._id || obj.id}/file`;
       return obj;
     });
 
@@ -767,6 +765,21 @@ const getCandidateDocuments = async (req, res, next) => {
     res.json({
       success: true,
       data: {
+        candidate: {
+          id: candidate._id,
+          _id: candidate._id,
+          name: candidate.name,
+          rank: candidate.rank,
+          email: candidate.email,
+          phone: candidate.phone,
+          status: candidate.status,
+          nationality: candidate.nationality || 'India',
+          uniqueId: candidate._id ? candidate._id.toString().slice(-5).toUpperCase() : '74219',
+          cocNumber: candidate.cocNumber,
+          cdcNumber: candidate.cdcNumber,
+          passportNumber: candidate.passportNumber,
+          notes: candidate.notes,
+        },
         documents: withFreshUrls,
         documentationStatus: documentationStatus.overallStatus,
         requiredDocumentTypes: documentationStatus.requiredTypes,
@@ -778,9 +791,7 @@ const getCandidateDocuments = async (req, res, next) => {
   }
 };
 
-// POST /api/crewing/candidates/:candidateId/documents (multipart/form-data: file, documentType, notes)
-// Expects `documentUpload.single('file')` to already have run (wired in
-// routes/crewing.js) so req.file / req.body are populated.
+// POST /api/crewing/candidates/:candidateId/documents (multipart/form-data)
 const uploadCandidateDocument = async (req, res, next) => {
   try {
     if (!req.file) {
@@ -803,46 +814,47 @@ const uploadCandidateDocument = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Candidate not found.' });
     }
 
-    // §7.4 — candidate must be within this user's allowed access scope
-    // (this is what keeps the three restricted sourcing accounts scoped
-    // to only their own candidates, never the whole seafarer database).
     const allowedToAccess = await canAccessRecord(req.currentUser, candidate, 'CANDIDATE');
     if (!allowedToAccess) {
       cleanupUploadedFile();
       return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
     }
 
-    // §7.5 — candidate must actually be in the Documentation stage.
-    if (candidate.status !== 'DOCUMENTATION') {
-      cleanupUploadedFile();
-      return res.status(400).json({
-        success: false,
-        message: `Documents can only be uploaded once a candidate reaches the Documentation stage (current status: ${candidate.status}).`,
-      });
-    }
+    const {
+      category,
+      subCategory,
+      documentType,
+      country,
+      flagState,
+      rank,
+      customName,
+      docNumber,
+      issueDate,
+      expiryDate,
+      notes,
+      applicationId,
+    } = req.body;
 
-    const { documentType, notes } = req.body;
-    if (!documentType || !REQUIRED_CANDIDATE_DOCUMENT_TYPES.includes(documentType)) {
-      cleanupUploadedFile();
-      return res.status(400).json({
-        success: false,
-        message: `documentType must be one of: ${REQUIRED_CANDIDATE_DOCUMENT_TYPES.join(', ')}.`,
-      });
-    }
+    const finalCategory = category || 'NORMAL_DOCS';
+    const finalSubCategory = subCategory || documentType || 'OTHER';
 
-    // §8 — never trust a client-supplied uploadedBy; always the
-    // authenticated user. §19 — old rejected documents are never
-    // deleted here; a fresh upload simply creates a new PENDING record
-    // of the same category, and computeDocumentationStatus() already
-    // reads the most recent one per type.
     const doc = await Document.create({
       name: req.file.originalname,
       filePath: req.file.path,
-      fileUrl: `/uploads/documents/${req.file.filename}`, // placeholder; corrected below, same pattern as documents.controller.js
+      fileUrl: `/uploads/documents/${req.file.filename}`,
       mimeType: req.file.mimetype,
       size: req.file.size,
-      category: documentType,
+      category: finalCategory,
+      subCategory: finalSubCategory,
+      country: country || candidate.nationality || 'India',
+      flagState: flagState || null,
+      rank: rank || candidate.rank || null,
+      customName: customName || null,
+      docNumber: docNumber || null,
+      issueDate: issueDate ? new Date(issueDate) : null,
+      expiryDate: expiryDate ? new Date(expiryDate) : null,
       candidateId: candidate._id,
+      applicationId: applicationId || null,
       employeeId: null,
       notes: notes ? notes.trim() : '',
       status: 'PENDING',
@@ -859,7 +871,7 @@ const uploadCandidateDocument = async (req, res, next) => {
       entityType: 'DOCUMENT',
       entityId: doc._id.toString(),
       action: 'CANDIDATE_DOCUMENT_UPLOADED',
-      details: { candidate: candidate.name, documentType, fileName: doc.name },
+      details: { candidate: candidate.name, category: finalCategory, subCategory: finalSubCategory, fileName: doc.name },
     });
 
     res.status(201).json({ success: true, data: populated });
@@ -869,6 +881,97 @@ const uploadCandidateDocument = async (req, res, next) => {
     if (err.name === 'ValidationError') {
       return res.status(400).json({ success: false, message: err.message });
     }
+    next(err);
+  }
+};
+
+// PUT /api/crewing/candidates/:candidateId/documents/:documentId
+const updateCandidateDocument = async (req, res, next) => {
+  try {
+    const { candidateId, documentId } = req.params;
+    const candidate = await Candidate.findById(candidateId);
+    if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, candidate, 'CANDIDATE');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
+    }
+
+    const doc = await Document.findOne({ _id: documentId, candidateId: candidate._id });
+    if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
+
+    const {
+      customName,
+      docNumber,
+      issueDate,
+      expiryDate,
+      notes,
+      status,
+      flagState,
+      rank,
+      subCategory,
+      category,
+    } = req.body;
+
+    if (customName !== undefined) doc.customName = customName;
+    if (docNumber !== undefined) doc.docNumber = docNumber;
+    if (issueDate !== undefined) doc.issueDate = issueDate ? new Date(issueDate) : null;
+    if (expiryDate !== undefined) doc.expiryDate = expiryDate ? new Date(expiryDate) : null;
+    if (notes !== undefined) doc.notes = notes;
+    if (status !== undefined) doc.status = status;
+    if (flagState !== undefined) doc.flagState = flagState;
+    if (rank !== undefined) doc.rank = rank;
+    if (subCategory !== undefined) doc.subCategory = subCategory;
+    if (category !== undefined) doc.category = category;
+
+    await doc.save();
+
+    await logActivity({
+      userId: req.user?.id,
+      entityType: 'DOCUMENT',
+      entityId: doc._id.toString(),
+      action: 'CANDIDATE_DOCUMENT_UPDATED',
+      details: { candidate: candidate.name, documentName: doc.name, status: doc.status },
+    });
+
+    const populated = await doc.populate('uploadedBy', 'name email');
+    res.json({ success: true, data: populated });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// DELETE /api/crewing/candidates/:candidateId/documents/:documentId
+const deleteCandidateDocument = async (req, res, next) => {
+  try {
+    const { candidateId, documentId } = req.params;
+    const candidate = await Candidate.findById(candidateId);
+    if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, candidate, 'CANDIDATE');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
+    }
+
+    const doc = await Document.findOne({ _id: documentId, candidateId: candidate._id });
+    if (!doc) return res.status(404).json({ success: false, message: 'Document not found.' });
+
+    if (doc.filePath && fs.existsSync(doc.filePath)) {
+      fs.unlink(doc.filePath, () => {});
+    }
+
+    await Document.findByIdAndDelete(doc._id);
+
+    await logActivity({
+      userId: req.user?.id,
+      entityType: 'DOCUMENT',
+      entityId: doc._id.toString(),
+      action: 'CANDIDATE_DOCUMENT_DELETED',
+      details: { candidate: candidate.name, documentName: doc.name },
+    });
+
+    res.json({ success: true, message: 'Document deleted successfully.' });
+  } catch (err) {
     next(err);
   }
 };
@@ -936,5 +1039,7 @@ module.exports = {
   proposeCandidate,
   setApplicationDecision,
   getCandidateDocuments,
-  uploadCandidateDocument
+  uploadCandidateDocument,
+  updateCandidateDocument,
+  deleteCandidateDocument,
 };

@@ -8,7 +8,7 @@ const {
   getVessels, createVessel,
   getCandidates, getCandidateByCoc, createCandidate, updateCandidate, reassignCandidate, deleteCandidate,
   matchCandidates, getApplications, proposeCandidate, setApplicationDecision,
-  getCandidateDocuments, uploadCandidateDocument
+  getCandidateDocuments, uploadCandidateDocument, updateCandidateDocument, deleteCandidateDocument
 } = require('../controllers/crewingController');
 
 // All crewing routes need the fresh DB user (role/department/reportingTo)
@@ -39,15 +39,7 @@ router.get('/applications', getApplications);
 router.post('/applications/propose', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER'), proposeCandidate);
 router.patch('/applications/:id/decision', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER'), setApplicationDecision);
 
-// Candidate Documentation (Part 3) — deliberately NOT under
-// /api/documents, which is gated to Documentation-only roles for the
-// whole module (§6/§24). These two routes give the sourcing/crewing
-// officers candidate-specific documentation access without opening up
-// the general Documents page to them; access to a specific candidate is
-// still enforced inside the controller via canAccessRecord(), and the
-// controller also checks the candidate is actually in the DOCUMENTATION
-// stage before allowing an upload — role membership here is necessary
-// but not sufficient.
+// Candidate Documentation & Hierarchy routes
 router.get(
   '/candidates/:candidateId/documents',
   requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER', 'ACCOUNTS_OFFICER'),
@@ -55,9 +47,24 @@ router.get(
 );
 router.post(
   '/candidates/:candidateId/documents',
-  requireRole('ADMIN', 'DIRECTOR', 'COO', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'),
+  requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'),
   documentUpload.single('file'),
   uploadCandidateDocument
+);
+router.put(
+  '/candidates/:candidateId/documents/:documentId',
+  requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'),
+  updateCandidateDocument
+);
+router.patch(
+  '/candidates/:candidateId/documents/:documentId',
+  requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'),
+  updateCandidateDocument
+);
+router.delete(
+  '/candidates/:candidateId/documents/:documentId',
+  requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'),
+  deleteCandidateDocument
 );
 
 // Handle multer file upload errors on the candidate-documents routes

@@ -31,18 +31,39 @@ const documentSchema = new mongoose.Schema(
     },
     category: {
       type: String,
-      // CONTRACT / CREW_CERTIFICATE / COMPLIANCE / HR / OTHER are the
-      // original general-document categories (documents.html). PASSPORT /
-      // CDC / COC / MEDICAL_CERTIFICATE / STCW were added for Part 3's
-      // candidate-specific documentation workflow (Documentation section
-      // on an accepted proposal) — these are additive only, nothing
-      // existing was renamed or removed, so old records keep working
-      // unchanged.
-      enum: [
-        'CONTRACT', 'CREW_CERTIFICATE', 'COMPLIANCE', 'HR', 'OTHER',
-        'PASSPORT', 'CDC', 'COC', 'MEDICAL_CERTIFICATE', 'STCW',
-      ],
       default: 'OTHER',
+    },
+    subCategory: {
+      type: String, // PASSPORT, CPC, RENAME, ILO_MEDICAL, COVID_VACCINE, YELLOW_FEVER, FLAG_STATE, etc.
+      default: null,
+    },
+    country: {
+      type: String,
+      default: 'India',
+    },
+    flagState: {
+      type: String, // e.g. Panama, Liberia, Marshall Islands, Bahamas, Malta, Cyprus, Singapore, India MMD, etc.
+      default: null,
+    },
+    rank: {
+      type: String, // e.g. Master, Chief Officer, All Ranks, etc.
+      default: null,
+    },
+    customName: {
+      type: String, // Customizable document name for 'Rename' or custom doc types
+      default: null,
+    },
+    docNumber: {
+      type: String, // Document / Certificate / Passport / CPC number
+      default: null,
+    },
+    issueDate: {
+      type: Date,
+      default: null,
+    },
+    expiryDate: {
+      type: Date,
+      default: null,
     },
     status: {
       type: String,
@@ -58,6 +79,11 @@ const documentSchema = new mongoose.Schema(
       ref: 'Candidate',
       default: null,
     },
+    applicationId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Application',
+      default: null,
+    },
     employeeId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'Employee',
@@ -69,7 +95,16 @@ const documentSchema = new mongoose.Schema(
       required: true,
     },
   },
-  { timestamps: true } // gives us createdAt / updatedAt for free
+  { timestamps: true }
 );
+
+documentSchema.set('toJSON', {
+  virtuals: true,
+  transform: (doc, ret) => {
+    ret.id = ret._id.toString();
+    delete ret.__v;
+    return ret;
+  },
+});
 
 module.exports = mongoose.model('Document', documentSchema);
