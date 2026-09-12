@@ -25,8 +25,14 @@ const login = async (req, res, next) => {
 
     const cleanEmail = email.toLowerCase().trim();
 
-    // Fetch user from MongoDB
-    const user = await User.findOne({ email: cleanEmail });
+    // Fetch user from MongoDB (supporting aliases for crewing / sourcing officer)
+    let user = await User.findOne({ email: cleanEmail });
+    if (!user && (cleanEmail === 'crewing@marinecrm.com' || cleanEmail === 'crewing.officer1@marinecrm.com')) {
+      user = await User.findOne({ $or: [{ email: 'sourcing.officer1@marinecrm.com' }, { email: 'crewing.officer1@marinecrm.com' }] });
+    }
+    if (!user && cleanEmail === 'sourcing.officer1@marinecrm.com') {
+      user = await User.findOne({ $or: [{ email: 'crewing.officer1@marinecrm.com' }, { email: 'crewing@marinecrm.com' }] });
+    }
 
     if (!user || !user.isActive) {
       return res.status(401).json({ success: false, message: 'Invalid credentials or inactive account.' });

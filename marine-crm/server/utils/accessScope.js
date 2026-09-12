@@ -95,12 +95,12 @@ async function candidateScopeQuery(user) {
 
   if (CREWING_BROAD_ROLES.has(role)) return {}; // ALL
 
-  if (role === ROLES.SOURCING_MANAGER) {
+  if (role === ROLES.SOURCING_MANAGER || role === ROLES.CREWING_MANAGER) {
     const scope = await resolveScope(user);
     return ownershipClause(['createdById', 'assignedToId', 'teamManagerId', 'currentOwnerId'], scope);
   }
 
-  if (role === ROLES.SOURCING_OFFICER) {
+  if (role === ROLES.SOURCING_OFFICER || role === ROLES.CREWING_OFFICER) {
     const scope = await resolveScope(user); // SELF
     return ownershipClause(['createdById', 'assignedToId', 'currentOwnerId'], scope);
   }
@@ -132,11 +132,11 @@ async function requirementScopeQuery(user) {
   const role = user.role;
   if (CREWING_BROAD_ROLES.has(role)) return {};
 
-  if (role === ROLES.SOURCING_MANAGER) {
+  if (role === ROLES.SOURCING_MANAGER || role === ROLES.CREWING_MANAGER) {
     const scope = await resolveScope(user);
     return ownershipClause(['createdById', 'assignedToId', 'managerId'], scope);
   }
-  if (role === ROLES.SOURCING_OFFICER) {
+  if (role === ROLES.SOURCING_OFFICER || role === ROLES.CREWING_OFFICER) {
     const scope = await resolveScope(user);
     return ownershipClause(['createdById', 'assignedToId'], scope);
   }
@@ -154,11 +154,11 @@ async function requirementScopeQuery(user) {
 async function applicationScopeQuery(user) {
   const role = user.role;
   if (CREWING_BROAD_ROLES.has(role)) return {};
-  if (role === ROLES.SOURCING_MANAGER) {
+  if (role === ROLES.SOURCING_MANAGER || role === ROLES.CREWING_MANAGER) {
     const scope = await resolveScope(user);
     return ownershipClause(['createdById'], scope);
   }
-  if (role === ROLES.SOURCING_OFFICER) {
+  if (role === ROLES.SOURCING_OFFICER || role === ROLES.CREWING_OFFICER) {
     const scope = await resolveScope(user);
     return ownershipClause(['createdById'], scope);
   }
@@ -279,11 +279,11 @@ async function canAccessRecord(user, record, resourceType) {
 
   switch (resourceType) {
     case 'CANDIDATE': {
-      if (role === ROLES.SOURCING_MANAGER) {
+      if (role === ROLES.SOURCING_MANAGER || role === ROLES.CREWING_MANAGER) {
         const scope = await resolveScope(user);
         return idsMatch(['createdById', 'assignedToId', 'teamManagerId', 'currentOwnerId'], scope.userIds);
       }
-      if (role === ROLES.SOURCING_OFFICER) {
+      if (role === ROLES.SOURCING_OFFICER || role === ROLES.CREWING_OFFICER) {
         return idsMatch(['createdById', 'assignedToId', 'currentOwnerId'], [uid]);
       }
       if (role === ROLES.DOCUMENTATION_MANAGER) {
@@ -300,17 +300,17 @@ async function canAccessRecord(user, record, resourceType) {
       return idsMatch(['createdById'], [uid]);
     }
     case 'REQUIREMENT': {
-      if (role === ROLES.SOURCING_MANAGER) {
+      if (role === ROLES.SOURCING_MANAGER || role === ROLES.CREWING_MANAGER) {
         const scope = await resolveScope(user);
         return idsMatch(['createdById', 'assignedToId', 'managerId'], scope.userIds);
       }
-      if (role === ROLES.SOURCING_OFFICER) {
+      if (role === ROLES.SOURCING_OFFICER || role === ROLES.CREWING_OFFICER) {
         return idsMatch(['createdById', 'assignedToId'], [uid]);
       }
       return idsMatch(['createdById'], [uid]);
     }
     case 'APPLICATION': {
-      if (role === ROLES.SOURCING_MANAGER) {
+      if (role === ROLES.SOURCING_MANAGER || role === ROLES.CREWING_MANAGER) {
         const scope = await resolveScope(user);
         return idsMatch(['createdById'], scope.userIds);
       }

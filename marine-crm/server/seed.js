@@ -114,11 +114,11 @@ async function main() {
     },
     {
       _id: ids.sourcingOfficer1,
-      name: 'Sourcing Officer One',
-      email: 'sourcing.officer1@marinecrm.com',
+      name: 'Crewing Officer One',
+      email: 'crewing.officer1@marinecrm.com',
       passwordHash,
-      role: ROLES.SOURCING_OFFICER,
-      department: DEPARTMENTS.SOURCING,
+      role: ROLES.CREWING_OFFICER,
+      department: DEPARTMENTS.CREWING,
       reportingTo: ids.sourcingManager,
       phone: '+91-98100-00004',
     },
@@ -811,7 +811,7 @@ async function main() {
   console.log('   Director:                     director@marinecrm.com');
   console.log('   COO:                          coo@marinecrm.com');
   console.log('   Sourcing Manager:              sourcing.manager@marinecrm.com ');
-  console.log('   Sourcing Officer 1:            sourcing.officer1@marinecrm.com'); //crewing1@gmail.com
+  console.log('   Crewing Officer 1:             crewing.officer1@marinecrm.com'); //crewing1@gmail.com
   console.log('   Sourcing Officer 2:            sourcing.officer2@marinecrm.com'); //crewing2@gmail.com
   console.log('   Documentation Manager:         documentation.manager@marinecrm.com');
   console.log('   Documentation Officer 1:       documentation.officer1@marinecrm.com');
