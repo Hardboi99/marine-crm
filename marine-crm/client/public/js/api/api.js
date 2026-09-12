@@ -265,6 +265,10 @@ const ApiService = {
 
   // ── Crewing & Candidates ──────────────────────────────────────────────────
   crewing: {
+    vessels: {
+      getAll: (params) => api.get('/crewing/vessels', { params }),
+      create: (data) => api.post('/crewing/vessels', data),
+    },
     requirements: {
       getAll:  (params)   => api.get('/crewing/requirements', { params }),
       create:  (data)     => api.post('/crewing/requirements', data),
@@ -277,6 +281,8 @@ const ApiService = {
       getByCoc: (cocNumber) => api.get(`/crewing/candidates/by-coc/${encodeURIComponent(cocNumber)}`),
       create:   (data)     => api.post('/crewing/candidates', data),
       update:   (id, data) => api.put(`/crewing/candidates/${id}`, data),
+      clearDocumentation: (id, data) => api.post(`/crewing/candidates/${id}/clear-documentation`, data),
+      boardOnShip: (id, data) => api.post(`/crewing/candidates/${id}/board-on-ship`, data),
       reassign: (id, data) => api.patch(`/crewing/candidates/${id}/reassign`, data),
       delete:   (id)       => api.delete(`/crewing/candidates/${id}`),
     },
@@ -296,6 +302,35 @@ const ApiService = {
       upload: (candidateId, formData) => api.post(`/crewing/candidates/${candidateId}/documents`, formData, {
         headers: { 'Content-Type': undefined }
       }),
+      update: (candidateId, documentId, data) => api.put(`/crewing/candidates/${candidateId}/documents/${documentId}`, data),
+      delete: (candidateId, documentId) => api.delete(`/crewing/candidates/${candidateId}/documents/${documentId}`),
+      downloadFile: async (documentId, fileName) => {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/documents/${documentId}/file`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error(`Download failed (${res.status})`);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = fileName || 'document';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      },
+      viewFile: async (documentId) => {
+        const token = localStorage.getItem('token');
+        const res = await fetch(`/api/documents/${documentId}/file`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!res.ok) throw new Error(`View request failed (${res.status})`);
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        window.open(blobUrl, '_blank', 'noopener');
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 60000);
+      }
     },
   },
 

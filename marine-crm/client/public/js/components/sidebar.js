@@ -73,6 +73,7 @@ const NAV_GROUPS = [
     icon: '⚓',
     items: [
       { href: '/pages/candidates.html', icon: '👨‍✈️', label: 'Seafarers Directory', match: 'candidates' },
+      { href: '/pages/crew-tracker.html', icon: '⏱️', label: 'Crew Sign-Off & Expiry', match: 'crew-tracker' },
       { href: '/pages/requirements.html', icon: '📋', label: 'Requirements Vacancies', match: 'requirements' },
       { href: '/pages/proposals.html', icon: '📨', label: 'Candidate Proposals', match: 'proposals' },
       { href: '/pages/job-applicants.html', icon: '📝', label: 'Job Applications', match: 'job-applicants' }
@@ -113,6 +114,14 @@ const NAV_GROUPS = [
       { href: '/pages/followups.html', icon: '🔔', label: 'Follow-up Queue', match: 'followups', badge: true }
       // 'Reports & Analytics' appended conditionally below, role-gated
     ]
+  },
+  {
+    id: 'documents',
+    label: 'Documents',
+    icon: '📄',
+    items: [
+      { href: '/pages/candidate-documents.html', icon: '📄', label: 'Documents', match: 'candidate-documents' }
+    ]
   }
 ];
 
@@ -127,7 +136,10 @@ const NAV_GROUPS = [
 const restrictedSourcingEmails = [
   'sourcing.manager@marinecrm.com',
   'sourcing.officer1@marinecrm.com',
-  'sourcing.officer2@marinecrm.com'
+  'sourcing.officer2@marinecrm.com',
+  'crewing.manager@marinecrm.com',
+  'crewing.officer1@marinecrm.com',
+  'crewing.officer2@marinecrm.com'
 ];
 
 function getRestrictedSourcingEmail() {
@@ -156,8 +168,10 @@ const RESTRICTED_SOURCING_ALLOWED_PATHS = [
   '/pages/worksheets.html',
   '/pages/profile.html',
   '/pages/candidates.html',
+  '/pages/crew-tracker.html',
   '/pages/requirements.html',
   '/pages/proposals.html',
+  '/pages/candidate-documents.html',
   '/pages/attendance.html'
 ];
 
@@ -196,7 +210,7 @@ function buildNavGroups(currentPath, userRole, userEmail) {
         if (g.id === 'crewing') {
           return {
             ...g,
-            items: g.items.filter(i => ['candidates', 'requirements', 'proposals'].includes(i.match))
+            items: g.items.filter(i => ['candidates', 'crew-tracker', 'requirements', 'proposals'].includes(i.match))
           };
         }
         // hr-employees already contains exactly: employee, hr-operations,
@@ -223,20 +237,7 @@ function buildNavGroups(currentPath, userRole, userEmail) {
 
     // Role-based visibility using canonical roles
     if (['ADMIN', 'DIRECTOR', 'COO'].includes(userRole)) {
-      // Org-wide roles see all groups plus documents
-      groups.push({
-        id: 'docs',
-        label: 'Documents',
-        icon: '📄',
-        items: [
-          {
-            href: '/pages/documents.html',
-            icon: '📄',
-            label: 'Documents',
-            match: 'documents'
-          }
-        ]
-      });
+      // Org-wide roles see all standard groups including documents
     } else if (userRole === 'BDM') {
       groups = groups.filter(g =>
         ['sales-pipeline', 'hr-employees', 'updates'].includes(g.id)
@@ -283,23 +284,10 @@ function buildNavGroups(currentPath, userRole, userEmail) {
               )
             };
           }
+          if (g.id === 'documents') return g;
           return { ...g, items: [] };
         })
         .filter(g => g.items.length > 0);
-
-      groups.push({
-        id: 'docs',
-        label: 'Documents',
-        icon: '📄',
-        items: [
-          {
-            href: '/pages/documents.html',
-            icon: '📄',
-            label: 'Documents',
-            match: 'documents'
-          }
-        ]
-      });
     } else if (userRole === 'ACCOUNTS_OFFICER') {
       groups = groups
         .map(g => {

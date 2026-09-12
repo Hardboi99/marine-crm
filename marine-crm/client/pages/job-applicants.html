@@ -1053,6 +1053,8 @@
                 experienceYears: app.totalSeaExperience?.years || 0,
                 availableFrom: app.availableFromDate,
                 expectedSalary: app.expectedSalary ? parseFloat(app.expectedSalary) : null,
+                applicationId: app.applicationId || null,
+                seafarerId: app.applicationId || undefined,
                 notes: "Registered from Job Application " + (app.applicationId || app._id)
               });
 

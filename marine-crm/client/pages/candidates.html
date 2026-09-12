@@ -21,9 +21,17 @@
                         <h1 class="page-title">👨‍✈️ Seafarers Directory</h1>
                         <p class="page-subtitle">Manage qualified seafarer candidate database</p>
                     </div>
-                    <button id="add-candidate-btn" class="btn btn-primary">
-                        <i class="fas fa-plus"></i> Add Seafarer
-                    </button>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <a href="/pages/crew-tracker.html" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px; color: #0ea5e9;">
+                            <i class="fas fa-stopwatch"></i> Crew Sign-Off Tracker
+                        </a>
+                        <button id="export-candidates-btn" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-file-excel" style="color: #107c41;"></i> Export to Excel
+                        </button>
+                        <button id="add-candidate-btn" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add Seafarer
+                        </button>
+                    </div>
                 </div>
 
                 <div class="filter-bar">
@@ -84,7 +92,7 @@
                                         <th>Name</th>
                                         <th>Rank</th>
                                         <th>Added By</th>
-                                        <th>Availability</th>
+                                        <th>Availability & Schedule</th>
                                         <th>Status</th>
                                         <th>Wages</th>
                                         <th>Actions</th>
@@ -153,6 +161,7 @@
 
     <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
     <script src="/public/js/api/api.js"></script>
     <script src="/public/js/components/ui.js"></script>
     <script src="/public/js/components/sidebar.js"></script>
@@ -198,6 +207,8 @@
                 const filtered = candidatesData.filter(c => {
                     const matchSearch = !search ||
                         (c.name || '').toLowerCase().includes(search) ||
+                        (c.seafarerId || '').toLowerCase().includes(search) ||
+                        (c.applicationId || '').toLowerCase().includes(search) ||
                         (c.cocNumber || '').toLowerCase().includes(search) ||
                         (c.nationality || '').toLowerCase().includes(search) ||
                         (c.currentVessel || '').toLowerCase().includes(search) ||
@@ -218,11 +229,24 @@
                         const tr = document.createElement('tr');
                         const formatAvail = c.availableFrom ? new Date(c.availableFrom).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
                         const canSeeDocs = ['ADMIN', 'DIRECTOR', 'COO', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER'].includes(_loggedInUserRole);
+                        const seafarerIdDisplay = c.seafarerId || c.applicationId || (c.id ? c.id.slice(-5).toUpperCase() : '');
+                        const cocDisplay = c.cocNumber || '—';
+                        const scheduleBadge = getContractScheduleBadge(c);
                         tr.innerHTML = `
-                            <td><strong>${escapeHtml(c.name)}</strong></td>
-                            <td><span class="badge badge-blue">${escapeHtml(c.rank)}</span></td>
+                            <td>
+                                <div><strong style="color: var(--text-primary); font-size: 0.92rem;">${escapeHtml(c.name)}</strong></div>
+                                ${seafarerIdDisplay ? `<div style="font-size: 0.75rem; color: var(--accent-primary); font-weight: 600; margin-top: 2px;">${escapeHtml(seafarerIdDisplay)}</div>` : ''}
+                                ${c.cocNumber ? `<div style="font-size: 0.72rem; color: var(--text-muted); margin-top: 1px;">COC: <span style="font-weight: 600; color: var(--text-secondary);">${escapeHtml(cocDisplay)}</span></div>` : ''}
+                            </td>
+                            <td>
+                                <span class="badge badge-blue">${escapeHtml(c.rank)}</span>
+                                ${c.vesselType ? `<div style="font-size:0.75rem; color:var(--text-secondary); margin-top:3px;"><i class="fas fa-ship" style="font-size:0.7rem; margin-right:3px;"></i>${escapeHtml(c.vesselType)}</div>` : ''}
+                            </td>
                             <td>${renderAddedBy(c.createdById)}</td>
-                            <td>${formatAvail}</td>
+                            <td>
+                                <div>${formatAvail}</div>
+                                ${scheduleBadge}
+                            </td>
                             <td>
                                 ${window.UI?.renderStatusBadge ? window.UI.renderStatusBadge(c.status) : `<span class="badge">${c.status}</span>`}
                             </td>
@@ -231,6 +255,7 @@
                                 <div style="font-weight: 600; color: var(--accent-primary);">Exp Salary: $${c.expectedSalary || 0}/m</div>
                             </td>
                             <td class="row-actions">
+                                <button class="btn btn-secondary btn-sm" onclick="showContractTracker('${c.id}')" title="Live Crew Departure & Expiration Tracker" style="color: #0ea5e9;"><i class="fas fa-stopwatch"></i></button>
                                 <button class="btn btn-primary btn-sm" onclick="viewCandidateProfile('${c.id}')" title="View Profile & Application History"><i class="fas fa-eye"></i></button>
                                 <button class="btn btn-secondary btn-sm" onclick="editCandidate('${c.id}')" title="Edit Profile"><i class="fas fa-user-edit"></i></button>
                                 ${canSeeDocs ? `<a class="btn btn-secondary btn-sm" href="/pages/documents.html?candidateId=${c.id}&name=${encodeURIComponent(c.name || '')}" title="View Documents"><i class="fas fa-folder-open"></i></a>` : ''}
@@ -240,6 +265,64 @@
                         tbody.appendChild(tr);
                     });
                 }
+            }
+
+            function toDateTimeLocalInput(dateVal) {
+                if (!dateVal) return '';
+                const d = new Date(dateVal);
+                if (isNaN(d.getTime())) return '';
+                const pad = n => String(n).padStart(2, '0');
+                const yyyy = d.getFullYear();
+                const mm = pad(d.getMonth() + 1);
+                const dd = pad(d.getDate());
+                const hh = pad(d.getHours());
+                const min = pad(d.getMinutes());
+                return `${yyyy}-${mm}-${dd}T${hh}:${min}`;
+            }
+
+            function getContractScheduleBadge(c) {
+                if (!c.onboardingDateTime && !c.signOffDateTime) {
+                    return '';
+                }
+                const now = new Date().getTime();
+                const onDate = c.onboardingDateTime ? new Date(c.onboardingDateTime).getTime() : null;
+                const offDate = c.signOffDateTime ? new Date(c.signOffDateTime).getTime() : null;
+
+                if (offDate && now > offDate) {
+                    return `
+                        <div style="margin-top: 5px;">
+                            <span class="badge" style="background: rgba(239, 68, 68, 0.12); color: #ef4444; border: 1px solid rgba(239, 68, 68, 0.25); font-size: 0.72rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px;" onclick="showContractTracker('${c.id}')" title="Click to view live contract & departure tracker">
+                                <i class="fas fa-hourglass-end"></i> Expired ${new Date(offDate).toLocaleDateString()}
+                            </span>
+                        </div>
+                    `;
+                } else if (offDate && (!onDate || now >= onDate)) {
+                    const diffMs = offDate - now;
+                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const isWarning = days < 14;
+                    const bg = isWarning ? 'rgba(234, 179, 8, 0.15)' : 'rgba(16, 185, 129, 0.15)';
+                    const color = isWarning ? '#eab308' : '#10b981';
+                    const border = isWarning ? 'rgba(234, 179, 8, 0.3)' : 'rgba(16, 185, 129, 0.3)';
+                    return `
+                        <div style="margin-top: 5px;">
+                            <span class="badge" style="background: ${bg}; color: ${color}; border: 1px solid ${border}; font-size: 0.72rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px;" onclick="showContractTracker('${c.id}')" title="Click to view live contract & departure tracker">
+                                <i class="fas fa-ship"></i> ${isWarning ? 'Leaves' : 'Onboard'}: ${days}d ${hours}h
+                            </span>
+                        </div>
+                    `;
+                } else if (onDate && now < onDate) {
+                    const diffMs = onDate - now;
+                    const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+                    return `
+                        <div style="margin-top: 5px;">
+                            <span class="badge" style="background: rgba(14, 165, 233, 0.12); color: #0ea5e9; border: 1px solid rgba(14, 165, 233, 0.25); font-size: 0.72rem; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; padding: 2px 7px;" onclick="showContractTracker('${c.id}')" title="Click to view live contract & departure tracker">
+                                <i class="fas fa-calendar-check"></i> Boards in ${days}d
+                            </span>
+                        </div>
+                    `;
+                }
+                return '';
             }
 
             function escapeHtml(str) {
@@ -322,9 +405,16 @@
                     'Cook', 'Messman'
                 ].map(r => `<option value="${r}" ${c && c.rank === r ? 'selected' : ''}>${r}</option>`).join('');
 
+                const vesselTypeOptions = [
+                    'Tanker', 'Bulk Carrier', 'Container', 'RoRo', 'Gas Carrier'
+                ].map(v => `<option value="${v}" ${c && (c.vesselType === v || (v === 'RoRo' && c.vesselType === 'Ro-Ro')) ? 'selected' : ''}>${v}</option>`).join('');
+
                 const bodyHtml = `
                     <form id="candidate-form" style="max-height: 70vh; overflow-y: auto; padding-right: 8px;">
-                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary);">General Info</h3>
+                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary); display:flex; justify-content:space-between; align-items:center;">
+                            <span>General Info</span>
+                            ${c && (c.seafarerId || c.applicationId) ? `<span style="font-size:0.8rem; background:rgba(16, 185, 129, 0.15); color:#10b981; padding:2px 8px; border-radius:4px; font-weight:600;">ID: ${escapeHtml(c.seafarerId || c.applicationId)}</span>` : ''}
+                        </h3>
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
                                 <label class="form-label">Full Name *</label>
@@ -341,24 +431,32 @@
 
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
-                                <label class="form-label">Nationality</label>
-                                <input type="text" id="cand-nationality" class="form-control" value="${c ? c.nationality || '' : ''}" placeholder="e.g. Ukraine">
+                                <label class="form-label">Vessel Type *</label>
+                                <select id="cand-vessel-type" class="form-control">
+                                    <option value="">Select Vessel Type</option>
+                                    ${vesselTypeOptions}
+                                </select>
                             </div>
                             <div class="form-group">
-                                <label class="form-label">Current Vessel</label>
-                                <input type="text" id="cand-vessel" class="form-control" value="${c ? c.currentVessel || '' : ''}" placeholder="e.g. MV Ocean Star">
+                                <label class="form-label">Nationality</label>
+                                <input type="text" id="cand-nationality" class="form-control" value="${c ? c.nationality || '' : ''}" placeholder="e.g. Ukraine">
                             </div>
                         </div>
 
                         <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div class="form-group">
+                                <label class="form-label">Current Vessel</label>
+                                <input type="text" id="cand-vessel" class="form-control" value="${c ? c.currentVessel || '' : ''}" placeholder="e.g. MV Ocean Star">
+                            </div>
+                            <div class="form-group">
                                 <label class="form-label">Phone</label>
                                 <input type="tel" id="cand-phone" class="form-control" value="${c ? c.phone || '' : ''}" placeholder="+380...">
                             </div>
-                            <div class="form-group">
-                                <label class="form-label">Email Address</label>
-                                <input type="email" id="cand-email" class="form-control" value="${c ? c.email || '' : ''}">
-                            </div>
+                        </div>
+
+                        <div class="form-group" style="margin-bottom: 15px;">
+                            <label class="form-label">Email Address</label>
+                            <input type="email" id="cand-email" class="form-control" value="${c ? c.email || '' : ''}">
                         </div>
 
                         <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary);">Certificates</h3>
@@ -382,6 +480,27 @@
                             <div class="form-group">
                                 <label class="form-label">Available From</label>
                                 <input type="date" id="cand-avail" class="form-control" value="${c && c.availableFrom ? new Date(c.availableFrom).toISOString().split('T')[0] : ''}">
+                            </div>
+                        </div>
+
+                        <h3 style="border-bottom: 1px solid var(--border-color); padding-bottom: 5px; margin-bottom: 12px; color: var(--accent-primary); display: flex; align-items: center; justify-content: space-between;">
+                            <span><i class="fas fa-ship"></i> Crewing Onboarding & Expiration Schedule</span>
+                            <span style="font-size:0.75rem; font-weight:400; color:var(--text-muted);"><i class="fas fa-stopwatch"></i> Live Tracker</span>
+                        </h3>
+                        <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div class="form-group">
+                                <label class="form-label" style="display:flex; align-items:center; gap:6px;">
+                                    <i class="fas fa-plane-arrival" style="color: #0ea5e9;"></i> Crew Onboarding Date & Time
+                                </label>
+                                <input type="datetime-local" id="cand-onboarding-datetime" class="form-control" value="${c && c.onboardingDateTime ? toDateTimeLocalInput(c.onboardingDateTime) : ''}">
+                                <small style="font-size:0.72rem; color:var(--text-muted); display:block; margin-top:3px;">Joining / boarding date & time</small>
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" style="display:flex; align-items:center; gap:6px;">
+                                    <i class="fas fa-plane-departure" style="color: #f59e0b;"></i> Leaving Ship / Expiry Date & Time
+                                </label>
+                                <input type="datetime-local" id="cand-signoff-datetime" class="form-control" value="${c && c.signOffDateTime ? toDateTimeLocalInput(c.signOffDateTime) : ''}">
+                                <small style="font-size:0.72rem; color:var(--text-muted); display:block; margin-top:3px;">Sign-off & contract expiration</small>
                             </div>
                         </div>
 
@@ -435,13 +554,17 @@
                     return;
                 }
 
+                const vesselType = document.getElementById('cand-vessel-type')?.value;
                 const experienceYears = document.getElementById('cand-experience-years').value;
                 const expectedSalary = document.getElementById('cand-expected-salary').value;
                 const avail = document.getElementById('cand-avail').value;
+                const onboardingDateTime = document.getElementById('cand-onboarding-datetime')?.value;
+                const signOffDateTime = document.getElementById('cand-signoff-datetime')?.value;
 
                 const payload = {
                     name,
                     rank,
+                    vesselType: vesselType || null,
                     nationality: document.getElementById('cand-nationality').value.trim() || null,
                     currentVessel: document.getElementById('cand-vessel').value.trim() || null,
                     phone: document.getElementById('cand-phone').value.trim() || null,
@@ -450,6 +573,8 @@
                     cocNumber: document.getElementById('cand-coc-no').value.trim() || null,
                     experienceYears: experienceYears ? parseInt(experienceYears, 10) : 0,
                     availableFrom: avail || null,
+                    onboardingDateTime: onboardingDateTime || null,
+                    signOffDateTime: signOffDateTime || null,
                     expectedSalary: expectedSalary ? parseFloat(expectedSalary) : null,
                     currency: document.getElementById('cand-currency').value,
                     notes: document.getElementById('cand-notes').value.trim() || null,
@@ -505,23 +630,52 @@
                     }
                 }
 
+                const seafarerIdDisplay = candidate.seafarerId || candidate.applicationId || (candidate.id ? candidate.id.slice(-5).toUpperCase() : '');
+                const onDateFormatted = candidate.onboardingDateTime ? new Date(candidate.onboardingDateTime).toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not Scheduled';
+                const offDateFormatted = candidate.signOffDateTime ? new Date(candidate.signOffDateTime).toLocaleString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Not Scheduled';
+
                 const bodyHtml = `
                     <div style="max-height: 75vh; overflow-y: auto; padding-right: 6px;">
                         <div style="background: var(--card-bg-soft, rgba(255,255,255,0.04)); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 12px; padding: 18px; margin-bottom: 20px;">
                             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
                                 <div>
                                     <h2 style="margin:0; color:var(--text-primary); font-size:1.3rem;">${escapeHtml(candidate.name)}</h2>
-                                    <div style="font-size:0.8rem; color:var(--accent-primary); font-weight:700; margin-top:2px;">COC NUMBER: ${escapeHtml(candidate.cocNumber || 'NOT REGISTERED')}</div>
+                                    ${seafarerIdDisplay ? `<div style="font-size:0.85rem; color:var(--accent-primary); font-weight:700; margin-top:2px;">SEAFARER ID: ${escapeHtml(seafarerIdDisplay)}</div>` : ''}
+                                    <div style="font-size:0.8rem; color:var(--text-secondary); font-weight:600; margin-top:2px;">COC NUMBER: ${escapeHtml(candidate.cocNumber || 'NOT REGISTERED')}</div>
                                 </div>
                                 <span class="badge badge-blue">${escapeHtml(candidate.rank)}</span>
                             </div>
                             <div style="margin-top:14px; font-size:0.85rem; color:var(--text-secondary); display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:10px;">
+                                <div><span style="font-size:0.72rem; color:var(--text-muted); display:block;">VESSEL TYPE</span><strong>${escapeHtml(candidate.vesselType || '—')}</strong></div>
+                                <div><span style="font-size:0.72rem; color:var(--text-muted); display:block;">CURRENT VESSEL</span><strong>${escapeHtml(candidate.currentVessel || '—')}</strong></div>
                                 <div><span style="font-size:0.72rem; color:var(--text-muted); display:block;">NATIONALITY</span><strong>${escapeHtml(candidate.nationality || '—')}</strong></div>
                                 <div><span style="font-size:0.72rem; color:var(--text-muted); display:block;">PHONE</span><strong>${escapeHtml(candidate.phone || '—')}</strong></div>
                                 <div><span style="font-size:0.72rem; color:var(--text-muted); display:block;">EMAIL</span><strong>${escapeHtml(candidate.email || '—')}</strong></div>
                                 <div><span style="font-size:0.72rem; color:var(--text-muted); display:block;">PASSPORT NO.</span><strong>${escapeHtml(candidate.passportNumber || '—')}</strong></div>
                                 <div><span style="font-size:0.72rem; color:var(--text-muted); display:block;">STATUS</span><strong>${escapeHtml(candidate.status || 'AVAILABLE')}</strong></div>
                                 <div><span style="font-size:0.72rem; color:var(--text-muted); display:block;">EXPERIENCE</span><strong>${candidate.experienceYears || 0} Years</strong></div>
+                            </div>
+                        </div>
+
+                        <!-- Onboarding & Leaving Schedule Container -->
+                        <div style="background: linear-gradient(135deg, rgba(14,165,233,0.06), rgba(20,184,166,0.06)); border: 1px solid rgba(14,165,233,0.2); border-radius: 12px; padding: 16px; margin-bottom: 20px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
+                                <h3 style="font-size:0.95rem; font-weight:700; color:var(--accent-primary); margin:0; display:flex; align-items:center; gap:6px;">
+                                    <i class="fas fa-stopwatch"></i> Crewing Onboarding & Expiration Schedule
+                                </h3>
+                                <button class="btn btn-secondary btn-sm" onclick="this.closest('.modal-overlay').close(); showContractTracker('${candidate.id}')" style="display:inline-flex; align-items:center; gap:6px; color:var(--accent-primary);">
+                                    <i class="fas fa-external-link-alt"></i> Open Live Tracker
+                                </button>
+                            </div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap:12px; font-size:0.85rem;">
+                                <div style="background:var(--card-bg, #ffffff); border:1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius:8px; padding:10px 14px;">
+                                    <div style="font-size:0.72rem; color:var(--accent-primary); font-weight:700; text-transform:uppercase;"><i class="fas fa-plane-arrival"></i> Crew Onboarding (Sign-On)</div>
+                                    <div style="font-weight:700; color:var(--text-primary); margin-top:4px;">${onDateFormatted}</div>
+                                </div>
+                                <div style="background:var(--card-bg, #ffffff); border:1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius:8px; padding:10px 14px;">
+                                    <div style="font-size:0.72rem; color:#f59e0b; font-weight:700; text-transform:uppercase;"><i class="fas fa-plane-departure"></i> Leaving Ship (Sign-Off / Expiry)</div>
+                                    <div style="font-weight:700; color:var(--text-primary); margin-top:4px;">${offDateFormatted}</div>
+                                </div>
                             </div>
                         </div>
 
@@ -543,6 +697,255 @@
                 }
             };
 
+            let _liveTrackerInterval = null;
+
+            window.showContractTracker = (id) => {
+                const candidate = candidatesData.find(c => c.id === id);
+                if (!candidate) return;
+
+                if (_liveTrackerInterval) {
+                    clearInterval(_liveTrackerInterval);
+                    _liveTrackerInterval = null;
+                }
+
+                const onDate = candidate.onboardingDateTime ? new Date(candidate.onboardingDateTime) : null;
+                const offDate = candidate.signOffDateTime ? new Date(candidate.signOffDateTime) : null;
+
+                const formatDateTime = (dt) => {
+                    if (!dt || isNaN(dt.getTime())) return 'Not Scheduled';
+                    return dt.toLocaleString('en-US', {
+                        weekday: 'short',
+                        year: 'numeric',
+                        month: 'short',
+                        day: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        hour12: true
+                    });
+                };
+
+                const seafarerIdDisplay = candidate.seafarerId || candidate.applicationId || (candidate.id ? candidate.id.slice(-5).toUpperCase() : '');
+
+                const bodyHtml = `
+                    <div style="padding: 4px 0;">
+                        <!-- Top Header Card -->
+                        <div style="background: linear-gradient(135deg, rgba(14,165,233,0.12), rgba(20,184,166,0.12)); border: 1px solid rgba(14,165,233,0.3); border-radius: 12px; padding: 16px; margin-bottom: 18px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                                <div>
+                                    <h3 style="margin:0; font-size:1.25rem; color:var(--text-primary); font-weight:700;">${escapeHtml(candidate.name)}</h3>
+                                    <div style="font-size:0.8rem; color:var(--accent-primary); font-weight:700; margin-top:3px;">
+                                        ID: ${escapeHtml(seafarerIdDisplay || '—')} • COC: ${escapeHtml(candidate.cocNumber || '—')}
+                                    </div>
+                                    <div style="font-size:0.82rem; color:var(--text-secondary); margin-top:3px;">
+                                        <i class="fas fa-ship" style="color:var(--accent-teal);"></i> Vessel: <strong>${escapeHtml(candidate.currentVessel || candidate.vesselType || 'Not Assigned')}</strong>
+                                    </div>
+                                </div>
+                                <span class="badge badge-blue" style="font-size:0.85rem; padding: 5px 12px;">${escapeHtml(candidate.rank)}</span>
+                            </div>
+                        </div>
+
+                        <!-- Schedule Dates Cards -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
+                            <div style="background: var(--card-bg-soft, rgba(255,255,255,0.04)); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 10px; padding: 14px;">
+                                <div style="font-size: 0.75rem; color: var(--accent-primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                    <i class="fas fa-plane-arrival"></i> Crew Onboarding (Sign-On)
+                                </div>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">
+                                    ${formatDateTime(onDate)}
+                                </div>
+                                <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px;">
+                                    ${onDate ? 'Official onboarding date & time' : 'No onboarding date scheduled'}
+                                </div>
+                            </div>
+
+                            <div style="background: var(--card-bg-soft, rgba(255,255,255,0.04)); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 10px; padding: 14px;">
+                                <div style="font-size: 0.75rem; color: #f59e0b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                    <i class="fas fa-plane-departure"></i> Leaving Ship (Sign-Off / Expiry)
+                                </div>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">
+                                    ${formatDateTime(offDate)}
+                                </div>
+                                <div style="font-size: 0.74rem; color: var(--text-muted); margin-top: 4px;">
+                                    ${offDate ? 'Scheduled sign-off & contract end' : 'No sign-off date scheduled'}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Tracker Countdown Container -->
+                        <div id="tracker-live-container" style="background: var(--card-bg-soft, rgba(255,255,255,0.03)); border: 1px solid var(--border-color, rgba(255,255,255,0.12)); border-radius: 12px; padding: 20px; text-align: center;">
+                            <div id="tracker-status-badge" style="margin-bottom: 14px;"></div>
+
+                            <div id="tracker-countdown-grid" style="display: flex; justify-content: center; gap: 10px; margin-bottom: 16px; flex-wrap: wrap;">
+                                <div style="background: var(--card-bg, #ffffff); border: 1px solid var(--border-color, rgba(255,255,255,0.15)); border-radius: 10px; padding: 10px 16px; min-width: 70px; box-shadow: var(--shadow-sm);">
+                                    <div id="cnt-days" style="font-size: 1.65rem; font-weight: 800; color: var(--accent-primary); line-height: 1.1;">00</div>
+                                    <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 3px;">Days</div>
+                                </div>
+                                <div style="background: var(--card-bg, #ffffff); border: 1px solid var(--border-color, rgba(255,255,255,0.15)); border-radius: 10px; padding: 10px 16px; min-width: 70px; box-shadow: var(--shadow-sm);">
+                                    <div id="cnt-hours" style="font-size: 1.65rem; font-weight: 800; color: var(--accent-primary); line-height: 1.1;">00</div>
+                                    <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 3px;">Hours</div>
+                                </div>
+                                <div style="background: var(--card-bg, #ffffff); border: 1px solid var(--border-color, rgba(255,255,255,0.15)); border-radius: 10px; padding: 10px 16px; min-width: 70px; box-shadow: var(--shadow-sm);">
+                                    <div id="cnt-mins" style="font-size: 1.65rem; font-weight: 800; color: var(--accent-primary); line-height: 1.1;">00</div>
+                                    <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 3px;">Mins</div>
+                                </div>
+                                <div style="background: var(--card-bg, #ffffff); border: 1px solid var(--border-color, rgba(255,255,255,0.15)); border-radius: 10px; padding: 10px 16px; min-width: 70px; box-shadow: var(--shadow-sm);">
+                                    <div id="cnt-secs" style="font-size: 1.65rem; font-weight: 800; color: #10b981; line-height: 1.1;">00</div>
+                                    <div style="font-size: 0.68rem; color: var(--text-muted); text-transform: uppercase; font-weight: 700; margin-top: 3px;">Secs</div>
+                                </div>
+                            </div>
+
+                            <!-- Progress Bar -->
+                            <div id="tracker-progress-wrapper" style="margin-top: 14px; display: none;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px;">
+                                    <span>Contract Journey Progress</span>
+                                    <span id="tracker-progress-text" style="font-weight: 700; color: var(--accent-primary);">0%</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background: rgba(11,41,66,0.1); border-radius: 999px; overflow: hidden;">
+                                    <div id="tracker-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0ea5e9, #10b981); border-radius: 999px; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+
+                            <div id="tracker-message" style="font-size: 0.84rem; color: var(--text-secondary); margin-top: 14px;"></div>
+                        </div>
+                    </div>
+                `;
+
+                const footerHtml = `
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()"><i class="fas fa-times"></i> Close</button>
+                    <button class="btn btn-primary" onclick="this.closest('.modal-overlay').close(); editCandidate('${candidate.id}')"><i class="fas fa-edit"></i> Edit Schedule</button>
+                `;
+
+                if (window.UI?.createModal) {
+                    const modal = window.UI.createModal({
+                        title: `⏱️ Live Crew Departure & Expiration Tracker`,
+                        bodyHtml,
+                        footerHtml,
+                        onClose: () => {
+                            if (_liveTrackerInterval) {
+                                clearInterval(_liveTrackerInterval);
+                                _liveTrackerInterval = null;
+                            }
+                        }
+                    });
+
+                    const updateLiveClock = () => {
+                        const now = new Date().getTime();
+                        const badgeEl = modal.querySelector('#tracker-status-badge');
+                        const dEl = modal.querySelector('#cnt-days');
+                        const hEl = modal.querySelector('#cnt-hours');
+                        const mEl = modal.querySelector('#cnt-mins');
+                        const sEl = modal.querySelector('#cnt-secs');
+                        const msgEl = modal.querySelector('#tracker-message');
+                        const progWrap = modal.querySelector('#tracker-progress-wrapper');
+                        const progBar = modal.querySelector('#tracker-progress-bar');
+                        const progText = modal.querySelector('#tracker-progress-text');
+
+                        if (!dEl || !hEl || !mEl || !sEl) return;
+
+                        const onMs = onDate ? onDate.getTime() : null;
+                        const offMs = offDate ? offDate.getTime() : null;
+
+                        if (!offMs && !onMs) {
+                            if (badgeEl) badgeEl.innerHTML = `<span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted); font-size:0.85rem; padding:6px 14px;"><i class="fas fa-info-circle"></i> No Onboarding or Sign-Off Dates Configured</span>`;
+                            if (msgEl) msgEl.innerHTML = `Click <strong>Edit Schedule</strong> to set the onboarding and leaving dates for this seafarer.`;
+                            dEl.textContent = '--';
+                            hEl.textContent = '--';
+                            mEl.textContent = '--';
+                            sEl.textContent = '--';
+                            return;
+                        }
+
+                        if (offMs && now > offMs) {
+                            // Contract Expired / Left ship
+                            const elapsedMs = now - offMs;
+                            const d = Math.floor(elapsedMs / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((elapsedMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((elapsedMs % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((elapsedMs % (1000 * 60)) / 1000);
+
+                            if (badgeEl) badgeEl.innerHTML = `<span class="badge" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3); font-size:0.85rem; padding:6px 14px;"><i class="fas fa-exclamation-triangle"></i> CONTRACT EXPIRED / DEPARTED SHIP</span>`;
+                            dEl.style.color = '#ef4444';
+                            hEl.style.color = '#ef4444';
+                            mEl.style.color = '#ef4444';
+                            sEl.style.color = '#ef4444';
+                            dEl.textContent = String(d).padStart(2, '0');
+                            hEl.textContent = String(h).padStart(2, '0');
+                            mEl.textContent = String(m).padStart(2, '0');
+                            sEl.textContent = String(s).padStart(2, '0');
+                            if (msgEl) msgEl.innerHTML = `Contract reached end of tenure on <strong>${formatDateTime(offDate)}</strong> (${d}d ${h}h ${m}m ago).`;
+
+                            if (progWrap) {
+                                progWrap.style.display = 'block';
+                                progBar.style.width = '100%';
+                                progBar.style.background = '#ef4444';
+                                progText.textContent = '100% (Completed)';
+                                progText.style.color = '#ef4444';
+                            }
+                        } else if (offMs && (!onMs || now >= onMs)) {
+                            // Currently Onboard sailing towards Sign-Off Date
+                            const remainingMs = offMs - now;
+                            const d = Math.floor(remainingMs / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((remainingMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((remainingMs % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((remainingMs % (1000 * 60)) / 1000);
+
+                            const isWarning = d < 14;
+                            const color = isWarning ? '#eab308' : '#10b981';
+                            const badgeBg = isWarning ? 'rgba(234,179,8,0.15)' : 'rgba(16,185,129,0.15)';
+                            const badgeBorder = isWarning ? 'rgba(234,179,8,0.3)' : 'rgba(16,185,129,0.3)';
+
+                            if (badgeEl) badgeEl.innerHTML = `<span class="badge" style="background:${badgeBg}; color:${color}; border:1px solid ${badgeBorder}; font-size:0.85rem; padding:6px 14px;"><i class="fas fa-ship"></i> ${isWarning ? 'LEAVING SHIP SOON' : 'ONBOARD & ACTIVELY SAILING'}</span>`;
+
+                            dEl.style.color = color;
+                            hEl.style.color = color;
+                            mEl.style.color = color;
+                            sEl.style.color = color;
+                            dEl.textContent = String(d).padStart(2, '0');
+                            hEl.textContent = String(h).padStart(2, '0');
+                            mEl.textContent = String(m).padStart(2, '0');
+                            sEl.textContent = String(s).padStart(2, '0');
+
+                            if (msgEl) msgEl.innerHTML = `Crew member is scheduled to leave the ship on <strong>${formatDateTime(offDate)}</strong>.`;
+
+                            if (onMs && progWrap) {
+                                progWrap.style.display = 'block';
+                                const totalDuration = offMs - onMs;
+                                const elapsed = now - onMs;
+                                const pct = Math.min(Math.max(Math.round((elapsed / totalDuration) * 100), 0), 100);
+                                progBar.style.width = `${pct}%`;
+                                progBar.style.background = isWarning ? 'linear-gradient(90deg, #eab308, #ef4444)' : 'linear-gradient(90deg, #0ea5e9, #10b981)';
+                                progText.textContent = `${pct}% Elapsed`;
+                                progText.style.color = color;
+                            }
+                        } else if (onMs && now < onMs) {
+                            // Upcoming Onboarding
+                            const untilBoarding = onMs - now;
+                            const d = Math.floor(untilBoarding / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((untilBoarding % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((untilBoarding % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((untilBoarding % (1000 * 60)) / 1000);
+
+                            if (badgeEl) badgeEl.innerHTML = `<span class="badge" style="background:rgba(14,165,233,0.15); color:#0ea5e9; border:1px solid rgba(14,165,233,0.3); font-size:0.85rem; padding:6px 14px;"><i class="fas fa-calendar-check"></i> SCHEDULED FOR ONBOARDING</span>`;
+
+                            dEl.style.color = '#0ea5e9';
+                            hEl.style.color = '#0ea5e9';
+                            mEl.style.color = '#0ea5e9';
+                            sEl.style.color = '#0ea5e9';
+                            dEl.textContent = String(d).padStart(2, '0');
+                            hEl.textContent = String(h).padStart(2, '0');
+                            mEl.textContent = String(m).padStart(2, '0');
+                            sEl.textContent = String(s).padStart(2, '0');
+
+                            if (msgEl) msgEl.innerHTML = `Crew member joins vessel on <strong>${formatDateTime(onDate)}</strong>.`;
+                            if (progWrap) progWrap.style.display = 'none';
+                        }
+                    };
+
+                    updateLiveClock();
+                    _liveTrackerInterval = setInterval(updateLiveClock, 1000);
+                }
+            };
+
             window.deleteCandidate = async (id) => {
                 if (window.UI?.confirm) {
                     const confirmed = await window.UI.confirm('Are you sure you want to delete this seafarer profile?');
@@ -557,6 +960,128 @@
                     }
                 }
             };
+
+            const exportBtn = document.getElementById('export-candidates-btn');
+            if (exportBtn) {
+                exportBtn.addEventListener('click', async () => {
+                    const originalHtml = exportBtn.innerHTML;
+                    exportBtn.disabled = true;
+                    exportBtn.innerHTML = `<i class="fas fa-spinner fa-spin" style="color: #107c41;"></i> Exporting...`;
+
+                    try {
+                        // Always fetch the freshest dataset from server without disrupting current UI state
+                        const res = await window.ApiService.crewing.candidates.getAll();
+                        const dataToExport = (res && res.data && res.data.length > 0) ? res.data : candidatesData;
+
+                        if (!dataToExport || dataToExport.length === 0) {
+                            if (window.UI?.showToast) window.UI.showToast('No seafarers data available to export.', 'warning');
+                            return;
+                        }
+
+                        if (typeof XLSX === 'undefined') {
+                            throw new Error('Excel export library is loading. Please try again in a moment.');
+                        }
+
+                        const now = new Date().getTime();
+                        const rows = dataToExport.map((c, index) => {
+                            const seafarerId = c.seafarerId || c.applicationId || (c.id ? c.id.slice(-5).toUpperCase() : '');
+                            let addedByName = '—';
+                            let addedByRole = '—';
+                            if (c.createdById) {
+                                if (typeof c.createdById === 'object') {
+                                    addedByName = c.createdById.name || c.createdById.email || '—';
+                                    addedByRole = c.createdById.role || '—';
+                                } else {
+                                    addedByName = c.createdById;
+                                }
+                            }
+
+                            const formatAvail = c.availableFrom ? new Date(c.availableFrom).toISOString().split('T')[0] : '—';
+                            const onDateStr = c.onboardingDateTime ? new Date(c.onboardingDateTime).toLocaleString() : '—';
+                            const offDateStr = c.signOffDateTime ? new Date(c.signOffDateTime).toLocaleString() : '—';
+                            const passportExp = c.passportExpiryDate ? new Date(c.passportExpiryDate).toISOString().split('T')[0] : '—';
+                            const cdcExp = c.cdcExpiryDate ? new Date(c.cdcExpiryDate).toISOString().split('T')[0] : '—';
+                            const createdDate = c.createdAt ? new Date(c.createdAt).toISOString().split('T')[0] : '—';
+
+                            let contractStatus = 'NOT SCHEDULED';
+                            if (c.signOffDateTime) {
+                                const offMs = new Date(c.signOffDateTime).getTime();
+                                const onMs = c.onboardingDateTime ? new Date(c.onboardingDateTime).getTime() : null;
+                                if (now > offMs) {
+                                    contractStatus = 'EXPIRED / SIGNED OFF';
+                                } else if (!onMs || now >= onMs) {
+                                    contractStatus = 'ONBOARD (ACTIVE)';
+                                } else {
+                                    contractStatus = 'UPCOMING (SCHEDULED)';
+                                }
+                            }
+
+                            return {
+                                'S.No': index + 1,
+                                'Seafarer ID': seafarerId,
+                                'Application ID': c.applicationId || '—',
+                                'Full Name': c.name || '—',
+                                'Rank': c.rank || '—',
+                                'Vessel Type': c.vesselType || '—',
+                                'Current Vessel': c.currentVessel || '—',
+                                'Status': c.status || 'AVAILABLE',
+                                'Workflow Stage': c.workflowStage || 'SOURCING',
+                                'Department': c.currentDepartment || c.department || 'SOURCING',
+                                'Nationality': c.nationality || '—',
+                                'Phone Number': c.phone || '—',
+                                'Email Address': c.email || '—',
+                                'COC Number': c.cocNumber || '—',
+                                'Passport Number': c.passportNumber || '—',
+                                'Passport Expiry': passportExp,
+                                'CDC Number': c.cdcNumber || '—',
+                                'CDC Expiry': cdcExp,
+                                'Sea Experience (Years)': c.experienceYears ?? 0,
+                                'Availability Date': formatAvail,
+                                'Crew Onboarding Date & Time': onDateStr,
+                                'Leaving Ship / Expiry Date & Time': offDateStr,
+                                'Contract Expiry Status': contractStatus,
+                                'Expected Salary (USD)': c.expectedSalary ? `$${c.expectedSalary}/m` : '$0/m',
+                                'Currency': c.currency || 'USD',
+                                'Added By': addedByName,
+                                'Added By Role': addedByRole,
+                                'Documentation Cleared': c.documentationCleared ? 'YES' : 'NO',
+                                'Notes': c.notes || '—',
+                                'Created Date': createdDate
+                            };
+                        });
+
+                        const ws = XLSX.utils.json_to_sheet(rows);
+
+                        // Auto-calculate column widths
+                        const colWidths = Object.keys(rows[0] || {}).map(key => {
+                            const maxLen = Math.max(
+                                key.length,
+                                ...rows.map(r => String(r[key] || '').length)
+                            );
+                            return { wch: Math.min(Math.max(maxLen + 3, 10), 40) };
+                        });
+                        ws['!cols'] = colWidths;
+
+                        const wb = XLSX.utils.book_new();
+                        XLSX.utils.book_append_sheet(wb, ws, 'Seafarers Directory');
+
+                        const today = new Date().toISOString().split('T')[0];
+                        XLSX.writeFile(wb, `Seafarers_Directory_${today}.xlsx`);
+
+                        if (window.UI?.showToast) {
+                            window.UI.showToast(`Exported ${rows.length} seafarers to Excel successfully`, 'success');
+                        }
+                    } catch (err) {
+                        console.error('Error exporting seafarers to Excel:', err);
+                        if (window.UI?.showToast) {
+                            window.UI.showToast(err.message || 'Failed to export seafarers to Excel.', 'error');
+                        }
+                    } finally {
+                        exportBtn.disabled = false;
+                        exportBtn.innerHTML = originalHtml;
+                    }
+                });
+            }
 
             fetchData();
         });

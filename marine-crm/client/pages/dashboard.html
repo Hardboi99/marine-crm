@@ -334,7 +334,7 @@
         if (window.Chart) Chart.register(glowActivePointPlugin);
 
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-        const isSourcingManager = ['SOURCING_MANAGER', 'MANAGER_SOURCING'].includes(user.role);
+        const isSourcingManager = ['SOURCING_MANAGER', 'MANAGER_SOURCING', 'CREWING_MANAGER'].includes(user.role);
         const isOrgDashboard = ['ADMIN', 'HR', 'MANAGER'].includes(user.role);
 
         async function initDashboard() {
@@ -794,7 +794,7 @@
                     <div class="dash-header-title-wrap">
                         <div class="dash-eyebrow"><span class="live-dot"></span> Personal overview</div>
                         <h1 class="page-title">Welcome, ${profile.name || user.name} 👋</h1>
-                        <p class="page-subtitle">Personal Employee Dashboard — BDM Sales & Pipeline Overview</p>
+                        <p class="page-subtitle">Personal Employee Dashboard — ${profile.position || profile.department || 'Overview'}</p>
                     </div>
                     <div class="dash-header-meta">
                         <div class="dash-date" id="dash-header-date-2"></div>

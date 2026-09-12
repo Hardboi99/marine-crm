@@ -1,0 +1,1134 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crew Sign-Off & Expiry Tracker - Marine CRM</title>
+    <link rel="stylesheet" href="/public/css/styles1.css">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <style>
+        .tracker-stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .tracker-stat-card {
+            background: var(--card-bg, #111d2e);
+            border: 1px solid var(--border-color, rgba(255, 255, 255, 0.08));
+            border-radius: 12px;
+            padding: 16px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s ease, border-color 0.2s ease;
+        }
+
+        .tracker-stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-primary, #0ea5e9);
+        }
+
+        .tracker-stat-title {
+            font-size: 0.78rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted, #94a3b8);
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .tracker-stat-value {
+            font-size: 1.85rem;
+            font-weight: 800;
+            color: var(--text-primary, #ffffff);
+            line-height: 1.1;
+        }
+
+        .tracker-stat-sub {
+            font-size: 0.75rem;
+            color: var(--text-secondary, #cbd5e1);
+        }
+
+        .countdown-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+            font-size: 0.85rem;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 8px;
+            letter-spacing: 0.2px;
+            white-space: nowrap;
+        }
+
+        .countdown-active {
+            background: rgba(16, 185, 129, 0.12);
+            color: #10b981;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .countdown-warning {
+            background: rgba(234, 179, 8, 0.15);
+            color: #eab308;
+            border: 1px solid rgba(234, 179, 8, 0.35);
+            animation: pulse-warning 2s infinite ease-in-out;
+        }
+
+        .countdown-expired {
+            background: rgba(239, 68, 68, 0.15);
+            color: #ef4444;
+            border: 1px solid rgba(239, 68, 68, 0.35);
+        }
+
+        .countdown-unscheduled {
+            background: rgba(100, 116, 139, 0.12);
+            color: var(--text-muted, #94a3b8);
+            border: 1px solid rgba(100, 116, 139, 0.2);
+        }
+
+        @keyframes pulse-warning {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.75; }
+        }
+
+        .tenure-bar-wrap {
+            width: 100%;
+            height: 6px;
+            background: rgba(100, 116, 139, 0.15);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-top: 6px;
+        }
+
+        .tenure-bar-fill {
+            height: 100%;
+            border-radius: 999px;
+            transition: width 0.4s ease;
+        }
+
+        .date-highlight {
+            font-weight: 700;
+            color: var(--text-primary, #ffffff);
+            font-size: 0.88rem;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .date-sub {
+            font-size: 0.75rem;
+            color: var(--text-muted, #94a3b8);
+            margin-top: 2px;
+        }
+
+        .clock-digit-box {
+            background: var(--card-bg-soft, rgba(255,255,255,0.06));
+            border: 1px solid var(--border-color, rgba(255,255,255,0.12));
+            border-radius: 8px;
+            padding: 10px 14px;
+            text-align: center;
+            min-width: 65px;
+        }
+
+        .clock-digit-val {
+            font-size: 1.6rem;
+            font-weight: 800;
+            font-family: ui-monospace, SFMono-Regular, monospace;
+            line-height: 1.1;
+        }
+
+        .clock-digit-lbl {
+            font-size: 0.65rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: var(--text-muted, #94a3b8);
+            font-weight: 700;
+            margin-top: 2px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="app-wrapper">
+        <div id="sidebar-container"></div>
+        <div id="sidebar-overlay" class="sidebar-overlay"></div>
+        <div class="main-content">
+            <div id="navbar-container"></div>
+            <main class="page-content">
+                <div class="page-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+                    <div>
+                        <div style="font-size: 0.8rem; font-weight: 700; color: var(--accent-primary, #0ea5e9); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 4px; display: flex; align-items: center; gap: 6px;">
+                            <span class="live-dot"></span> Live Contract & Sign-Off Timing
+                        </div>
+                        <h1 class="page-title" style="margin: 0; font-size: 1.65rem; font-weight: 800;">⏱️ Crew Sign-Off & Expiry Tracker</h1>
+                        <p class="page-subtitle" style="margin-top: 4px; color: var(--text-secondary, #94a3b8); font-size: 0.9rem;">
+                            Live monitoring of contract end dates, sign-off departure countdowns, and onboard tenure for all seafarers
+                        </p>
+                    </div>
+                    <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                        <button id="export-tracker-btn" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-file-excel" style="color: #107c41;"></i> Export to Excel
+                        </button>
+                        <button id="refresh-tracker-btn" class="btn btn-secondary" style="display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-sync-alt"></i> Refresh Data
+                        </button>
+                        <a href="/pages/candidates.html" class="btn btn-primary" style="display: inline-flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-users"></i> Seafarers Directory
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Stats Metric Summary Cards -->
+                <div class="tracker-stats-grid">
+                    <div class="tracker-stat-card">
+                        <div class="tracker-stat-title"><i class="fas fa-user-friends" style="color: #0ea5e9;"></i> Total Seafarers</div>
+                        <div class="tracker-stat-value" id="stat-total-candidates">0</div>
+                        <div class="tracker-stat-sub">Registered in candidate pool</div>
+                    </div>
+                    <div class="tracker-stat-card">
+                        <div class="tracker-stat-title"><i class="fas fa-ship" style="color: #10b981;"></i> Sailing Onboard</div>
+                        <div class="tracker-stat-value" style="color: #10b981;" id="stat-sailing-active">0</div>
+                        <div class="tracker-stat-sub">Actively on contract</div>
+                    </div>
+                    <div class="tracker-stat-card">
+                        <div class="tracker-stat-title"><i class="fas fa-exclamation-circle" style="color: #eab308;"></i> Sign-Off Soon (&lt; 14d)</div>
+                        <div class="tracker-stat-value" style="color: #eab308;" id="stat-leaving-soon">0</div>
+                        <div class="tracker-stat-sub">Sign-off / off-boarding approaching</div>
+                    </div>
+                    <div class="tracker-stat-card">
+                        <div class="tracker-stat-title"><i class="fas fa-plane-departure" style="color: #ef4444;"></i> Expired / Departed</div>
+                        <div class="tracker-stat-value" style="color: #ef4444;" id="stat-expired-count">0</div>
+                        <div class="tracker-stat-sub">Completed onboard tenure</div>
+                    </div>
+                    <div class="tracker-stat-card">
+                        <div class="tracker-stat-title"><i class="fas fa-calendar-times" style="color: #94a3b8;"></i> Schedule Pending</div>
+                        <div class="tracker-stat-value" style="color: #94a3b8;" id="stat-unscheduled-count">0</div>
+                        <div class="tracker-stat-sub">No sign-off date set</div>
+                    </div>
+                </div>
+
+                <!-- Filter and Search Bar -->
+                <div class="filter-bar" style="display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 20px;">
+                    <div class="filter-group" style="flex: 1; min-width: 240px;">
+                        <input type="text" id="search-tracker-input" class="form-control" placeholder="Search by name, rank, vessel, COC, passport or ID...">
+                    </div>
+                    <div class="filter-group" style="min-width: 190px;">
+                        <select id="status-timing-filter" class="form-control">
+                            <option value="">All Timing Statuses</option>
+                            <option value="SOON">⚠️ Sign-Off Soon (&lt; 14 Days)</option>
+                            <option value="SAILING">🚢 Sailing Onboard</option>
+                            <option value="EXPIRED">🚩 Expired / Departed</option>
+                            <option value="UNSCHEDULED">⚪ Schedule Pending</option>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="min-width: 160px;">
+                        <select id="rank-tracker-filter" class="form-control">
+                            <option value="">All Ranks</option>
+                            <optgroup label="Deck Officers">
+                                <option value="Master">Master</option>
+                                <option value="Chief Officer">Chief Officer</option>
+                                <option value="2nd Officer">2nd Officer</option>
+                                <option value="3rd Officer">3rd Officer</option>
+                                <option value="Junior Officer">Junior Officer</option>
+                            </optgroup>
+                            <optgroup label="Engine Officers">
+                                <option value="Chief Engineer">Chief Engineer</option>
+                                <option value="2E">2nd Engineer</option>
+                                <option value="3E">3rd Engineer</option>
+                                <option value="4E">4th Engineer</option>
+                                <option value="ETO">Electro-Technical Officer</option>
+                            </optgroup>
+                            <optgroup label="Ratings & Galley">
+                                <option value="Bosun">Bosun</option>
+                                <option value="AB">AB</option>
+                                <option value="OS">OS</option>
+                                <option value="Fitter">Fitter</option>
+                                <option value="Oiler">Oiler</option>
+                                <option value="Cook">Cook</option>
+                                <option value="Messman">Messman</option>
+                            </optgroup>
+                        </select>
+                    </div>
+                    <div class="filter-group" style="min-width: 200px;">
+                        <select id="sort-tracker-select" class="form-control">
+                            <option value="OFFBOARD_SOONEST" selected>🚢 Off-Boarding Soonest (Leaving Ship Soon at Top)</option>
+                            <option value="OFFBOARD_LATEST">📅 Latest Off-Boarding Date (Newest Sign-Off at Top)</option>
+                            <option value="ONBOARD_LATEST">✈️ Latest Onboarding (Newest Sign-On at Top)</option>
+                            <option value="EXPIRED_FIRST">🚩 Expired / Departed Contracts First</option>
+                            <option value="NAME_ASC">👤 Name (A to Z)</option>
+                            <option value="RANK">⚓ Rank Hierarchy</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Main Tracker Table Card -->
+                <div class="card">
+                    <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                        <h2 class="card-title" style="margin: 0; font-size: 1.05rem; display: flex; align-items: center; gap: 8px;">
+                            <i class="fas fa-stopwatch" style="color: var(--accent-primary, #0ea5e9);"></i>
+                            Live Sign-Off Timetable (<span id="filtered-count">0</span> seafarers)
+                        </h2>
+                        <div style="font-size: 0.8rem; color: var(--text-muted, #94a3b8); display: flex; align-items: center; gap: 6px;">
+                            <i class="fas fa-clock"></i> Live Ticker Active (updates every sec)
+                        </div>
+                    </div>
+                    <div class="card-body" style="padding: 0;">
+                        <div class="table-container">
+                            <table id="tracker-table" class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Seafarer & ID</th>
+                                        <th>Rank & Vessel</th>
+                                        <th>Onboarding (Sign-On)</th>
+                                        <th style="color: #f59e0b;"><i class="fas fa-plane-departure"></i> Leaving Ship (Sign-Off / Expiry)</th>
+                                        <th>Live Countdown to End Timing</th>
+                                        <th>Tenure Progress</th>
+                                        <th style="text-align: right;">Actions</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="tracker-tbody">
+                                    <tr>
+                                        <td colspan="7" style="text-align: center; padding: 40px; color: var(--text-muted);">
+                                            <i class="fas fa-spinner fa-spin fa-2x" style="color: var(--accent-primary);"></i>
+                                            <div style="margin-top: 10px;">Loading live crew departure & sign-off tracker...</div>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/public/js/api/api.js"></script>
+    <script src="/public/js/components/ui.js"></script>
+    <script src="/public/js/components/sidebar.js"></script>
+    <script src="/public/js/components/birthday.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            let allCandidates = [];
+            let tickerInterval = null;
+
+            const searchInput = document.getElementById('search-tracker-input');
+            const statusFilter = document.getElementById('status-timing-filter');
+            const rankFilter = document.getElementById('rank-tracker-filter');
+            const sortSelect = document.getElementById('sort-tracker-select');
+            const tbody = document.getElementById('tracker-tbody');
+            const filteredCountEl = document.getElementById('filtered-count');
+            const exportBtn = document.getElementById('export-tracker-btn');
+            const refreshBtn = document.getElementById('refresh-tracker-btn');
+
+            const statTotalEl = document.getElementById('stat-total-candidates');
+            const statSailingEl = document.getElementById('stat-sailing-active');
+            const statLeavingSoonEl = document.getElementById('stat-leaving-soon');
+            const statExpiredEl = document.getElementById('stat-expired-count');
+            const statUnscheduledEl = document.getElementById('stat-unscheduled-count');
+
+            const escapeHtml = (str) => {
+                if (str === null || str === undefined) return '';
+                return String(str)
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/"/g, '&quot;')
+                    .replace(/'/g, '&#039;');
+            };
+
+            const formatDateTime = (dt) => {
+                if (!dt || isNaN(new Date(dt).getTime())) return '—';
+                const d = new Date(dt);
+                return d.toLocaleString('en-US', {
+                    weekday: 'short',
+                    day: '2-digit',
+                    month: 'short',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    hour12: true
+                });
+            };
+
+            const toDatetimeLocalVal = (dt) => {
+                if (!dt || isNaN(new Date(dt).getTime())) return '';
+                const d = new Date(dt);
+                const pad = (n) => String(n).padStart(2, '0');
+                return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+            };
+
+            // Calculate timing status & remaining milliseconds
+            function computeTimingInfo(candidate) {
+                const now = Date.now();
+                const onMs = candidate.onboardingDateTime ? new Date(candidate.onboardingDateTime).getTime() : null;
+                const offMs = candidate.signOffDateTime ? new Date(candidate.signOffDateTime).getTime() : null;
+
+                if (!offMs) {
+                    return {
+                        category: 'UNSCHEDULED',
+                        label: 'Not Scheduled',
+                        badgeClass: 'countdown-unscheduled',
+                        icon: 'fa-calendar-times',
+                        remainingMs: null,
+                        pct: 0,
+                        countdownText: 'No sign-off date configured'
+                    };
+                }
+
+                if (now > offMs) {
+                    const elapsed = now - offMs;
+                    const d = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+                    const h = Math.floor((elapsed % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                    const m = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+                    const s = Math.floor((elapsed % (1000 * 60)) / 1000);
+
+                    return {
+                        category: 'EXPIRED',
+                        label: 'Contract Expired / Departed',
+                        badgeClass: 'countdown-expired',
+                        icon: 'fa-exclamation-triangle',
+                        remainingMs: -elapsed,
+                        pct: 100,
+                        countdownText: `Expired (${d}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s ago)`
+                    };
+                }
+
+                const remaining = offMs - now;
+                const d = Math.floor(remaining / (1000 * 60 * 60 * 24));
+                const h = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                const m = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((remaining % (1000 * 60)) / 1000);
+
+                let pct = 0;
+                if (onMs && offMs > onMs) {
+                    const totalDur = offMs - onMs;
+                    const elapsed = now - onMs;
+                    pct = Math.min(Math.max(Math.round((elapsed / totalDur) * 100), 0), 100);
+                }
+
+                if (d < 14) {
+                    return {
+                        category: 'SOON',
+                        label: 'Leaving Ship Soon',
+                        badgeClass: 'countdown-warning',
+                        icon: 'fa-bell',
+                        remainingMs: remaining,
+                        pct,
+                        countdownText: `${d}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s Remaining`
+                    };
+                }
+
+                return {
+                    category: 'SAILING',
+                    label: 'Sailing Onboard',
+                    badgeClass: 'countdown-active',
+                    icon: 'fa-ship',
+                    remainingMs: remaining,
+                    pct,
+                    countdownText: `${d}d ${String(h).padStart(2,'0')}h ${String(m).padStart(2,'0')}m ${String(s).padStart(2,'0')}s Remaining`
+                };
+            }
+
+            async function fetchCandidates() {
+                try {
+                    const res = await window.ApiService.crewing.candidates.getAll();
+                    allCandidates = res.data || (Array.isArray(res) ? res : []);
+                    updateStats();
+                    renderTable();
+                } catch (err) {
+                    console.error('Error fetching candidates for tracker:', err);
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" style="text-align: center; padding: 30px; color: var(--red);">
+                                <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                <div style="margin-top: 8px;">Failed to load candidate tracking data: ${escapeHtml(err.message || 'Error')}</div>
+                            </td>
+                        </tr>
+                    `;
+                }
+            }
+
+            function updateStats() {
+                let sailing = 0;
+                let soon = 0;
+                let expired = 0;
+                let unscheduled = 0;
+
+                allCandidates.forEach(c => {
+                    const info = computeTimingInfo(c);
+                    if (info.category === 'SAILING') sailing++;
+                    else if (info.category === 'SOON') soon++;
+                    else if (info.category === 'EXPIRED') expired++;
+                    else unscheduled++;
+                });
+
+                statTotalEl.textContent = allCandidates.length;
+                statSailingEl.textContent = sailing;
+                statLeavingSoonEl.textContent = soon;
+                statExpiredEl.textContent = expired;
+                statUnscheduledEl.textContent = unscheduled;
+            }
+
+            function getFilteredAndSorted() {
+                const query = (searchInput.value || '').toLowerCase().trim();
+                const statusVal = statusFilter.value;
+                const rankVal = rankFilter.value;
+                const sortVal = sortSelect.value;
+                const now = Date.now();
+
+                let list = allCandidates.filter(c => {
+                    const info = computeTimingInfo(c);
+
+                    if (statusVal && info.category !== statusVal) return false;
+                    if (rankVal && (c.rank || '') !== rankVal) return false;
+
+                    if (query) {
+                        const name = (c.name || '').toLowerCase();
+                        const rank = (c.rank || '').toLowerCase();
+                        const vessel = (c.currentVessel || c.vesselType || '').toLowerCase();
+                        const coc = (c.cocNumber || '').toLowerCase();
+                        const passport = (c.passportNumber || '').toLowerCase();
+                        const seafarerId = (c.seafarerId || c.applicationId || (c.id || c._id || '').slice(-5)).toLowerCase();
+                        const email = (c.email || '').toLowerCase();
+
+                        if (!name.includes(query) &&
+                            !rank.includes(query) &&
+                            !vessel.includes(query) &&
+                            !coc.includes(query) &&
+                            !passport.includes(query) &&
+                            !seafarerId.includes(query) &&
+                            !email.includes(query)) {
+                            return false;
+                        }
+                    }
+
+                    return true;
+                });
+
+                list.sort((a, b) => {
+                    const infoA = computeTimingInfo(a);
+                    const infoB = computeTimingInfo(b);
+
+                    const offA = a.signOffDateTime ? new Date(a.signOffDateTime).getTime() : null;
+                    const offB = b.signOffDateTime ? new Date(b.signOffDateTime).getTime() : null;
+                    const onA = a.onboardingDateTime ? new Date(a.onboardingDateTime).getTime() : null;
+                    const onB = b.onboardingDateTime ? new Date(b.onboardingDateTime).getTime() : null;
+
+                    if (sortVal === 'OFFBOARD_SOONEST') {
+                        // 1: Leaving soon (<14d), 2: Sailing, 3: Future offboard, 4: Expired, 5: Unscheduled
+                        const getPrio = (info, off) => {
+                            if (info.category === 'SOON') return 1;
+                            if (info.category === 'SAILING') return 2;
+                            if (off && off > now) return 3;
+                            if (info.category === 'EXPIRED') return 4;
+                            return 5;
+                        };
+
+                        const prioA = getPrio(infoA, offA);
+                        const prioB = getPrio(infoB, offB);
+                        if (prioA !== prioB) return prioA - prioB;
+
+                        if (offA && offB) return offA - offB;
+                        if (offA) return -1;
+                        if (offB) return 1;
+                        return (a.name || '').localeCompare(b.name || '');
+                    }
+
+                    if (sortVal === 'OFFBOARD_LATEST') {
+                        if (offA && offB) return offB - offA;
+                        if (offA) return -1;
+                        if (offB) return 1;
+                        return (a.name || '').localeCompare(b.name || '');
+                    }
+
+                    if (sortVal === 'ONBOARD_LATEST') {
+                        if (onA && onB) return onB - onA;
+                        if (onA) return -1;
+                        if (onB) return 1;
+                        return (a.name || '').localeCompare(b.name || '');
+                    }
+
+                    if (sortVal === 'EXPIRED_FIRST') {
+                        if (infoA.category === 'EXPIRED' && infoB.category !== 'EXPIRED') return -1;
+                        if (infoB.category === 'EXPIRED' && infoA.category !== 'EXPIRED') return 1;
+                        return (offB || 0) - (offA || 0);
+                    }
+
+                    if (sortVal === 'NAME_ASC') {
+                        return (a.name || '').localeCompare(b.name || '');
+                    }
+                    if (sortVal === 'RANK') {
+                        return (a.rank || '').localeCompare(b.rank || '');
+                    }
+                    return 0;
+                });
+
+                return list;
+            }
+
+            function renderTable() {
+                const list = getFilteredAndSorted();
+                filteredCountEl.textContent = list.length;
+
+                if (list.length === 0) {
+                    tbody.innerHTML = `
+                        <tr>
+                            <td colspan="7" style="text-align:center; padding: 40px; color: var(--text-muted);">
+                                <i class="fas fa-search fa-2x" style="opacity: 0.4; margin-bottom: 10px; display: block;"></i>
+                                No seafarers match the selected timing filters.
+                            </td>
+                        </tr>
+                    `;
+                    return;
+                }
+
+                tbody.innerHTML = list.map(c => {
+                    const cId = c.id || c._id;
+                    const seafarerIdDisplay = c.seafarerId || c.applicationId || (cId ? String(cId).slice(-5).toUpperCase() : '');
+                    const onDateStr = c.onboardingDateTime ? formatDateTime(c.onboardingDateTime) : 'Not Scheduled';
+                    const offDateStr = c.signOffDateTime ? formatDateTime(c.signOffDateTime) : 'Not Scheduled';
+                    const info = computeTimingInfo(c);
+
+                    const progressColor = info.category === 'EXPIRED' ? '#ef4444' : (info.category === 'SOON' ? '#eab308' : '#10b981');
+
+                    return `
+                        <tr id="row-${cId}" data-id="${cId}">
+                            <td>
+                                <div style="display: flex; align-items: center; gap: 10px;">
+                                    <div style="width: 38px; height: 38px; border-radius: 50%; background: linear-gradient(135deg, rgba(14,165,233,0.2), rgba(20,184,166,0.2)); color: var(--accent-primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.95rem; border: 1px solid rgba(14,165,233,0.3); flex-shrink: 0;">
+                                        ${(c.name || 'S').charAt(0).toUpperCase()}
+                                    </div>
+                                    <div>
+                                        <div style="font-weight: 700; color: var(--text-primary); font-size: 0.92rem;">
+                                            <a href="javascript:void(0)" onclick="viewSeafarerProfile('${cId}')" style="color: inherit; text-decoration: none;">
+                                                ${escapeHtml(c.name)}
+                                            </a>
+                                        </div>
+                                        <div style="font-size: 0.75rem; color: var(--text-muted); margin-top: 2px;">
+                                            ID: <strong style="color: var(--accent-primary);">${escapeHtml(seafarerIdDisplay || '—')}</strong>
+                                            ${c.cocNumber ? ` • COC: ${escapeHtml(c.cocNumber)}` : ''}
+                                        </div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td>
+                                <span class="badge badge-blue" style="font-size: 0.78rem; padding: 4px 10px;">${escapeHtml(c.rank)}</span>
+                                <div style="font-size: 0.78rem; color: var(--text-secondary); margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                                    <i class="fas fa-ship" style="color: var(--accent-teal, #14b8a6);"></i>
+                                    <strong>${escapeHtml(c.currentVessel || c.vesselType || 'Not Assigned')}</strong>
+                                </div>
+                            </td>
+                            <td>
+                                <div class="date-highlight" style="color: var(--text-secondary);">
+                                    <i class="fas fa-plane-arrival" style="color: #0ea5e9;"></i>
+                                    <span>${onDateStr}</span>
+                                </div>
+                                <div class="date-sub">${c.onboardingDateTime ? 'Sign-On Time' : 'Pending date configuration'}</div>
+                            </td>
+                            <td>
+                                <div class="date-highlight" style="color: ${c.signOffDateTime ? '#f59e0b' : 'var(--text-muted)'};">
+                                    <i class="fas fa-plane-departure" style="color: #f59e0b;"></i>
+                                    <span>${offDateStr}</span>
+                                </div>
+                                <div class="date-sub">${c.signOffDateTime ? 'Sign-Off End Timing' : 'Pending date configuration'}</div>
+                            </td>
+                            <td>
+                                <div class="countdown-badge ${info.badgeClass}" id="cnt-box-${cId}">
+                                    <i class="fas ${info.icon}"></i>
+                                    <span id="cnt-txt-${cId}">${info.countdownText}</span>
+                                </div>
+                            </td>
+                            <td style="min-width: 140px;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.75rem; font-weight: 700; color: ${progressColor};">
+                                    <span>${info.category === 'UNSCHEDULED' ? '—' : info.label}</span>
+                                    <span>${info.category === 'UNSCHEDULED' ? '' : info.pct + '%'}</span>
+                                </div>
+                                <div class="tenure-bar-wrap">
+                                    <div class="tenure-bar-fill" id="bar-${cId}" style="width: ${info.pct}%; background: ${progressColor};"></div>
+                                </div>
+                            </td>
+                            <td style="text-align: right; white-space: nowrap;">
+                                <div style="display: inline-flex; gap: 6px;">
+                                    <button class="btn btn-secondary btn-sm" onclick="openLiveTrackerModal('${cId}')" title="Open Live Real-Time Stopwatch Tracker" style="color: #0ea5e9;">
+                                        <i class="fas fa-stopwatch"></i>
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" onclick="openEditScheduleModal('${cId}')" title="Edit Onboarding & Sign-Off Schedule">
+                                        <i class="fas fa-calendar-alt"></i>
+                                    </button>
+                                    <button class="btn btn-secondary btn-sm" onclick="viewSeafarerProfile('${cId}')" title="View Full Seafarer Details">
+                                        <i class="fas fa-user"></i>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `;
+                }).join('');
+            }
+
+            // High performance 1-second live ticker
+            function startLiveTicker() {
+                if (tickerInterval) clearInterval(tickerInterval);
+                tickerInterval = setInterval(() => {
+                    const list = getFilteredAndSorted();
+                    list.forEach(c => {
+                        const cId = c.id || c._id;
+                        const info = computeTimingInfo(c);
+                        const txtEl = document.getElementById(`cnt-txt-${cId}`);
+                        const boxEl = document.getElementById(`cnt-box-${cId}`);
+                        const barEl = document.getElementById(`bar-${cId}`);
+
+                        if (txtEl) txtEl.textContent = info.countdownText;
+                        if (boxEl && boxEl.className !== `countdown-badge ${info.badgeClass}`) {
+                            boxEl.className = `countdown-badge ${info.badgeClass}`;
+                        }
+                        if (barEl) {
+                            barEl.style.width = `${info.pct}%`;
+                            barEl.style.background = info.category === 'EXPIRED' ? '#ef4444' : (info.category === 'SOON' ? '#eab308' : '#10b981');
+                        }
+                    });
+                }, 1000);
+            }
+
+            // Filter Event Listeners
+            searchInput.addEventListener('input', renderTable);
+            statusFilter.addEventListener('change', renderTable);
+            rankFilter.addEventListener('change', renderTable);
+            sortSelect.addEventListener('change', renderTable);
+            refreshBtn.addEventListener('click', () => {
+                fetchCandidates();
+                if (window.UI?.showToast) window.UI.showToast('Schedule data refreshed', 'success');
+            });
+
+            // ── Live Stopwatch Countdown Modal ──────────────────────────────
+            let _modalTrackerInterval = null;
+            window.openLiveTrackerModal = (id) => {
+                const candidate = allCandidates.find(c => c.id === id || c._id === id);
+                if (!candidate) return;
+
+                if (_modalTrackerInterval) {
+                    clearInterval(_modalTrackerInterval);
+                    _modalTrackerInterval = null;
+                }
+
+                const cId = candidate.id || candidate._id;
+                const seafarerIdDisplay = candidate.seafarerId || candidate.applicationId || (cId ? String(cId).slice(-5).toUpperCase() : '');
+                const onDate = candidate.onboardingDateTime ? new Date(candidate.onboardingDateTime) : null;
+                const offDate = candidate.signOffDateTime ? new Date(candidate.signOffDateTime) : null;
+
+                const bodyHtml = `
+                    <div style="padding: 4px 0;">
+                        <!-- Seafarer Info Banner -->
+                        <div style="background: linear-gradient(135deg, rgba(14,165,233,0.12), rgba(20,184,166,0.12)); border: 1px solid rgba(14,165,233,0.3); border-radius: 12px; padding: 16px; margin-bottom: 18px;">
+                            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px;">
+                                <div>
+                                    <h3 style="margin:0; font-size:1.3rem; color:var(--text-primary); font-weight:800;">${escapeHtml(candidate.name)}</h3>
+                                    <div style="font-size:0.82rem; color:var(--accent-primary); font-weight:700; margin-top:4px;">
+                                        ID: ${escapeHtml(seafarerIdDisplay || '—')} ${candidate.cocNumber ? ` • COC: ${escapeHtml(candidate.cocNumber)}` : ''}
+                                    </div>
+                                    <div style="font-size:0.85rem; color:var(--text-secondary); margin-top:4px;">
+                                        <i class="fas fa-ship" style="color:var(--accent-teal, #14b8a6);"></i> Vessel: <strong>${escapeHtml(candidate.currentVessel || candidate.vesselType || 'Not Assigned')}</strong>
+                                    </div>
+                                </div>
+                                <span class="badge badge-blue" style="font-size:0.9rem; padding: 6px 14px;">${escapeHtml(candidate.rank)}</span>
+                            </div>
+                        </div>
+
+                        <!-- Schedule Dates Cards -->
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 18px;">
+                            <div style="background: var(--card-bg-soft, rgba(255,255,255,0.04)); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 10px; padding: 14px;">
+                                <div style="font-size: 0.75rem; color: var(--accent-primary); font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                    <i class="fas fa-plane-arrival"></i> Crew Onboarding (Sign-On)
+                                </div>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">
+                                    ${formatDateTime(candidate.onboardingDateTime)}
+                                </div>
+                            </div>
+
+                            <div style="background: var(--card-bg-soft, rgba(255,255,255,0.04)); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 10px; padding: 14px;">
+                                <div style="font-size: 0.75rem; color: #f59e0b; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; display: flex; align-items: center; gap: 6px; margin-bottom: 6px;">
+                                    <i class="fas fa-plane-departure"></i> Leaving Ship (Sign-Off / Expiry)
+                                </div>
+                                <div style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary);">
+                                    ${formatDateTime(candidate.signOffDateTime)}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Live Real-Time Countdown Box -->
+                        <div style="background: var(--card-bg, #111d2e); border: 1px solid var(--border-color, rgba(255,255,255,0.12)); border-radius: 12px; padding: 22px; text-align: center; box-shadow: 0 8px 24px rgba(0,0,0,0.15);">
+                            <div id="m-tracker-badge" style="margin-bottom: 16px;"></div>
+
+                            <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+                                <div class="clock-digit-box">
+                                    <div id="m-cnt-days" class="clock-digit-val" style="color: #0ea5e9;">--</div>
+                                    <div class="clock-digit-lbl">Days</div>
+                                </div>
+                                <div class="clock-digit-box">
+                                    <div id="m-cnt-hours" class="clock-digit-val" style="color: #0ea5e9;">--</div>
+                                    <div class="clock-digit-lbl">Hours</div>
+                                </div>
+                                <div class="clock-digit-box">
+                                    <div id="m-cnt-mins" class="clock-digit-val" style="color: #0ea5e9;">--</div>
+                                    <div class="clock-digit-lbl">Mins</div>
+                                </div>
+                                <div class="clock-digit-box">
+                                    <div id="m-cnt-secs" class="clock-digit-val" style="color: #0ea5e9;">--</div>
+                                    <div class="clock-digit-lbl">Secs</div>
+                                </div>
+                            </div>
+
+                            <div id="m-tracker-progress-wrap" style="margin-top: 18px; display: none;">
+                                <div style="display: flex; justify-content: space-between; font-size: 0.78rem; font-weight: 700; margin-bottom: 6px;">
+                                    <span style="color: var(--text-muted);">Contract Tenure Elapsed</span>
+                                    <span id="m-tracker-progress-txt" style="color: var(--accent-primary);">0%</span>
+                                </div>
+                                <div style="width: 100%; height: 8px; background: rgba(100,116,139,0.15); border-radius: 999px; overflow: hidden;">
+                                    <div id="m-tracker-progress-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #0ea5e9, #10b981); border-radius: 999px; transition: width 0.3s ease;"></div>
+                                </div>
+                            </div>
+
+                            <div id="m-tracker-msg" style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 14px;"></div>
+                        </div>
+                    </div>
+                `;
+
+                const footerHtml = `
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()"><i class="fas fa-times"></i> Close</button>
+                    <button class="btn btn-primary" onclick="this.closest('.modal-overlay').close(); openEditScheduleModal('${cId}')"><i class="fas fa-calendar-alt"></i> Edit Schedule Dates</button>
+                `;
+
+                if (window.UI?.createModal) {
+                    const modal = window.UI.createModal({
+                        title: `⏱️ Live Crew Departure & Expiry Tracker`,
+                        bodyHtml,
+                        footerHtml,
+                        onClose: () => {
+                            if (_modalTrackerInterval) {
+                                clearInterval(_modalTrackerInterval);
+                                _modalTrackerInterval = null;
+                            }
+                        }
+                    });
+
+                    const updateModalClock = () => {
+                        const now = Date.now();
+                        const badgeEl = modal.querySelector('#m-tracker-badge');
+                        const dEl = modal.querySelector('#m-cnt-days');
+                        const hEl = modal.querySelector('#m-cnt-hours');
+                        const mEl = modal.querySelector('#m-cnt-mins');
+                        const sEl = modal.querySelector('#m-cnt-secs');
+                        const msgEl = modal.querySelector('#m-tracker-msg');
+                        const progWrap = modal.querySelector('#m-tracker-progress-wrap');
+                        const progBar = modal.querySelector('#m-tracker-progress-bar');
+                        const progText = modal.querySelector('#m-tracker-progress-txt');
+
+                        if (!dEl || !hEl || !mEl || !sEl) return;
+
+                        const onMs = onDate ? onDate.getTime() : null;
+                        const offMs = offDate ? offDate.getTime() : null;
+
+                        if (!offMs && !onMs) {
+                            if (badgeEl) badgeEl.innerHTML = `<span class="badge" style="background:rgba(100,116,139,0.15); color:var(--text-muted); font-size:0.85rem; padding:6px 14px;"><i class="fas fa-info-circle"></i> No Onboarding or Sign-Off Dates Configured</span>`;
+                            if (msgEl) msgEl.innerHTML = `Click <strong>Edit Schedule Dates</strong> to set the sign-on and sign-off timings for this seafarer.`;
+                            dEl.textContent = '--'; hEl.textContent = '--'; mEl.textContent = '--'; sEl.textContent = '--';
+                            return;
+                        }
+
+                        if (offMs && now > offMs) {
+                            const elapsed = now - offMs;
+                            const d = Math.floor(elapsed / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((elapsed % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((elapsed % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((elapsed % (1000 * 60)) / 1000);
+
+                            if (badgeEl) badgeEl.innerHTML = `<span class="badge" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3); font-size:0.85rem; padding:6px 14px;"><i class="fas fa-exclamation-triangle"></i> CONTRACT EXPIRED / DEPARTED SHIP</span>`;
+                            [dEl, hEl, mEl, sEl].forEach(el => el.style.color = '#ef4444');
+                            dEl.textContent = String(d).padStart(2, '0');
+                            hEl.textContent = String(h).padStart(2, '0');
+                            mEl.textContent = String(m).padStart(2, '0');
+                            sEl.textContent = String(s).padStart(2, '0');
+                            if (msgEl) msgEl.innerHTML = `Contract reached end of tenure on <strong>${formatDateTime(offDate)}</strong> (${d}d ${h}h ${m}m ago).`;
+
+                            if (progWrap) {
+                                progWrap.style.display = 'block';
+                                progBar.style.width = '100%';
+                                progBar.style.background = '#ef4444';
+                                progText.textContent = '100% (Completed)';
+                                progText.style.color = '#ef4444';
+                            }
+                        } else if (offMs && (!onMs || now >= onMs)) {
+                            const remaining = offMs - now;
+                            const d = Math.floor(remaining / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((remaining % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((remaining % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((remaining % (1000 * 60)) / 1000);
+
+                            const isWarning = d < 14;
+                            const color = isWarning ? '#eab308' : '#10b981';
+                            const badgeBg = isWarning ? 'rgba(234,179,8,0.15)' : 'rgba(16,185,129,0.15)';
+                            const badgeBorder = isWarning ? 'rgba(234,179,8,0.3)' : 'rgba(16,185,129,0.3)';
+
+                            if (badgeEl) badgeEl.innerHTML = `<span class="badge" style="background:${badgeBg}; color:${color}; border:1px solid ${badgeBorder}; font-size:0.85rem; padding:6px 14px;"><i class="fas fa-ship"></i> ${isWarning ? 'LEAVING SHIP SOON (< 14 DAYS)' : 'ONBOARD & ACTIVELY SAILING'}</span>`;
+                            [dEl, hEl, mEl, sEl].forEach(el => el.style.color = color);
+                            dEl.textContent = String(d).padStart(2, '0');
+                            hEl.textContent = String(h).padStart(2, '0');
+                            mEl.textContent = String(m).padStart(2, '0');
+                            sEl.textContent = String(s).padStart(2, '0');
+                            if (msgEl) msgEl.innerHTML = `Crew member is scheduled to leave the ship on <strong>${formatDateTime(offDate)}</strong>.`;
+
+                            if (onMs && progWrap) {
+                                progWrap.style.display = 'block';
+                                const totalDur = offMs - onMs;
+                                const elapsed = now - onMs;
+                                const pct = Math.min(Math.max(Math.round((elapsed / totalDur) * 100), 0), 100);
+                                progBar.style.width = `${pct}%`;
+                                progBar.style.background = isWarning ? 'linear-gradient(90deg, #eab308, #ef4444)' : 'linear-gradient(90deg, #0ea5e9, #10b981)';
+                                progText.textContent = `${pct}% Elapsed`;
+                                progText.style.color = color;
+                            }
+                        } else if (onMs && now < onMs) {
+                            const until = onMs - now;
+                            const d = Math.floor(until / (1000 * 60 * 60 * 24));
+                            const h = Math.floor((until % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+                            const m = Math.floor((until % (1000 * 60 * 60)) / (1000 * 60));
+                            const s = Math.floor((until % (1000 * 60)) / 1000);
+
+                            if (badgeEl) badgeEl.innerHTML = `<span class="badge" style="background:rgba(14,165,233,0.15); color:#0ea5e9; border:1px solid rgba(14,165,233,0.3); font-size:0.85rem; padding:6px 14px;"><i class="fas fa-plane-arrival"></i> UPCOMING ONBOARDING</span>`;
+                            [dEl, hEl, mEl, sEl].forEach(el => el.style.color = '#0ea5e9');
+                            dEl.textContent = String(d).padStart(2, '0');
+                            hEl.textContent = String(h).padStart(2, '0');
+                            mEl.textContent = String(m).padStart(2, '0');
+                            sEl.textContent = String(s).padStart(2, '0');
+                            if (msgEl) msgEl.innerHTML = `Onboarding commences on <strong>${formatDateTime(onDate)}</strong>.`;
+                        }
+                    };
+
+                    updateModalClock();
+                    _modalTrackerInterval = setInterval(updateModalClock, 1000);
+                }
+            };
+
+            // ── Quick Edit Schedule Modal ──────────────────────────────────
+            window.openEditScheduleModal = (id) => {
+                const candidate = allCandidates.find(c => c.id === id || c._id === id);
+                if (!candidate) return;
+
+                const cId = candidate.id || candidate._id;
+                const onVal = toDatetimeLocalVal(candidate.onboardingDateTime);
+                const offVal = toDatetimeLocalVal(candidate.signOffDateTime);
+
+                const bodyHtml = `
+                    <form id="edit-schedule-form" style="display:flex; flex-direction:column; gap:16px;">
+                        <div style="background:rgba(14,165,233,0.08); border:1px solid rgba(14,165,233,0.2); border-radius:8px; padding:12px; font-size:0.88rem;">
+                            <strong>${escapeHtml(candidate.name)}</strong> (${escapeHtml(candidate.rank)})
+                            <div style="font-size:0.78rem; color:var(--text-muted); margin-top:2px;">Update crew departure and sign-off timings for live tracking.</div>
+                        </div>
+
+                        <div>
+                            <label class="form-label">Current Assigned Vessel</label>
+                            <input type="text" id="sch-vessel" class="form-control" value="${escapeHtml(candidate.currentVessel || candidate.vesselType || '')}" placeholder="e.g. MV Oceanic Pioneer" />
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px;">
+                            <div>
+                                <label class="form-label">
+                                    <i class="fas fa-plane-arrival" style="color: #0ea5e9;"></i> Crew Onboarding (Sign-On) Date & Time
+                                </label>
+                                <input type="datetime-local" id="sch-onboard-dt" class="form-control" value="${onVal}" />
+                                <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">When seafarer signs on and joins the vessel</small>
+                            </div>
+                            <div>
+                                <label class="form-label" style="color: #f59e0b;">
+                                    <i class="fas fa-plane-departure"></i> Leaving Ship (Sign-Off / Expiry) End Date & Time
+                                </label>
+                                <input type="datetime-local" id="sch-signoff-dt" class="form-control" value="${offVal}" />
+                                <small style="font-size: 0.72rem; color: var(--text-muted); display: block; margin-top: 4px;">When seafarer leaves the ship / contract ends</small>
+                            </div>
+                        </div>
+                    </form>
+                `;
+
+                const footerHtml = `
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Cancel</button>
+                    <button class="btn btn-primary" id="save-schedule-btn"><i class="fas fa-save"></i> Save Schedule</button>
+                `;
+
+                if (window.UI?.createModal) {
+                    const modal = window.UI.createModal({
+                        title: `🗓️ Edit Schedule — ${candidate.name}`,
+                        bodyHtml,
+                        footerHtml
+                    });
+
+                    modal.querySelector('#save-schedule-btn').addEventListener('click', async (e) => {
+                        const saveBtn = e.currentTarget;
+                        const vessel = modal.querySelector('#sch-vessel').value.trim();
+                        const onDt = modal.querySelector('#sch-onboard-dt').value;
+                        const offDt = modal.querySelector('#sch-signoff-dt').value;
+
+                        saveBtn.disabled = true;
+                        saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...';
+
+                        try {
+                            const updatePayload = {
+                                currentVessel: vessel || null,
+                                onboardingDateTime: onDt ? new Date(onDt).toISOString() : null,
+                                signOffDateTime: offDt ? new Date(offDt).toISOString() : null
+                            };
+
+                            const res = await window.ApiService.crewing.candidates.update(cId, updatePayload);
+                            const updated = res.data;
+
+                            const idx = allCandidates.findIndex(c => (c.id || c._id) === cId);
+                            if (idx !== -1) {
+                                allCandidates[idx] = { ...allCandidates[idx], ...updated };
+                            }
+
+                            updateStats();
+                            renderTable();
+
+                            if (window.UI?.showToast) {
+                                window.UI.showToast(`Schedule updated for ${candidate.name}`, 'success');
+                            }
+                            modal.close();
+                        } catch (err) {
+                            console.error('Failed to save schedule:', err);
+                            if (window.UI?.showToast) {
+                                window.UI.showToast(err.message || 'Failed to save schedule', 'error');
+                            }
+                        } finally {
+                            saveBtn.disabled = false;
+                            saveBtn.innerHTML = '<i class="fas fa-save"></i> Save Schedule';
+                        }
+                    });
+                }
+            };
+
+            // ── View Seafarer Profile ──────────────────────────────────────
+            window.viewSeafarerProfile = (id) => {
+                const candidate = allCandidates.find(c => c.id === id || c._id === id);
+                if (!candidate) return;
+
+                const cId = candidate.id || candidate._id;
+                const seafarerIdDisplay = candidate.seafarerId || candidate.applicationId || (cId ? String(cId).slice(-5).toUpperCase() : '');
+
+                const bodyHtml = `
+                    <div style="padding: 6px 0;">
+                        <div style="background: linear-gradient(135deg, rgba(14,165,233,0.1), rgba(20,184,166,0.1)); border: 1px solid rgba(14,165,233,0.25); border-radius: 12px; padding: 16px; margin-bottom: 18px;">
+                            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+                                <div>
+                                    <h3 style="margin:0; font-size:1.25rem; color:var(--text-primary); font-weight:800;">${escapeHtml(candidate.name)}</h3>
+                                    <div style="font-size:0.82rem; color:var(--accent-primary); font-weight:700; margin-top:3px;">
+                                        ID: ${escapeHtml(seafarerIdDisplay || '—')} • Rank: ${escapeHtml(candidate.rank)}
+                                    </div>
+                                </div>
+                                <span class="badge badge-green" style="font-size: 0.85rem; padding: 5px 12px;">${escapeHtml(candidate.status || 'AVAILABLE')}</span>
+                            </div>
+                        </div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 14px; font-size: 0.88rem; margin-bottom: 18px;">
+                            <div style="background: var(--card-bg-soft, rgba(255,255,255,0.04)); border: 1px solid var(--border-color, rgba(255,255,255,0.08)); border-radius: 8px; padding: 12px 14px;">
+                                <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Contact & Identity</div>
+                                <div style="margin-top: 6px;"><strong>Phone:</strong> ${escapeHtml(candidate.phone || candidate.contactNumber || '—')}</div>
+                                <div style="margin-top: 4px;"><strong>Email:</strong> ${escapeHtml(candidate.email || '—')}</div>
+                                <div style="margin-top: 4px;"><strong>COC Number:</strong> ${escapeHtml(candidate.cocNumber || '—')}</div>
+                                <div style="margin-top: 4px;"><strong>Passport:</strong> ${escapeHtml(candidate.passportNumber || '—')}</div>
+                            </div>
+
+                            <div style="background: var(--card-bg-soft, rgba(255,255,255,0.04)); border: 1px solid var(--border-color, rgba(255,255,255,0.08)); border-radius: 8px; padding: 12px 14px;">
+                                <div style="font-size: 0.72rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase;">Ship & Schedule</div>
+                                <div style="margin-top: 6px;"><strong>Assigned Vessel:</strong> ${escapeHtml(candidate.currentVessel || candidate.vesselType || 'Not Assigned')}</div>
+                                <div style="margin-top: 4px;"><strong>Onboarding (Sign-On):</strong> ${formatDateTime(candidate.onboardingDateTime)}</div>
+                                <div style="margin-top: 4px; color: #f59e0b;"><strong>Sign-Off (Expiry):</strong> ${formatDateTime(candidate.signOffDateTime)}</div>
+                                <div style="margin-top: 4px;"><strong>Experience:</strong> ${candidate.experienceYears || 0} Years</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                const footerHtml = `
+                    <button class="btn btn-secondary" onclick="this.closest('.modal-overlay').close()">Close</button>
+                    <button class="btn btn-primary" onclick="this.closest('.modal-overlay').close(); openEditScheduleModal('${cId}')"><i class="fas fa-edit"></i> Edit Schedule</button>
+                `;
+
+                if (window.UI?.createModal) {
+                    window.UI.createModal({
+                        title: `Seafarer Profile — ${candidate.name}`,
+                        bodyHtml,
+                        footerHtml
+                    });
+                }
+            };
+
+            // ── Export to Excel ────────────────────────────────────────────
+            if (exportBtn) {
+                exportBtn.addEventListener('click', () => {
+                    if (!window.XLSX) {
+                        alert('Excel exporter library is loading, please try again.');
+                        return;
+                    }
+
+                    const list = getFilteredAndSorted();
+                    if (list.length === 0) {
+                        if (window.UI?.showToast) window.UI.showToast('No seafarers to export', 'warning');
+                        return;
+                    }
+
+                    const rows = list.map(c => {
+                        const cId = c.id || c._id;
+                        const seafarerIdDisplay = c.seafarerId || c.applicationId || (cId ? String(cId).slice(-5).toUpperCase() : '');
+                        const info = computeTimingInfo(c);
+                        return {
+                            'Seafarer ID': seafarerIdDisplay || '—',
+                            'Name': c.name || '—',
+                            'Rank': c.rank || '—',
+                            'Assigned Vessel': c.currentVessel || c.vesselType || '—',
+                            'Phone / Contact': c.phone || c.contactNumber || '—',
+                            'Email': c.email || '—',
+                            'COC Number': c.cocNumber || '—',
+                            'Passport Number': c.passportNumber || '—',
+                            'Crew Onboarding Date & Time': c.onboardingDateTime ? formatDateTime(c.onboardingDateTime) : 'Not Scheduled',
+                            'Leaving Ship / Expiry End Timing': c.signOffDateTime ? formatDateTime(c.signOffDateTime) : 'Not Scheduled',
+                            'Timing Status': info.label,
+                            'Live Countdown Remaining': info.countdownText,
+                            'Contract Tenure %': info.pct + '%'
+                        };
+                    });
+
+                    const ws = XLSX.utils.json_to_sheet(rows);
+                    const colWidths = Object.keys(rows[0] || {}).map(key => {
+                        const maxLen = Math.max(key.length, ...rows.map(r => String(r[key] || '').length));
+                        return { wch: Math.min(Math.max(maxLen + 3, 12), 40) };
+                    });
+                    ws['!cols'] = colWidths;
+
+                    const wb = XLSX.utils.book_new();
+                    XLSX.utils.book_append_sheet(wb, ws, 'Crew Expiry Schedule');
+                    const today = new Date().toISOString().split('T')[0];
+                    XLSX.writeFile(wb, `Crew_SignOff_Expiry_Tracker_${today}.xlsx`);
+
+                    if (window.UI?.showToast) {
+                        window.UI.showToast(`Exported ${rows.length} records to Excel successfully`, 'success');
+                    }
+                });
+            }
+
+            fetchCandidates();
+            startLiveTicker();
+        });
+    </script>
+    <script src="/public/js/components/ocean-bg.js"></script>
+    <script src="/public/js/components/cursor.js"></script>
+</body>
+
+</html>

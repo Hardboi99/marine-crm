@@ -113,6 +113,7 @@
         document.addEventListener('DOMContentLoaded', () => {
             let requirementsData = [];
             let companiesData = [];
+            let vesselsData = [];
             let _reqModal = null;
             let _matchModal = null;
 
@@ -123,12 +124,14 @@
 
             async function fetchData() {
                 try {
-                    const [reqRes, compRes] = await Promise.all([
+                    const [reqRes, compRes, vesselRes] = await Promise.all([
                         window.ApiService.crewing.requirements.getAll(),
-                        window.ApiService.companies.getAll()
+                        window.ApiService.companies.getAll(),
+                        window.ApiService.crewing.vessels.getAll()
                     ]);
                     requirementsData = reqRes.data || [];
                     companiesData = compRes.data || [];
+                    vesselsData = vesselRes.data || [];
                     renderTable();
                 } catch (error) {
                     console.error('Error:', error);
@@ -159,7 +162,7 @@
                         const companyName = r.companyId ? r.companyId.name : 'Unknown';
 
                         tr.innerHTML = `
-                            <td><strong>${companyName}</strong></td>
+                            <td><strong>${escapeHtml(r.vesselId?.name || companyName)}</strong></td>
                             <td>${r.vesselType}</td>
                             <td><span class="badge badge-blue">${r.rank}</span></td>
                             <td>${r.experienceMonthsRequired} months</td>
@@ -186,7 +189,7 @@
             });
 
             function openRequirementModal() {
-                const companyOptions = companiesData.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+                const companyOptions = companiesData.map(c => `<option value="${c.id}">${escapeHtml(c.name)}</option>`).join('');
                 const rankOptions = [
                     'Master', 'Chief Officer', '2nd Officer', '3rd Officer', 'Junior Officer', 'Bosun', 'AB', 'OS',
                     'Chief Engineer', '2E', '3E', '4E', 'ETO', 'Fitter', 'Oiler', 'Wiper',
@@ -196,11 +199,15 @@
                 const bodyHtml = `
                     <form id="requirement-form">
                         <div class="form-group">
-                            <label class="form-label">Vessel *</label>
-                            <select id="req-company" class="form-control" required>
+                            <label class="form-label">Vessel Owner (Optional)</label>
+                            <div style="display:flex; gap:8px; align-items:center;">
+                            <select id="req-company" class="form-control" style="flex:1;">
                                 <option value="">Select Vessel</option>
                                 ${companyOptions}
                             </select>
+                            </div>
+                            <input id="req-vessel-name" class="form-control" list="req-vessel-options" placeholder="Select or type vessel name" autocomplete="off" required style="margin-top:8px;">
+                            <datalist id="req-vessel-options"></datalist>
                         </div>
                         <div class="form-group">
                             <label class="form-label">Vessel Type *</label>
@@ -255,24 +262,34 @@
                     });
 
                     _reqModal.querySelector('#save-req-btn').addEventListener('click', saveRequirement);
+                    const companySelect = _reqModal.querySelector('#req-company');
+                    companySelect.addEventListener('change', () => populateVessels(companySelect.value, _reqModal.querySelector('#req-vessel-options')));
                 }
+            }
+
+            function populateVessels(companyId, options) {
+                const vessels = vesselsData.filter(v => !companyId || String(v.companyId) === String(companyId) || String(v.companyId?.id || v.companyId?._id) === String(companyId));
+                options.innerHTML = vessels.map(v => `<option value="${escapeHtml(v.name)}"></option>`).join('');
             }
 
             async function saveRequirement() {
                 const companyId = document.getElementById('req-company').value;
+                const vesselName = document.getElementById('req-vessel-name').value.trim();
+                const selectedVessel = vesselsData.find(v => String(v.name).toLowerCase() === vesselName.toLowerCase() && (!companyId || String(v.companyId) === String(companyId) || String(v.companyId?.id || v.companyId?._id) === String(companyId)));
+                const vesselId = selectedVessel ? (selectedVessel.id || selectedVessel._id) : null;
                 const vesselType = document.getElementById('req-vessel').value;
                 const rank = document.getElementById('req-rank').value;
                 const exp = document.getElementById('req-exp').value;
                 const joiningDate = document.getElementById('req-joining').value;
                 const salaryOffered = document.getElementById('req-salary').value;
 
-                if (!companyId || !vesselType || !rank || !joiningDate) {
+                if (!vesselName || !vesselType || !rank || !joiningDate) {
                     if (window.UI?.showToast) window.UI.showToast('Please fill out all required fields', 'error');
                     return;
                 }
 
                 const payload = {
-                    companyId, vesselType, rank,
+                    companyId: companyId || null, vesselId, vesselName, vesselType, rank,
                     experienceMonthsRequired: parseInt(exp),
                     joiningDate,
                     salaryOffered: salaryOffered ? parseFloat(salaryOffered) : null
@@ -285,7 +302,7 @@
                     fetchData();
                 } catch (error) {
                     console.error('Error saving vacancy:', error);
-                    if (window.UI?.showToast) window.UI.showToast('Error creating requirement', 'error');
+                    if (window.UI?.showToast) window.UI.showToast(error?.message || 'Error creating requirement', 'error');
                 }
             }
 
@@ -371,12 +388,15 @@
                         matchingRowsHtml += `
                             <tr>
                                 <td><strong>${escapeHtml(c.name)}</strong></td>
-                                <td>${escapeHtml(c.rank)}</td>
+                                <td><span class="badge badge-blue">${escapeHtml(c.rank)}</span></td>
+                                <td>
+                                    ${c.vesselType ? `<span class="badge" style="background:rgba(0,188,188,0.15); color:var(--accent-primary); font-weight:600;"><i class="fas fa-ship" style="font-size:0.7rem; margin-right:3px;"></i>${escapeHtml(c.vesselType)}</span>` : '<span style="color:var(--text-muted);">Any</span>'}
+                                    ${c.currentVessel ? `<div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">${escapeHtml(c.currentVessel)}</div>` : ''}
+                                </td>
                                 <td>${escapeHtml(c.nationality)}</td>
                                 <td>${c.experienceYears !== undefined && c.experienceYears !== null ? c.experienceYears + ' yrs' : 'N/A'}</td>
                                 <td><strong style="color: var(--accent-primary);">${formatSalarySafe(c.expectedSalary, c.currency)}</strong></td>
                                 <td>${formatDateSafe(c.availableFrom)}</td>
-                                <td>${escapeHtml(c.currentVessel)}</td>
                                 <td>${actionHtml}</td>
                             </tr>
                         `;
@@ -390,11 +410,11 @@
                                 <tr>
                                     <th>Crew Name</th>
                                     <th>Rank</th>
+                                    <th>Vessel Type</th>
                                     <th>Nationality</th>
                                     <th>Experience</th>
                                     <th>Expected Salary</th>
                                     <th>Available From</th>
-                                    <th>Current Vessel</th>
                                     <th>Action</th>
                                 </tr>
                             </thead>
@@ -402,6 +422,15 @@
                                 ${matchingRowsHtml}
                             </tbody>
                         </table>
+                    </div>
+                `;
+
+                const footerHtml = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; width:100%; gap:10px;">
+                        <a href="/pages/proposals.html" class="btn btn-outline" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+                            <i class="fas fa-paper-plane"></i> View All Proposals
+                        </a>
+                        <button class="btn btn-secondary" onclick="closeMatchModal()">Close</button>
                     </div>
                 `;
 
@@ -414,7 +443,7 @@
                     _matchModal = window.UI.createModal({
                         title: 'Auto-Matched Qualified Seafarers',
                         bodyHtml,
-                        footerHtml: `<button class="btn btn-secondary" onclick="closeMatchModal()">Close</button>`,
+                        footerHtml,
                         onClose: () => { _matchModal = null; }
                     });
                 }
@@ -433,9 +462,11 @@
                 }
                 try {
                     const res = await window.ApiService.crewing.applications.propose({ requirementId: reqId, candidateId });
-                    if (window.UI?.showToast) window.UI.showToast('✅ ' + (res?.message || 'Candidate successfully proposed.'), 'success');
-                    // Refresh matching candidates so the proposed candidate no
-                    // longer shows as freshly AVAILABLE / can't be proposed again.
+                    if (window.UI?.showToast) {
+                        window.UI.showToast('✅ Candidate successfully proposed! Check Candidate Proposals to track.', 'success');
+                    }
+                    // Refresh matching candidates so the proposed candidate
+                    // shows with "Already Proposed" status and won't be duplicated.
                     await refreshMatchModal(reqId);
                 } catch (error) {
                     console.error('Propose error:', error);
