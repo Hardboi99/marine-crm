@@ -23,6 +23,9 @@ const applicationSchema = new mongoose.Schema(
     },
     rejectionReasonId: { type: mongoose.Schema.Types.ObjectId, ref: 'Reason', default: null },
     rejectionNotes: { type: String, default: null },
+    documentationCleared: { type: Boolean, default: false, index: true },
+    documentationApprovedAt: { type: Date, default: null },
+    documentationApprovedById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', default: null },
     createdById: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   },
   { timestamps: true }

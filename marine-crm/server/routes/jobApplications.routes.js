@@ -356,6 +356,8 @@ router.patch('/:id/status', async (req, res) => {
                         expectedSalary: doc.expectedSalary ? parseFloat(doc.expectedSalary) : null,
                         currency: 'USD',
                         notes: `Auto-created from Job Application ${doc.applicationId}`,
+                        applicationId: doc.applicationId || null,
+                        seafarerId: doc.applicationId || undefined,
                         createdById: userId,
                         assignedToId: userId,
                         currentOwnerId: userId,

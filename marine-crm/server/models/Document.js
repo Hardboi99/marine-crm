@@ -34,7 +34,7 @@ const documentSchema = new mongoose.Schema(
       default: 'OTHER',
     },
     subCategory: {
-      type: String, // PASSPORT, CPC, RENAME, ILO_MEDICAL, COVID_VACCINE, YELLOW_FEVER, FLAG_STATE, etc.
+      type: String, // PASSPORT, CDC, SID, US_VISA, RESUME, ILO_MEDICAL, COVID_VACCINE, YELLOW_FEVER, FLAG_STATE, etc.
       default: null,
     },
     country: {
@@ -54,7 +54,7 @@ const documentSchema = new mongoose.Schema(
       default: null,
     },
     docNumber: {
-      type: String, // Document / Certificate / Passport / CPC number
+      type: String, // Document / Certificate / Passport / CDC / SID number
       default: null,
     },
     issueDate: {

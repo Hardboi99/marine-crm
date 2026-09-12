@@ -1,8 +1,28 @@
 const mongoose = require('mongoose');
 const { CANDIDATE_STATUSES } = require('../utils/workflow');
+const { getNextSequence } = require('./Counter.model');
+
+const SEAFARER_ID_COUNTER = 'seafarerId';
+
+async function generateSeafarerId() {
+  const next = await getNextSequence(SEAFARER_ID_COUNTER);
+  return String(next).padStart(5, '0');
+}
 
 const candidateSchema = new mongoose.Schema(
   {
+    seafarerId: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true,
+      trim: true,
+    },
+    applicationId: {
+      type: String,
+      trim: true,
+      default: null,
+    },
     name: {
       type: String,
       required: true,
@@ -21,6 +41,11 @@ const candidateSchema = new mongoose.Schema(
       type: String,
       required: true,
       trim: true,
+    },
+    vesselType: {
+      type: String,
+      trim: true,
+      default: null,
     },
     status: {
       type: String,
@@ -71,6 +96,14 @@ const candidateSchema = new mongoose.Schema(
       default: null,
     },
     availableFrom: {
+      type: Date,
+      default: null,
+    },
+    onboardingDateTime: {
+      type: Date,
+      default: null,
+    },
+    signOffDateTime: {
       type: Date,
       default: null,
     },
@@ -125,6 +158,26 @@ const candidateSchema = new mongoose.Schema(
       ref: 'User',
       default: null,
     },
+    // Documentation Head Approval & Clearance tracking
+    documentationCleared: {
+      type: Boolean,
+      default: false,
+      index: true,
+    },
+    documentationApprovedAt: {
+      type: Date,
+      default: null,
+    },
+    documentationApprovedById: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null,
+    },
+    documentationNotes: {
+      type: String,
+      trim: true,
+      default: null,
+    },
   },
   { timestamps: true }
 );
@@ -136,13 +189,35 @@ candidateSchema.index({ createdById: 1 });
 candidateSchema.index({ assignedToId: 1 });
 candidateSchema.index({ currentOwnerId: 1 });
 
+candidateSchema.pre('save', async function (next) {
+  if (!this.seafarerId) {
+    try {
+      if (this.applicationId && /^\d{5}$/.test(this.applicationId)) {
+        const existing = await this.constructor.findOne({ seafarerId: this.applicationId });
+        if (!existing) {
+          this.seafarerId = this.applicationId;
+          return next();
+        }
+      }
+      this.seafarerId = await generateSeafarerId();
+    } catch (err) {
+      return next(err);
+    }
+  }
+  next();
+});
+
 candidateSchema.set('toJSON', {
   virtuals: true,
   transform: (doc, ret) => {
     ret.id = ret._id.toString();
+    if (!ret.seafarerId && ret.applicationId) {
+      ret.seafarerId = ret.applicationId;
+    }
     delete ret.__v;
     return ret;
   },
 });
 
 module.exports = mongoose.model('Candidate', candidateSchema);
+

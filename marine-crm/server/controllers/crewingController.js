@@ -199,6 +199,8 @@ const getCandidates = async (req, res, next) => {
     if (search) {
       query.$or = [
         { name: { $regex: search, $options: 'i' } },
+        { seafarerId: { $regex: search, $options: 'i' } },
+        { applicationId: { $regex: search, $options: 'i' } },
         { cocNumber: { $regex: search, $options: 'i' } },
         { nationality: { $regex: search, $options: 'i' } },
         { currentVessel: { $regex: search, $options: 'i' } },
@@ -244,8 +246,8 @@ const getCandidates = async (req, res, next) => {
 const createCandidate = async (req, res, next) => {
   try {
     const {
-      name, rank, nationality, phone, email, cocNumber, passportNumber, passportExpiryDate, cdcNumber, cdcExpiryDate,
-      currentVessel, experienceYears, availableFrom, expectedSalary, currency, notes
+      name, rank, vesselType, nationality, phone, email, cocNumber, passportNumber, passportExpiryDate, cdcNumber, cdcExpiryDate,
+      currentVessel, experienceYears, availableFrom, onboardingDateTime, signOffDateTime, expectedSalary, currency, notes, seafarerId, applicationId
     } = req.body;
 
     if (!name || !rank) {
@@ -275,6 +277,9 @@ const createCandidate = async (req, res, next) => {
 
     const candidate = await Candidate.create({
       name, rank,
+      seafarerId: seafarerId || undefined,
+      applicationId: applicationId || null,
+      vesselType: vesselType || null,
       cocNumber: normalizedCoc || null,
       nationality: nationality || null,
       phone: phone || null,
@@ -286,6 +291,8 @@ const createCandidate = async (req, res, next) => {
       currentVessel: currentVessel || null,
       experienceYears: experienceYears ? parseInt(experienceYears, 10) : 0,
       availableFrom: availableFrom ? new Date(availableFrom) : null,
+      onboardingDateTime: onboardingDateTime ? new Date(onboardingDateTime) : null,
+      signOffDateTime: signOffDateTime ? new Date(signOffDateTime) : null,
       expectedSalary: expectedSalary ? parseFloat(expectedSalary) : null,
       currency: currency || 'USD',
       notes: notes || null,
@@ -331,9 +338,9 @@ const updateCandidate = async (req, res, next) => {
     }
 
     const allowedFields = [
-      'name', 'rank', 'nationality', 'phone', 'email', 'cocNumber', 'passportNumber', 'passportExpiryDate',
+      'name', 'rank', 'vesselType', 'nationality', 'phone', 'email', 'cocNumber', 'passportNumber', 'passportExpiryDate',
       'cdcNumber', 'cdcExpiryDate',
-      'currentVessel', 'experienceYears', 'availableFrom', 'expectedSalary', 'currency', 'status', 'notes'
+      'currentVessel', 'experienceYears', 'availableFrom', 'onboardingDateTime', 'signOffDateTime', 'expectedSalary', 'currency', 'status', 'notes'
     ];
     const updateData = {};
     for (const field of allowedFields) {
@@ -361,6 +368,10 @@ const updateCandidate = async (req, res, next) => {
     else if (updateData.passportExpiryDate) updateData.passportExpiryDate = new Date(updateData.passportExpiryDate);
     if (updateData.cdcExpiryDate === '') updateData.cdcExpiryDate = null;
     else if (updateData.cdcExpiryDate) updateData.cdcExpiryDate = new Date(updateData.cdcExpiryDate);
+    if (updateData.onboardingDateTime === '') updateData.onboardingDateTime = null;
+    else if (updateData.onboardingDateTime) updateData.onboardingDateTime = new Date(updateData.onboardingDateTime);
+    if (updateData.signOffDateTime === '') updateData.signOffDateTime = null;
+    else if (updateData.signOffDateTime) updateData.signOffDateTime = new Date(updateData.signOffDateTime);
 
     // §22 — workflow transition control: no arbitrary jumping between
     // stages, and sensitive downstream statuses are role-gated.
@@ -495,29 +506,55 @@ const matchCandidates = async (req, res, next) => {
     }
 
     // Matching criteria:
-    // 1. Rank matches
-    // 2. Status is AVAILABLE or SHORTLISTED (not proposed/onboarded)
-    // 3. experienceYears meets the requirement's minimum (converted from months)
-    // NOTE: the Candidate schema does not track experience per-vessel-type
-    // (there is no vesselExperience list), only a single currentVessel and
-    // an overall experienceYears count, so vessel-type-specific matching
-    // isn't possible without extending the schema — this matches on the
-    // closest real data available instead of crashing.
+    // 1. Rank matches (case-insensitive & trimmed)
+    // 2. Status is AVAILABLE, SHORTLISTED, or PROPOSED (so proposed crew can be seen with 'Already Proposed' status)
+    // 3. experienceYears meets the requirement's minimum (floor of months / 12 so e.g. 2 months matches 0+ years)
+    // 4. Vessel Type matches (or general candidate with no vessel type assigned yet)
     const minExperienceYears = requirement.experienceMonthsRequired
-      ? requirement.experienceMonthsRequired / 12
+      ? Math.floor(requirement.experienceMonthsRequired / 12)
       : 0;
 
-    const query = {
-      rank: requirement.rank,
-      status: { $in: ['AVAILABLE', 'SHORTLISTED'] },
-      experienceYears: { $gte: minExperienceYears },
-    };
+    const rankRegex = new RegExp(`^${(requirement.rank || '').trim().replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')}$`, 'i');
+
+    const andConditions = [
+      { rank: { $regex: rankRegex } },
+      { status: { $in: ['AVAILABLE', 'SHORTLISTED', 'PROPOSED'] } },
+      { experienceYears: { $gte: minExperienceYears } },
+    ];
+
+    if (requirement.vesselType) {
+      const normalizedVessel = (requirement.vesselType || '').trim().replace(/[-\s]/g, '[- ]?');
+      const vesselRegex = new RegExp(`^${normalizedVessel}$`, 'i');
+      andConditions.push({
+        $or: [
+          { vesselType: { $regex: vesselRegex } },
+          { vesselType: null },
+          { vesselType: '' },
+          { vesselType: { $exists: false } }
+        ]
+      });
+    }
 
     // Only match against candidates this user is actually allowed to see.
     const scope = await getDataScope(req.currentUser, 'CANDIDATE');
-    Object.assign(query, scope);
+    if (scope && Object.keys(scope).length > 0) {
+      andConditions.push(scope);
+    }
 
-    const matched = await Candidate.find(query);
+    const query = andConditions.length > 0 ? { $and: andConditions } : {};
+
+    let matched = await Candidate.find(query).sort({ experienceYears: -1, createdAt: -1 });
+
+    // Prioritize candidates who match the exact vessel type requested
+    if (requirement.vesselType) {
+      const targetVessel = requirement.vesselType.toLowerCase().replace(/[-\s]/g, '');
+      matched = matched.sort((a, b) => {
+        const aMatch = (a.vesselType || '').toLowerCase().replace(/[-\s]/g, '') === targetVessel ? 1 : 0;
+        const bMatch = (b.vesselType || '').toLowerCase().replace(/[-\s]/g, '') === targetVessel ? 1 : 0;
+        if (aMatch !== bMatch) return bMatch - aMatch;
+        return (b.experienceYears || 0) - (a.experienceYears || 0);
+      });
+    }
 
     res.json({ success: true, data: matched });
   } catch (err) {
@@ -835,7 +872,7 @@ const uploadCandidateDocument = async (req, res, next) => {
       applicationId,
     } = req.body;
 
-    const finalCategory = category || 'NORMAL_DOCS';
+    const finalCategory = category || 'TRAVEL_DOCS';
     const finalSubCategory = subCategory || documentType || 'OTHER';
 
     const doc = await Document.create({
@@ -1021,6 +1058,159 @@ const reassignCandidate = async (req, res, next) => {
   }
 };
 
+// ─── BOARD ON SHIP / DEPLOYMENT CLEARANCE ────────────────────────────
+const boardCandidateOnShip = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { requirementId, vesselName, portOfJoining, reportingDate, flightDetails, notes } = req.body;
+
+    const candidate = await Candidate.findById(id);
+    if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, candidate, 'CANDIDATE');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
+    }
+
+    // Set candidate status to ONBOARDING
+    candidate.status = 'ONBOARDING';
+    candidate.currentDepartment = DEPARTMENTS.ONBOARDING;
+    candidate.department = DEPARTMENTS.ONBOARDING;
+    candidate.workflowStage = 'ONBOARDING';
+    if (vesselName) candidate.currentVessel = vesselName;
+    if (notes) candidate.notes = candidate.notes ? `${candidate.notes} | Boarding Note: ${notes}` : `Boarding Note: ${notes}`;
+    await candidate.save();
+
+    // Resolve requirement and company
+    let targetRequirementId = requirementId;
+    let targetCompanyId = null;
+
+    if (!targetRequirementId) {
+      const acceptedApp = await Application.findOne({ candidateId: candidate._id, status: 'CLIENT_ACCEPTED' })
+        .sort({ createdAt: -1 })
+        .populate('requirementId');
+      if (acceptedApp && acceptedApp.requirementId) {
+        targetRequirementId = acceptedApp.requirementId._id;
+        targetCompanyId = acceptedApp.requirementId.companyId;
+      }
+    } else {
+      const reqDoc = await Requirement.findById(targetRequirementId);
+      if (reqDoc) targetCompanyId = reqDoc.companyId;
+    }
+
+    let onboarding = null;
+    if (targetRequirementId) {
+      onboarding = await Onboarding.findOne({ candidateId: candidate._id, requirementId: targetRequirementId });
+      const updateFields = {
+        vesselName: vesselName || (candidate.currentVessel || 'Assigned Vessel'),
+        portOfJoining: portOfJoining || 'Main Port',
+        reportingDate: reportingDate ? new Date(reportingDate) : new Date(),
+        flightDetails: flightDetails || '',
+        status: 'IN_PROGRESS',
+        updatedById: req.user.id,
+        passportValidityChecked: true,
+        cdcValidityChecked: true,
+        medicalCleared: true,
+      };
+
+      if (onboarding) {
+        Object.assign(onboarding, updateFields);
+        await onboarding.save();
+      } else {
+        try {
+          onboarding = await Onboarding.create({
+            candidateId: candidate._id,
+            requirementId: targetRequirementId,
+            companyId: targetCompanyId,
+            ...updateFields
+          });
+        } catch (createErr) {
+          if (createErr.code === 11000) {
+            onboarding = await Onboarding.findOne({ candidateId: candidate._id, requirementId: targetRequirementId });
+            if (onboarding) {
+              Object.assign(onboarding, updateFields);
+              await onboarding.save();
+            }
+          } else {
+            throw createErr;
+          }
+        }
+      }
+    }
+
+    await logActivity({
+      userId: req.user.id,
+      entityType: 'CANDIDATE',
+      entityId: candidate._id.toString(),
+      action: 'CANDIDATE_BOARDED_ON_SHIP',
+      details: {
+        candidate: candidate.name,
+        vessel: vesselName,
+        port: portOfJoining,
+        reportingDate: reportingDate || new Date().toISOString()
+      }
+    });
+
+    res.json({
+      success: true,
+      message: `🚢 ${candidate.name} successfully cleared and instructed to board on ship!`,
+      data: { candidate, onboarding }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// ─── DOCUMENTATION HEAD CLEARANCE ────────────────────────────────────
+const clearCandidateDocumentation = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+    const { notes } = req.body || {};
+
+    const candidate = await Candidate.findById(id);
+    if (!candidate) return res.status(404).json({ success: false, message: 'Candidate not found.' });
+
+    const allowedToAccess = await canAccessRecord(req.currentUser, candidate, 'CANDIDATE');
+    if (!allowedToAccess) {
+      return res.status(403).json({ success: false, message: 'You do not have access to this candidate record.' });
+    }
+
+    candidate.documentationCleared = true;
+    candidate.documentationApprovedAt = new Date();
+    candidate.documentationApprovedById = req.user.id;
+    if (notes) candidate.documentationNotes = notes;
+    await candidate.save();
+
+    // Also mark accepted applications as documentation cleared
+    await Application.updateMany(
+      { candidateId: candidate._id, status: 'CLIENT_ACCEPTED' },
+      { documentationCleared: true, documentationApprovedAt: new Date(), documentationApprovedById: req.user.id }
+    );
+
+    // Auto-approve any pending candidate documents
+    await Document.updateMany(
+      { candidateId: candidate._id, status: 'PENDING' },
+      { status: 'APPROVED', verifiedById: req.user.id, verifiedAt: new Date() }
+    );
+
+    await logActivity({
+      userId: req.user.id,
+      entityType: 'CANDIDATE',
+      entityId: candidate._id.toString(),
+      action: 'DOCUMENTATION_CLEARED_BY_HEAD',
+      details: { candidate: candidate.name, approvedBy: req.currentUser.name || req.currentUser.email }
+    });
+
+    res.json({
+      success: true,
+      message: `🛡️ Documentation verified and approved by Documentation Head! ${candidate.name} is now cleared to board on ship.`,
+      data: { candidate }
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 module.exports = {
   getVessels,
   createVessel,
@@ -1034,6 +1224,8 @@ module.exports = {
   updateCandidate,
   reassignCandidate,
   deleteCandidate,
+  boardCandidateOnShip,
+  clearCandidateDocumentation,
   matchCandidates,
   getApplications,
   proposeCandidate,

@@ -7,6 +7,7 @@ const {
   getRequirements, createRequirement, updateRequirement, deleteRequirement,
   getVessels, createVessel,
   getCandidates, getCandidateByCoc, createCandidate, updateCandidate, reassignCandidate, deleteCandidate,
+  boardCandidateOnShip, clearCandidateDocumentation,
   matchCandidates, getApplications, proposeCandidate, setApplicationDecision,
   getCandidateDocuments, uploadCandidateDocument, updateCandidateDocument, deleteCandidateDocument
 } = require('../controllers/crewingController');
@@ -19,17 +20,19 @@ router.use(authenticate, loadCurrentUser);
 router.get('/requirements', getRequirements);
 router.get('/vessels', getVessels);
 router.post('/vessels', requireRole('ADMIN', 'DIRECTOR', 'COO', 'BDM', 'SOURCING_MANAGER'), createVessel);
-router.post('/requirements', requireRole('ADMIN', 'DIRECTOR', 'COO', 'BDM', 'SOURCING_MANAGER'), createRequirement);
-router.put('/requirements/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'BDM', 'SOURCING_MANAGER', 'SOURCING_OFFICER'), updateRequirement);
-router.delete('/requirements/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'SOURCING_MANAGER'), deleteRequirement);
+router.post('/requirements', requireRole('ADMIN', 'DIRECTOR', 'COO', 'BDM', 'SOURCING_MANAGER','SOURCING_OFFICER','CREWING_MANAGER','CREWING_OFFICER'), createRequirement);
+router.put('/requirements/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'BDM', 'SOURCING_MANAGER', 'SOURCING_OFFICER','CREWING_MANAGER','CREWING_OFFICER'), updateRequirement);
+router.delete('/requirements/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'SOURCING_MANAGER','SOURCING_OFFICER','CREWING_MANAGER','CREWING_OFFICER'), deleteRequirement);
 
 // Candidate profile routes
 router.get('/candidates', getCandidates);
 router.get('/candidates/by-coc/:cocNumber', getCandidateByCoc);
 router.post('/candidates', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER'), createCandidate);
 router.put('/candidates/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER', 'ACCOUNTS_OFFICER'), updateCandidate);
+router.post('/candidates/:id/clear-documentation', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER', 'ACCOUNTS_OFFICER', 'CREWING_MANAGER', 'CREWING_OFFICER'), clearCandidateDocumentation);
+router.post('/candidates/:id/board-on-ship', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'DOCUMENTATION_MANAGER', 'DOCUMENTATION_OFFICER', 'ACCOUNTS_OFFICER', 'CREWING_MANAGER', 'CREWING_OFFICER'), boardCandidateOnShip);
 router.patch('/candidates/:id/reassign', requireRole('ADMIN', 'DIRECTOR', 'COO', 'HR', 'SOURCING_MANAGER', 'DOCUMENTATION_MANAGER'), reassignCandidate);
-router.delete('/candidates/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'SOURCING_MANAGER'), deleteCandidate);
+router.delete('/candidates/:id', requireRole('ADMIN', 'DIRECTOR', 'COO', 'SOURCING_MANAGER', 'SOURCING_OFFICER', 'CREWING_MANAGER', 'CREWING_OFFICER'), deleteCandidate);
 
 // Automated matching endpoint
 router.get('/requirements/:id/match', matchCandidates);

@@ -51,7 +51,6 @@ const JobApplicationSchema = new Schema(
             type: String,
             unique: true,
             index: true,
-            default: generateApplicationId,
             immutable: true, // once assigned, never changes on later updates
             match: /^\d{5}$/, // exactly 5 numeric digits, e.g. 00001 — no prefixes/letters/dates
         },
@@ -153,6 +152,17 @@ const JobApplicationSchema = new Schema(
     },
     { timestamps: true }
 );
+
+JobApplicationSchema.pre('validate', async function (next) {
+    if (this.isNew && !this.applicationId) {
+        try {
+            this.applicationId = await generateApplicationId();
+        } catch (err) {
+            return next(err);
+        }
+    }
+    next();
+});
 
 JobApplicationSchema.index({ fullName: 'text', rankAppliedFor: 'text', lastCompany: 'text', cocNumber: 'text' });
 JobApplicationSchema.index({ createdAt: -1 });
